@@ -1,6 +1,15 @@
 {
     "name": "seriti/tools",
     "description": "A set of PHP tools for LAMP stack development",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mark Andrew",
+            "email": "mark@seriti.com",
+            "homepage": "www.seriti.co.za",
+            "role": "Developer"
+        }
+    ],
     "require": {
         "php": "^7.0",
         "defuse/php-encryption": "^2.2",
@@ -8,5 +17,10 @@
         "setasign/fpdf": "^1.8",
         "aws/aws-sdk-php": "^3.71",
         "erusev/parsedown": "^1.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "Seriti\\Tools\\": "src"
+        }
     }
 }
