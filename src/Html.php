@@ -300,6 +300,9 @@ class Html
         if(!isset($options['spacing'])) $options['spacing'] = '2';
         if(!isset($options['padding'])) $options['padding'] = '2';
         if(!isset($options['width'])) $options['width'] = '100%';
+        //use to set <colgroup></colgroup> styling elements for columns
+        if(!isset($options['colgroup'])) $options['colgroup'] = '';
+
         if($options['csv_output'] == 'YES') {
             $csv = true;
             $csv_row = '';
@@ -319,6 +322,8 @@ class Html
         $row_count = count($array[0]);
         
         $html = '<table width="'.$options['width'].'" cellspacing="'.$options['spacing'].'" cellpadding="'.$options['padding'].'" '.$class.'>';
+
+        if($options['colgroup'] !== '') $html .= $options['colgroup'];
         
         //width settings
         $set_width = false;
@@ -362,6 +367,7 @@ class Html
                 } else {
                     $class = 'trow';
                 }
+                $class = '';
                 if($options['active_row'] and $r == $options['active_row']) $class = $options['active_class'];
                 $html .= '<tr class="'.$class.'" >';
                 
