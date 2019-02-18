@@ -18,6 +18,7 @@ use Seriti\Tools\TableStructures;
 
 use Seriti\Tools\BASE_URL;
 use Seriti\Tools\BASE_UPLOAD_WWW;
+use Seriti\Tools\TABLE_TOKEN;
 
 use Psr\Container\ContainerInterface;
 
@@ -42,10 +43,8 @@ class User extends Model
     protected $email = '';
     protected $login_logo = 'images/logo.png';
     protected $login_cookie = 'login_token';
+    protected $cookie_expire_days = 30;
         
-    //can login from multiple devices with separate tokens
-    protected $login_device_id = 'PRIMARY';
-    protected $login_devices = array('PRIMARY'=>'Primary device','ALT'=>'Alternative device');
     protected $login_days = array(1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
                                   14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year'); 
 
@@ -91,10 +90,7 @@ class User extends Model
         $this->addCol(['id'=>$this->user_cols['login_fail'],'title'=>'Login Fail count','type'=>'INTEGER','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['status'],'title'=>'Status','type'=>'STRING','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['email_token'],'title'=>'Email token','type'=>'STRING','required'=>false]);
-        $this->addCol(['id'=>$this->user_cols['login_token'],'title'=>'Login PRIMARY token','type'=>'STRING','required'=>false]);
-        $this->addCol(['id'=>$this->user_cols['login_expire'],'title'=>'Login PRIMARY expire','type'=>'DATE','required'=>false]);
-        $this->addCol(['id'=>$this->user_cols['login_alt_token'],'title'=>'Login ALT token','type'=>'STRING','required'=>false]);
-        $this->addCol(['id'=>$this->user_cols['login_alt_expire'],'title'=>'Login ALT expire','type'=>'DATE','required'=>false]);
+        $this->addCol(['id'=>$this->user_cols['email_token_expire'],'title'=>'Login PRIMARY expire','type'=>'DATE','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['csrf_token'],'title'=>'CSRF token','type'=>'STRING','required'=>false]);
     }  
     
@@ -117,7 +113,7 @@ class User extends Model
 
         if($this->mode === 'logout') $this->manageUserAction('LOGOUT');
         if($this->mode === 'reset_pwd') $this->resetPassword($_GET['token']);
-        if($this->mode === 'reset_login') $this->resetLogin($_GET['token']);
+        if($this->mode === 'reset_login') $this->resetLoginLink($_GET['token']);
         if($this->mode === 'reset_send') $this->resetSend($form);
         if($this->mode === 'login') $this->manageLogin('LOGIN',$form);
         
@@ -138,6 +134,11 @@ class User extends Model
     public function getCsrfToken()
     {
         return $this->data[$this->user_cols['csrf_token']];
+    }
+
+    public function getEmail()
+    {
+        return $this->data[$this->user_cols['email']];
     }
 
     public function getAccessLevel()
@@ -173,8 +174,6 @@ class User extends Model
         $view['reset_send'] = $reset_send;
         $view['email'] = $this->email;
         
-        $view['devices'] = $this->login_devices;
-        $view['device_id'] = $this->login_device_id;
         $view['days'] = $this->login_days;
         $view['days_expire'] = 30;
     
@@ -193,9 +192,6 @@ class User extends Model
         $password = $form['password'];
         $human = $form[$this->cache['human']];
         $human_cache = $this->getCache($this->cache['human']);
-
-        $device = Secure::clean('alpha',$form['login_device']);
-        if($device !== 'PRIMARY' and $device !== 'ALT') $device = 'PRIMARY';
 
         //first check if password reset requested ********************************************
         $reset = $this->getCache($this->cache['reset']);
@@ -242,8 +238,6 @@ class User extends Model
             Validate::string('Password',1,64,$password,$error);
             if($error !== '') $this->addError($error);
         } 
-
-
             
         if(!$this->errors_found and $human !== $human_cache) {
             $this->addError('Are you human? Please enable cookies!');
@@ -267,7 +261,7 @@ class User extends Model
                     if(isset($form['remember_me'])) $remember_me = true; else $remember_me = false;
                     $days_expire = Secure::clean('integer',$form['days_expire']);
 
-                    $this->manageUserAction('LOGIN',$user,$device,$remember_me,$days_expire);
+                    $this->manageUserAction('LOGIN',$user,$remember_me,$days_expire);
                 } else {
                     $description = 'Email['.$email.'] pwd[****'.substr($password,6).'] login FAILED';
                     Audit::action($this->db,$user_id,'LOGIN_FAIL',$description);
@@ -285,8 +279,8 @@ class User extends Model
         if($this->errors_found) sleep(3);
     }  
     
-    public function manageUserAction($action = 'LOGIN',$user = array(),$device = 'PRIMARY',$remember_me = false,$expire_days = 0) {
-        if($action === 'LOGIN' or $action === 'AUTO_LOGIN') {
+    public function manageUserAction($action = 'LOGIN',$user = [],$remember_me = false,$expire_days = 0,$token = '') {
+        if($action === 'LOGIN' or $action === 'LOGIN_AUTO' or $action === 'LOGIN_LINK') {
             if(count($user) == 0) {
                 throw new Exception('USER_AUTH_ERROR: Invalid user data');
             } else { 
@@ -300,58 +294,54 @@ class User extends Model
             //NB any form csrf check will use $this->data above BEFORE this update is applied
             $update[$this->user_cols['csrf_token']] = Crypt::makeToken();
 
-            //if AUTO_LOGIN then remember_me checkbox must have been checked previously
-            if($action === 'AUTO_LOGIN' or ($action === 'LOGIN' and $remember_me)) {
-                //replace existing login token or create new token
-                $login_token = Crypt::makeToken();
+            //Set/Reset login cookie
+            if($remember_me) {
+                if($expire_days < 1) $expire_days = 1;
 
                 if($action === 'LOGIN') {
-                    if($expire_days < 1) $expire_days = 1;
-                    $date = getdate();
-                    $date_expire = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$expire_days,$date['year']));
-
-                    if($device === 'ALT') {
-                        $update[$this->user_cols['login_alt_token']] = $login_token;
-                        $update[$this->user_cols['login_alt_expire']] = $date_expire;
-                    } else {
-                        $update[$this->user_cols['login_token']] = $login_token;
-                        $update[$this->user_cols['login_expire']] = $date_expire;
-                    }   
+                    //expire days as selected by user on login
+                    $login_token = $this->insertLoginToken($this->user_id,$expire_days);
                 } 
 
-                if($action === 'AUTO_LOGIN') {
-                    if($device === 'ALT') {
-                        $update[$this->user_cols['login_alt_token']] = $login_token;
-                        $date_expire = $user[$this->user_cols['login_alt_expire']];
-                    } else {
-                        $update[$this->user_cols['login_token']] = $login_token;
-                        $date_expire = $user[$this->user_cols['login_expire']];
-                    }
+                if($action === 'LOGIN_AUTO') {
+                    //expiry date of token unchanged from original LOGIN
+                    $login_token = $this->updateLoginToken($token,$this->user_id);
+                }
 
-                    $expire_days = Date::calcDays(date('Y-m-d'),$date_expire); 
+                //NB: login token already saved to DB before email sent with login link
+                if($action === 'LOGIN_LINK') {
+                    $login_token = $token;
                 }
    
-                Form::setCookie($this->login_cookie,$login_token,$expire_days);
+                //NB: cookie expire days are independent of token expiry date
+                Form::setCookie($this->login_cookie,$login_token,$this->cookie_expire_days);
             }
 
             $result = $this->update($this->user_id,$update);
             if($result['status'] !== 'OK') {
-                $error = 'USER_AUTH_ERROR: could not update user login token';
+                $error = 'USER_AUTH_ERROR: could not update user csrf token';
                 if($this->debug) $error .= ' User ID['.$this->user_id.']: '.implode(',',$result['errors']);
                 throw new Exception($error);
             } 
 
-            if($action === 'LOGIN') {
+            if($action === 'LOGIN' or $action === 'LOGIN_LINK') {
                 $description = 'Email['.$user[$this->user_cols['email']].'] login SUCCESS';
-                Audit::action($this->db,$this->user_id,'LOGIN',$description);
+                Audit::action($this->db,$this->user_id,$action,$description);
                 //redirect to page last visited or default
                 $this->redirectLastPage();
-            }    
+            } 
         }
         
         if($action === 'LOGOUT') {
             //erase all cache values
             $_SESSION = [];
+
+            //remove server version of login cookie if exists
+            $token = Form::getCookie($this->login_cookie);
+            if($token !== '') {
+                $this->deleteLoginToken($token);
+            }
+
             //removes auto login cookie by making days negative(-1)
             Form::setCookie($this->login_cookie,'',-1); 
         }  
@@ -381,72 +371,25 @@ class User extends Model
                 $user_id = $user[$this->user_cols['id']];
                 $this->db->setAuditUserId($user_id);
 
+                //send 
                 if($reset_type === 'PASSWORD') {
-                    $email_token = Crypt::makeToken();
-                    $days_expire = 1;
-                    $date_str = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$days_expire,$date['year']));
-                    $data = array($this->user_cols['email_token']=>$email_token,$this->user_cols['login_expire']=>$date_str);
-
-                    $result = $this->update($user_id,$data);
-                    if($result['status'] !== 'OK') {
-                        $error = 'USER_AUTH_ERROR: Could not update user email token!';
-                        if($this->debug) $error .= ' User ID['.$user_id.']: '.implode(',',$result['errors']);
-                        throw new Exception($error);
-                    } 
-                    
-                    $from = MAIL_FROM;
-                    $subject = SITE_NAME.' - password RESET';
-                    $body = 'You requested a password reset by email.'."\r\n".
-                            'Please click on the link below to reset your password....'."\r\n".
-                            BASE_URL.$this->routes['login'].'?mode=reset_pwd&token='.urlencode($email_token);
-
-                    $info = 'Please check your email and click on the link in the email to RESET your password.';
+                    if($this->resetSendPasswordLink($user_id)) {
+                       $this->addMessage('Please check your email and click on the link in the email to RESET your password.'); 
+                    }
                 } 
 
                 if($reset_type === 'LOGIN') {
-                    $device = Secure::clean('alpha',$form['login_device']);
-                    if(!isset($this->login_devices[$device])) $device = 'PRIMARY';
-                    if($device === 'PRIMARY') $device_name = 'PRIMARY'; else $device_name = 'ALTERNATIVE';
-                    
-                    $login_token = Crypt::makeToken();
                     $days_expire = Secure::clean('integer',$form['days_expire']);
-                    $date_str = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$days_expire,$date['year']));
-                    if($device === 'PRIMARY') {
-                        $data = [$this->user_cols['login_token']=>$login_token,$this->user_cols['login_expire']=>$date_str];
-                    } else {
-                        $data = [$this->user_cols['login_alt_token']=>$login_token,$this->user_cols['login_alt_expire']=>$date_str];
-                    }   
-
-                    $result = $this->update($user_id,$data);
-                    if($result['status'] !== 'OK') {
-                        $error = 'USER_AUTH_ERROR: Could not update user login token!';
-                        if($this->debug) $error .= ' User ID['.$user_id.']: '.implode(',',$result['errors']);
-                        throw new Exception($error);
-                    } 
-                    
-                    $from = MAIL_FROM;
-                    $subject = SITE_NAME.' - login RESET';
-                    $body = 'You requested a login reset by email for your '.$device_name.' device'."\r\n".
-                            'Please click on the link below to login from this device....'."\r\n".
-                            'This login will expire on: '.$date_str.' or earlier if you reset cookies for site.'."\r\n".
-                            BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($login_token);
-
-                    $info = 'Please check your email and click on the link in the email to LOGIN for '.$days_expire.' days<br/>'.
-                            'This login is for your '.$device_name.' device.';
+                    if($this->resetSendLogin($user_id,$days_expire)) {
+                       $this->addMessage('Please check your email and click on the link in the email to LOGIN');  
+                    }
                 }   
-
-                $mailer = $this->getContainer('mail');
-                if($mailer->sendEmail($from,$email,$subject,$body,$error)) {
-                    $this->addMessage('SUCCESS sending '.$reset_type.' reset to['.$email.'] '); 
-                    $this->addMessage($info);
-                } else {
-                    $this->addError('FAILURE emailing '.$reset_type.' reset to['.$email.']: Please try again later or contact support['.$from.']'); 
-                }    
             } 
         }
     }  
     
-    public function resetLogin($token) {
+    //NB: login token already saved to DB before email sent with login link
+    public function resetLoginLink($token) {
         $error = '';
         $token = Secure::clean('alpha',$token);
         if($token !== '') {
@@ -456,18 +399,9 @@ class User extends Model
                 if($this->debug) $error .= $token;
                 $this->addError($error);
             } else {    
-                if($user[$this->user_cols['login_alt_token']] === $token) {
-                    $device = 'ALT';
-                    $date_expire = $user[$this->user_cols['login_alt_expire']];
-                } else {
-                    $device = 'PRIMARY';
-                    $date_expire = $user[$this->user_cols['login_expire']];  
-                }    
-
-                $expire_days = Date::calcDays(date('Y-m-d'),$date_expire);
-                Form::setCookie($this->login_cookie,$token,$expire_days);
-
-                $this->manageUserAction('LOGIN',$user,$device);
+                $remember_me = true;
+                $expire_days = 30;
+                $this->manageUserAction('LOGIN_LINK',$user,$remember_me,$expire_days,$token);
             }
         }    
     }
@@ -507,18 +441,17 @@ class User extends Model
         if($type === 'EMAIL_TOKEN') {
             $sql = 'SELECT * FROM '.$this->table.' '.
                    'WHERE '.$this->user_cols['email_token'].' = "'.$this->db->escapeSql($value).'" AND '.
-                            $this->user_cols['login_expire'].' >= CURDATE() ';
+                            $this->user_cols['email_token_expire'].' >= CURDATE() ';
             $user = $this->db->readSqlRecord($sql);
         }    
 
         if($type === 'LOGIN_TOKEN') {
-            $sql = 'SELECT * FROM '.$this->table.' '.
-                   'WHERE ('.$this->user_cols['login_token'].' = "'.$this->db->escapeSql($value).'" AND '.
-                             $this->user_cols['login_expire'].' > CURDATE()) OR '.
-                         '('.$this->user_cols['login_alt_token'].' = "'.$this->db->escapeSql($value).'" AND '.
-                             $this->user_cols['login_alt_expire'].' > CURDATE()) '.
-                   'LIMIT 1 ';
-            $user = $this->db->readSqlRecord($sql);
+            $token = $this->checkLoginToken($value);
+            if($token !== 0) {
+                $user = $this->get($token[$this->user_cols['id']]);
+            } else {
+                $user = 0;
+            }
         }
 
         if($type === 'EMAIL') {
@@ -557,16 +490,17 @@ class User extends Model
             $level = $this->data[$this->user_cols['access']];
         } else {  
             $level = 'NONE';
+            
             //check for auto login cookie and re-login if valid
             $login_token = Form::getCookie($this->login_cookie);
             if($login_token !== ''){
                 $user = $this->getUser('LOGIN_TOKEN',$login_token);
                 if($user != 0) {
-                    $device = 'PRIMARY';
-                    if($user[$this->user_cols['login_alt_token']] === $login_token) $device = 'ALT';
                     $level = $user[$this->user_cols['access']];
 
-                    $this->manageUserAction('AUTO_LOGIN',$user,$device);
+                    $remember_me = true;
+                    $expire_days = 30;
+                    $this->manageUserAction('LOGIN_AUTO',$user,$remember_me,$expire_days,$login_token);
                 } 
             } 
                         
@@ -649,8 +583,54 @@ class User extends Model
 
     // *** HELPER FUNCTIONS FOR ANY USER, NOT JUST CURRENT LOGGED IN USER ****
 
+    //send ANY user link so they can reset password of their own choice
+    public function resetSendPasswordLink($user_id)
+    {
+        $error = '';
+
+        $user = $this->get($user_id);
+        if($user == 0) $this->addError('Invalid user id['.$user_id.']'); 
+
+        if(!$this->errors_found) {
+            $date = getdate(); 
+
+            $email_token = Crypt::makeToken();
+            $days_expire = 1;
+            $date_str = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$days_expire,$date['year']));
+            
+            $data = [$this->user_cols['email_token']=>$email_token,
+                     $this->user_cols['email_token_expire']=>$date_str];
+
+            $result = $this->update($user_id,$data);
+            if($result['status'] !== 'OK') {
+                $error = 'USER_AUTH_ERROR: Could not update user email token!';
+                if($this->debug) $error .= ' User ID['.$user_id.']: '.implode(',',$result['errors']);
+                throw new Exception($error);
+            } 
+            
+            $to = $user[$this->user_cols['email']];
+            $from = MAIL_FROM;
+            $subject = SITE_NAME.' - password RESET';
+            $body = 'You requested a password reset by email.'."\r\n".
+                    'Please click on the link below to reset your password....'."\r\n".
+                    BASE_URL.$this->routes['login'].'?mode=reset_pwd&token='.urlencode($email_token);
+
+            if(!$this->errors_found) {
+                $mailer = $this->getContainer('mail');
+                if($mailer->sendEmail($from,$to,$subject,$body,$error)) {
+                    $this->addMessage('SUCCESS sending password reset link to['.$email.'] '); 
+                } else {
+                    $this->addError('FAILURE emailing password reset link to['.$email.']: Please try again later or contact support['.$from.']'); 
+                } 
+            }    
+        }
+
+        if(!$this->errors_found) return true; else return false;     
+    }
+
     //generate a new password and email to ANY user
-    public function resetSendPassword($user_id) {
+    public function resetSendPassword($user_id) 
+    {
         $error = '';
         $error_tmp ='';
        
@@ -693,54 +673,147 @@ class User extends Model
     }
 
     //generate a new Login token and email to ANY user
-    public function resetSendLogin($user_id,$device = 'PRIMARY',$expire_days = 0) {
+    public function resetSendLogin($user_id,$expire_days = 0) 
+    {
         $error = '';
+        $error_tmp = '';
        
         $user = $this->get($user_id);
         if($user == 0) $this->addError('Invalid user id['.$user_id.']'); 
 
         if(!$this->errors_found) {
-            $login_token = Crypt::makeToken();
-                
-            if($expire_days < 1) $expire_days = 1;
+            
+            $login_token = $this->insertLoginToken($user_id,$expire_days);
+
             $date = getdate();
             $date_expire = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$expire_days,$date['year']));
 
-            $data = [];
-            if($device === 'ALT') {
-                $data[$this->user_cols['login_alt_token']] = $login_token;
-                $data[$this->user_cols['login_alt_expire']] = $date_expire;
-            } else {
-                $data[$this->user_cols['login_token']] = $login_token;
-                $data[$this->user_cols['login_expire']] = $date_expire;
-            }   
+            $email = $user[$this->user_cols['email']];
+            $audit_str = 'User['.$user_id.'] Email['.$email.'] expiry['.$date_expire.'] login token ADDED';
+            Audit::action($this->db,$this->user_id,'USER_TOKEN_INSERT',$audit_str);
+            
+            $from = ''; //default config email from used
+            $subject = SITE_NAME.' user login token reset';
+            $body = 'Please click on the link below to login from this device....'."\r\n".
+                    'This login will expire on: '.$date_expire.' or earlier if you reset cookies for site.'."\r\n".
+                    BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($login_token);
+            
+            $mailer = $this->getContainer('mail');
+            if(!$mailer->sendEmail($from,$email,$subject,$body,$error_tmp)) {
+                $error .= 'FAILURE emailing user['.$user_id.'] login token to address['.$email.']'; 
+                if($this->debug) $error .= $error_tmp;
+                $this->addError($error);
+            }
 
-            $result = $this->update($user_id,$data);
-            if($result['status'] !== 'OK') {
-                $error = 'USER_AUTH_ERROR: could not reset login token';
-                if($this->debug) $error .= ' User ID['.$user_id.'] device['.$device.']: '.implode(',',$result['errors']);
-                throw new Exception($error);
-            } else {
-                $email = $user[$this->user_cols['email']];
-                $audit_str = 'User['.$user_id.'] Email['.$email.'] device['.$device.'] expiry['.$date_expire.'] login token RESET';
-                Audit::action($this->db,$this->user_id,'USER_TOKEN_RESET',$audit_str);
-                
-                $from = ''; //default config email from used
-                $subject = SITE_NAME.' user login token reset';
-                $body = 'Please click on the link below to login from this device....'."\r\n".
-                        'This login will expire on: '.$date_expire.' or earlier if you reset cookies for site.'."\r\n".
-                        BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($login_token);
-                
-                $mailer = $this->getContainer('mail');
-                if(!$mailer->sendEmail($from,$email,$subject,$body,$error_tmp)) {
-                    $error .= 'FAILURE emailing user['.$user_id.'] password reset to address['.$email.']'; 
-                    if($this->debug) $error .= $error_tmp;
-                    $this->addError($error);
-                }
-            }  
         } 
 
         if(!$this->errors_found) return true; else return false; 
+    }
+
+    //get rid of any expired login tokens.
+    protected function expireLoginTokens($user_id) 
+    {
+        $error = '';
+
+        $sql = 'DELETE FROM '.TABLE_TOKEN.' '.
+               'WHERE '.$this->token_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" AND '.
+                        $this->token_cols['date_expire'].' <= NOW()';
+
+        $this->db->executeSql($sql,$error); 
+        if($error !== '') {
+            $error = 'USER_TOKEN_ERROR: could not create new login token';
+            if($this->debug) $error .= ' User ID['.$user_id.']';
+            throw new Exception($error);
+        }                
+    }
+
+    //delete a single token regardless of user
+    protected function deleteLoginToken($token) 
+    {
+        $token = Secure::Clean('alpha',$token);
+
+        if($token !== '') {
+            $sql = 'DELETE FROM '.TABLE_TOKEN.' '.
+                   'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" ';
+
+            $this->db->executeSql($sql,$error); 
+            if($error !== '') {
+                $error = 'USER_TOKEN_ERROR: could not delete token on logout';
+                if($this->debug) $error .= ' Token['.$token.']';
+                throw new Exception($error);
+            }
+        }                    
+    }
+
+    //check all user login tokens and return token user_id and date_expire (0 IF NOT FOUND)
+    protected function checkLoginToken($token)
+    {
+        //token should only contain alphanumeric characters
+        $token = Secure::Clean('alpha',$token);
+
+        $sql = 'SELECT '.$this->token_cols['user_id'].' AS '.$this->user_cols['id'].','.$this->token_cols['date_expire'].' '.
+               'FROM '.TABLE_TOKEN.' '.
+               'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" AND '.
+                        $this->token_cols['date_expire'].' >= NOW() ';
+
+        $rec = $this->db->readSqlRecord($sql);
+        //wait 3 seconds to slow down any attack
+        if($rec === 0) sleep(3); 
+
+        return $rec;          
+    }
+
+    //replace existing token with new one and reset cookie
+    protected function updateLoginToken($token,$user_id)
+    {
+        $error = '';
+        $error_tmp = '';
+
+        $token_new = Crypt::makeToken();
+
+        $sql = 'UPDATE '.TABLE_TOKEN.' SET '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token_new).'" '.
+               'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" AND '.
+                        $this->token_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" ';
+
+        $this->db->executeSql($sql,$error_tmp); 
+        if($error_tmp !== '') {
+            $error = 'USER_TOKEN_ERROR: could not replace login token';
+            if($this->debug) $error .= ' User ID['.$user_id.'] Old token['.$token.'] New token['.$token_new.'] Error:'.$error_tmp;
+            throw new Exception($error);
+        }
+
+        return $token_new;    
+    }
+
+    //create a new login token in addition to any existing tokens
+    protected function insertLoginToken($user_id,$expire_days = 0)
+    {
+        $error = '';
+        $error_tmp = '';
+
+        $token = Crypt::makeToken();
+
+        if($expire_days < 1) $expire_days = 1;
+        if($expire_days > 365) $expire_days = 365;
+
+        $date = getdate();
+        $date_expire = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$expire_days,$date['year']));
+
+        $data = [];
+        $data[$this->token_cols['user_id']] = $user_id;
+        $data[$this->token_cols['token']] = $token;
+        $data[$this->token_cols['date_expire']] = $date_expire;
+        $this->db->insertRecord(TABLE_TOKEN,$data,$error_tmp);
+        if($error_tmp !== '') {
+            $error = 'USER_TOKEN_ERROR: could not create new login token';
+            if($this->debug) $error .= ' User ID['.$user_id.'] '.$error_tmp;
+            throw new Exception($error);
+        } 
+
+        //house keeping: good place to get rid of any expired tokens
+        $this->expireLoginTokens($user_id);
+
+        return $token;  
     }
     
 }

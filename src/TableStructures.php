@@ -37,28 +37,36 @@ trait TableStructures
                              'user_id'=>'user_id',              //INTEGER
                              'date'=>'date',                    //DATETIME
                              'action'=>'action',                //STRING
-                             'text'=>'text',             //TEXT
+                             'text'=>'text',                    //TEXT
                              'data'=>'data',                    //TEXT
                              'link'=>'link_table',              //STRING
                              'link_id'=>'link_id'               //STRING                     
                             ];
 
-    protected $user_cols =  ['id'=>'user_id',                       //INTEGER, auto increment, PRIMARY KEY
-                             'name'=>'name',                        //STRING
-                             'access'=>'access',                    //STRING "GOD,ADMIN,USER,VIEW"
-                             'password'=>'password',                //STRING
-                             'email'=>'email',                      //STRING
-                             'pwd_date'=>'pwd_date',                //DATE
-                             'pwd_salt'=>'pwd_salt',                //STRING
-                             'login_fail'=>'login_fail',            //INTEGER
-                             'status'=>'status',                    //STRING
-                             'email_token'=>'email_token',          //STRING
-                             'login_token'=>'login_token',          //STRING
-                             'login_expire'=>'login_expire',        //DATE
-                             'login_alt_token'=>'login_alt_token',  //STRING
-                             'login_alt_expire'=>'login_alt_expire',//DATE
-                             'csrf_token'=>'csrf_token'             //STRING                       
+    protected $user_cols =  ['id'=>'user_id',                               //INTEGER, auto increment, PRIMARY KEY
+                             'name'=>'name',                                //STRING
+                             'access'=>'access',                            //STRING "GOD,ADMIN,USER,VIEW"
+                             'password'=>'password',                        //STRING
+                             'email'=>'email',                              //STRING
+                             'pwd_date'=>'pwd_date',                        //DATE
+                             'pwd_salt'=>'pwd_salt',                        //STRING
+                             'login_fail'=>'login_fail',                    //INTEGER
+                             'status'=>'status',                            //STRING
+                             'email_token'=>'email_token',                  //STRING
+                             'email_token_expire'=>'email_token_expire',    //DATE
+                             'csrf_token'=>'csrf_token'                     //STRING                       
                             ];
+
+    protected $cache_cols =  ['id'=>'cache_id',                 //STRING, PRIMARY KEY
+                             'data'=>'data',                    //LONGTEXT
+                             'date'=>'date'                     //DATE
+                             ];
+
+    protected $token_cols = ['token'=>'token',                  //STRING, PRIMARY KEY
+                             'user_id'=>'user_id',              //INTEGER
+                             'date_expire'=>'date_expire'       //DATETIME
+                             ];
+
 
     protected $queue_cols = ['id'=>'queue_id',                      //INTEGER, auto increment, PRIMARY KEY
                              'process_id'=>'process_id',            //STRING

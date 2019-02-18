@@ -20,7 +20,7 @@ class Task {
     use ContainerHelpers;
 
     protected $container;
-    protected $container_allow = ['s3','mail','user','system'];
+    protected $container_allow = ['s3','mail','user','system','cache'];
 
     protected $db;
     protected $debug = false;
@@ -51,11 +51,11 @@ class Task {
         if(isset($_GET['id'])) $id = Secure::clean('basic',$_GET['id']); 
         if(isset($_POST['id'])) $id = Secure::clean('basic',$_POST['id']);
        
-        if($this->mode==='task') {
+        if($this->mode === 'task') {
             if(!isset($this->tasks[$id])) {
                 $this->addError('INVALID Task ID['.$id.'] specified!'); 
             } else {
-                foreach($_POST as $key=>$value) {
+                foreach($_POST as $key => $value) {
                     $param[$key] = Secure::clean('string',$value); 
                 }  
                 //get task parameters and process
@@ -99,7 +99,7 @@ class Task {
                      '<ul class="'.$this->classes['task_list'].'">';
             foreach($this->tasks as $id => $task) {
                 $task_html = $this->viewTask($id,$task);
-                if($task_html === '') {
+                if($task_html == '') {
                     $task_html = '<a href="?mode=task&id='.$task['id'].'">'.$task['title'].'</a>';
                     if($task['param']['separator']) $task_html .= '<hr/>';
                 }  

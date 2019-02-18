@@ -45,8 +45,10 @@ class Setup
             if(!in_array(TABLE_AUDIT,$tables)) $this->setupAuditTable(TABLE_AUDIT); else $this->message[]='Audit table['.TABLE_AUDIT.'] exists';
             if(!in_array(TABLE_FILE,$tables)) $this->setupFileTable(TABLE_FILE); else $this->message[]='File table['.TABLE_FILE.'] exists';
             if(!in_array(TABLE_USER,$tables)) $this->setupUserTable(TABLE_USER); else $this->message[]='User table['.TABLE_USER.'] exists';
+            if(!in_array(TABLE_TOKEN,$tables)) $this->setupUserTokenTable(TABLE_TOKEN); else $this->message[]='User token table['.TABLE_TOKEN.'] exists';
             if(!in_array(TABLE_QUEUE,$tables)) $this->setupQueueTable(TABLE_QUEUE); else $this->message[]='Queue table['.TABLE_QUEUE.'] exists';
             if(!in_array(TABLE_BACKUP,$tables)) $this->setupBackupTable(TABLE_BACKUP); else $this->message[]='Queue table['.TABLE_BACKUP.'] exists';
+            if(!in_array(TABLE_CACHE,$tables)) $this->setupCacheTable(TABLE_CACHE); else $this->message[]='Cache table['.TABLE_CACHE.'] exists';
          
         }
     }  
@@ -128,10 +130,8 @@ class Setup
                   `login_fail` int(10) unsigned NOT NULL DEFAULT 0,
                   `status` varchar(64) NOT NULL DEFAULT "OK",
                   `email_token` varchar(64) NOT NULL DEFAULT "",
-                  `login_token` varchar(64) NOT NULL DEFAULT "",
-                  `login_expire` date NOT NULL DEFAULT "2000-01-01",
-                  `login_alt_token` varchar(64) NOT NULL DEFAULT "",
-                  `login_alt_expire` date NOT NULL DEFAULT "2000-01-01",
+                  `email_token_expire` datetime NOT NULL DEFAULT "2000-01-01",
+                  `login_tokens` text NOT NULL,
                   `csrf_token` varchar(64) NOT NULL DEFAULT "",
                   PRIMARY KEY (`user_id`)
                 ) ENGINE=MyISAM DEFAULT CHARSET=utf8';
@@ -171,6 +171,42 @@ class Setup
             $this->message[] = 'Succesfully created missing audit table['.$table.']';
         } else {
             $this->error[] = 'Could NOT create audit table['.$table.'] : '.$error_tmp;
+        } 
+    }
+
+    protected function setupUserTokenTable($table)
+    {
+      
+        $sql = 'CREATE TABLE `'.$table.'` (
+                  `token` varchar(64) NOT NULL,
+                  `date_expire` datetime NOT NULL,
+                  `user_id` int(11) NOT NULL,
+                  PRIMARY KEY (`token`)
+                ) ENGINE=MyISAM DEFAULT CHARSET=utf8';
+
+        $this->db->executeSql($sql,$error_tmp); 
+        if($error_tmp == '') {
+            $this->message[] = 'Succesfully created missing user token table['.$table.']';
+        } else {
+            $this->error[] = 'Could NOT create user token table['.$table.'] : '.$error_tmp;
+        } 
+    }
+
+    protected function setupCacheTable($table)
+    {
+      
+        $sql = 'CREATE TABLE `'.$table.'` (
+                  `cache_id` varchar(64) NOT NULL,
+                  `data` longtext NOT NULL,
+                  `date` datetime NOT NULL,
+                  PRIMARY KEY (`cache_id`)
+                ) ENGINE=MyISAM DEFAULT CHARSET=utf8';
+
+        $this->db->executeSql($sql,$error_tmp); 
+        if($error_tmp == '') {
+            $this->message[] = 'Succesfully created missing cache table['.$table.']';
+        } else {
+            $this->error[] = 'Could NOT create cache table['.$table.'] : '.$error_tmp;
         } 
     }
 

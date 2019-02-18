@@ -32,6 +32,7 @@ class Config
         define(__NAMESPACE__.'\TABLE_AUDIT',TABLE_AUDIT);
         define(__NAMESPACE__.'\TABLE_FILE',TABLE_FILE);
         define(__NAMESPACE__.'\TABLE_USER',TABLE_USER);
+        define(__NAMESPACE__.'\TABLE_TOKEN',TABLE_TOKEN);
         define(__NAMESPACE__.'\TABLE_CACHE',TABLE_CACHE);
         define(__NAMESPACE__.'\TABLE_BACKUP',TABLE_BACKUP);
         define(__NAMESPACE__.'\TABLE_QUEUE',TABLE_QUEUE);
