@@ -31,7 +31,7 @@ class Table extends Model
     use SecurityHelpers;
     use TableStructures;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['config','s3','mail','user','system'];
 
     protected $col_label='';

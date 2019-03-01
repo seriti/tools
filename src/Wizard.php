@@ -23,7 +23,7 @@ class Wizard {
     use MessageHelpers;
     //use TableStructures;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['s3','mail','user','system'];
 
     //store all form data here

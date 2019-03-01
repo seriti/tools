@@ -19,7 +19,7 @@ class Report {
     use MessageHelpers;
     use ContainerHelpers;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['s3','mail','user','system'];
 
     protected $report_header = '';

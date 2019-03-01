@@ -27,8 +27,9 @@ class System extends Model
     use ContainerHelpers;
     use TableStructures;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['mail','user'];
+    
     protected $protect_defaults = ['FILES','IMAGES','BACKUP_DOC','KEY_ENCODED','KEY_HASH','KEY_SALT'];
     protected $routes = ['encrypt'=>'encrypt'];
 

@@ -19,7 +19,7 @@ class Task {
     use MessageHelpers;
     use ContainerHelpers;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['s3','mail','user','system','cache'];
 
     protected $db;
@@ -29,6 +29,7 @@ class Task {
     protected $errors_found = false; 
     protected $messages = array();
     protected $tasks = array();
+    protected $list_header = '';
   
      
     public function __construct(DbInterface $db, ContainerInterface $container, $param = array()) 
@@ -96,7 +97,7 @@ class Task {
         
         if(count($this->tasks) != 0) {
             $html .= '<div id="task_div">'.$this->list_header.
-                     '<ul class="'.$this->classes['task_list'].'">';
+                     '<ul class="'.$this->classes['list'].'">';
             foreach($this->tasks as $id => $task) {
                 $task_html = $this->viewTask($id,$task);
                 if($task_html == '') {
@@ -104,7 +105,7 @@ class Task {
                     if($task['param']['separator']) $task_html .= '<hr/>';
                 }  
                 
-                $html .= '<li class="'.$this->classes['task_item'].'">'.$task_html.'</li>';  
+                $html .= '<li class="'.$this->classes['list_item'].'">'.$task_html.'</li>';  
             }  
           $html .= '</ul></div>';
         }  

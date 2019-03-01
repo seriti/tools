@@ -26,7 +26,7 @@ class SetupModule
     use ContainerHelpers;
     use SecurityHelpers;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['config','system','user'];
 
     protected $errors = array();

@@ -35,7 +35,7 @@ class User extends Model
     protected $user_id = 0;
     protected $data = array();
 
-    protected $container;
+    private $container;
     protected $container_allow = ['system','config','mail'];
 
     protected $mode = '';
@@ -540,7 +540,6 @@ class User extends Model
             } 
         }
         
-
         //assign current user access level
         $this->access_level = $level;
         if(array_search($level,$this->access_levels) === false) {

@@ -19,7 +19,7 @@ class Dashboard {
     use MessageHelpers;
     use ContainerHelpers;
 
-    protected $container;
+    private $container;
     protected $container_allow = ['s3','mail','user','system'];
 
     //store all form data here
@@ -101,7 +101,7 @@ class Dashboard {
         $items = $this->Items[$block_id];
         
         if(count($items) != 0) {
-            $html .= '<ul class="'.$this->classes['task_list'].'">';
+            $html .= '<ul class="'.$this->classes['list'].'">';
             foreach($items as $item) {
                 $item_html = $this->viewItem($block_id,$item);
                 if($item_html == '') {
@@ -114,7 +114,7 @@ class Dashboard {
                     }    
                 }  
                 
-                $html .= '<li>'.$item_html.'</li>';  
+                $html .= '<li class="'.$this->classes['list_item'].'">'.$item_html.'</li>';  
             }  
           $html .= '</ul>';
         }  

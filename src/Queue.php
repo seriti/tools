@@ -26,7 +26,7 @@ class Queue extends Model
     use ContainerHelpers;
     use TableStructures;
 
-    protected $container;
+    private $container;
     protected $container_allow = [];
    
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
