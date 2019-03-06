@@ -71,6 +71,7 @@ class Table extends Model
     protected $image_upload = false;
     protected $files = array();
     protected $file_upload = false;
+    protected $data_prev = array(); //previous rows data 
     protected $data = array(); //use to store current edit/view data between public function calls 
     protected $data_xtra = array(); //use to store arbitrary xtra data between function calls 
     protected $calc_aggregate = false;
@@ -402,6 +403,8 @@ class Table extends Model
             foreach($table as $row) {
                 $row_no++;
                 $html .= $this->viewRow($row,$row_no);
+                //store as previous row
+                $this->data_prev = $row;
             }
         } 
                         

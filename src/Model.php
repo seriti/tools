@@ -558,21 +558,23 @@ class Model
             foreach($this->cols as $col) {
                 if($col['edit']) $sql .= 'T.'.$col['id'].','; 
             } 
-            $sql = substr($sql,0,-1).' FROM '.$this->table.' AS T '.
+            $sql = substr($sql,0,-1).' FROM '.$this->table.' AS T '.$this->sql_join.
                   'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
         }
 
         if($type === 'SELECT_RAW') {
-            $sql = 'SELECT * FROM '.$this->table.' AS T '.
+            $sql = 'SELECT * FROM '.$this->table.' AS T '.$this->sql_join.
                   'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
         }
 
-        if($type=='DELETE') {
-          $sql = 'DELETE FROM '.$this->table.' WHERE '.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+        //NOT USED ANYWHERE, INCLUDES ALL RESTRICTIONS
+        if($type === 'DELETE') {
+          $sql = 'DELETE FROM '.$this->table.' AS T '.$this->sql_join.
+                 'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
           if(count($restrict)) $sql.=implode(' AND ',$restrict);
         } 
 

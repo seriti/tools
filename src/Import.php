@@ -30,8 +30,8 @@ class Import extends Model {
     use TableStructures;
     use SecurityHelpers;
 	
-	protected $container;
-    protected $container_allow = ['mail','user'];
+	private $container;
+        protected $container_allow = ['mail','user'];
 
 	protected $data_type = 'CSV';
 	protected $audit = false;
