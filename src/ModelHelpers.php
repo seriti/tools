@@ -112,6 +112,16 @@ trait  ModelHelpers
         return $value;
     }
 
+    protected function getErrors() 
+    {
+        return $this->errors;
+    }
+
+    protected function getMessages() 
+    {
+        return $this->messages;
+    }
+
     public function addState($key,$value) 
     {
         $this->state[$key] = $value;

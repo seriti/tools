@@ -518,7 +518,7 @@ class Html
     public static function markdownToHtml($markdown_text) {
         $html = '';
         
-        $Parsedown = new Parsedown();
+        $Parsedown = new \Parsedown();
         $html = $Parsedown->text($markdown_text);
         
         return $html;

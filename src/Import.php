@@ -18,6 +18,7 @@ use Seriti\Tools\ModelHelpers;
 use Seriti\Tools\ContainerHelpers;
 use Seriti\Tools\SecurityHelpers;
 use Seriti\Tools\TableStructures;
+use Seriti\Tools\DbInterface;
 
 use Psr\Container\ContainerInterface;
 
@@ -31,21 +32,22 @@ class Import extends Model {
     use SecurityHelpers;
 	
 	private $container;
-        protected $container_allow = ['mail','user'];
+    protected $container_allow = ['mail','user'];
 
 	protected $data_type = 'CSV';
 	protected $audit = false;
 		
 	protected $max_rows = 100000;
 	protected $col_label = '';
+    protected $col_count = 0;
 	protected $header = array();
 	protected $line_prev = array();
 	protected $line_prev_raw = array();
 	protected $trim_values = true;
 			
-	public $file_name = '';
-	public $dates = array('zero'=>'1900-01-01');
-	public $start_row = 1;
+	protected $file_path = '';
+	protected $dates = array('zero'=>'1900-01-01');
+	protected $start_row = 1;
 
     protected $user_access_level;
 	protected $user_id;
@@ -60,7 +62,11 @@ class Import extends Model {
     } 
 
 	public function setup($param) {
-		$this->file_name = $param['file_name'];
+		$this->file_path = $param['file_path'];
+
+        if(!file_exists($this->file_path)) {
+           $this->addError('Import file does not exist!'); 
+        }
 						
 		if(isset($param['data_type'])) $this->data_type = $param['data_type'];
 		if(isset($param['max_rows'])) $this->max_rows = $param['max_rows'];
@@ -72,18 +78,30 @@ class Import extends Model {
         $this->user_csrf_token = $this->getContainer('user')->getCsrfToken();
         $this->setupAccess($this->user_access_level);
 	}
-		
+	
+    public function addImportCol($col) 
+    {
+        $col = $this->addCol($col);
+
+        if(!isset($col['class'])) $col['class'] = '';
+        if(!isset($col['update'])) $col['update'] = true;
+        if(!isset($col['confirm'])) $col['confirm'] = true;
+
+        $this->cols[$col['id']] = $col;
+        $this->col_count++;
+    }
+
 	//create data array from import file or confirm form depending on type
 	public function creatDataArray($data_type,&$data_array) 
 	{
 		$error = '';
-		//echo 'WTF:'.$this->file_name.'<br/>';
-		
+		//echo 'WTF:'.$this->file_path.'<br/>';
+       
 		$data_array = [];
 				
 		if($data_type === 'CSV') {    
-			if(file_exists($this->file_name) === false) {
-				$error = 'Import file['.$this->file_name.'] does not exist!';
+			if(file_exists($this->file_path) === false) {
+				$error = 'Import file['.$this->file_path.'] does not exist!';
 				return false;
 			}
 		}
@@ -91,13 +109,13 @@ class Import extends Model {
 		if($data_type === 'CSV') {
 			$i = 0;
 			$line = array();
-			$handle = fopen($this->file_name,'r');
+			$handle = fopen($this->file_path,'r');
 			while(($line = fgetcsv($handle,0, ",")) !== FALSE) {
 				$i++;
 				if($i >= $this->start_row) {
 					$value_num = count($line);
 					
-					if($this->trim_values) array_walk($line,array($this,'trim'));
+					if($this->trim_values) array_walk($line,array($this,'\trim'));
 																	
 					if($i == $this->start_row) {//analyse header line for valid column titles
 						$c = 0;
@@ -253,15 +271,15 @@ class Import extends Model {
 	//for import review/confirm 
 	protected function viewEditValue($row_no,$col_id,$value)  {
 		$html = '';
-		$param = array();
+		$param = [];
 		
 		$name = $col_id.'_'.$row_no;
 		
 		$col=$this->cols[$col_id];
-		if($col['class']=='') $class=$this->classes['edit']; else $class=$col['class'];
+		if($col['class']  === '') $param['class'] = $this->classes['edit']; else $param['class'] = $col['class'];
 		
-		if($col['edit']===false) {
-			$html.='<input type="hidden" name="'.$name.'" value="'.$value.'">'.$value;
+		if($col['edit'] === false) {
+			$html .= '<input type="hidden" name="'.$name.'" value="'.$value.'">'.$value;
 			return $html;
 		}  
 
@@ -366,20 +384,23 @@ class Import extends Model {
 	
 	public function viewConfirm($data_type,$param = [],&$error) {
 		$error = '';
+
 		$html = '<table class="'.$this->classes['table'].'">';
-		
+
 		if($data_type === 'CSV') {
 			$i = 0;
 			$row_no = 0;
 			$line = [];
-			$handle = fopen($this->file_name,'r');
+			$handle = fopen($this->file_path,'r');
 			while(($line = fgetcsv($handle,0, ",")) !== FALSE) {
 				$i++;
-				$value_num = count($line);
+                $value_num = count($line);
 				
 				//print_r($line);
-				if($this->trim_values) array_walk($line,array($this,'trim'));
-																
+				if($this->trim_values) {
+                    $line = array_map('trim',$line);
+				}
+
 				if($i === 1) {//analyse header line for valid column titles
 					$html .= '<tr class="thead"><th>Ignore</th>';
 					$c = 0;

@@ -9,6 +9,9 @@ use Seriti\Tools\DbInterface;
 use Seriti\Tools\Cache;
 use Seriti\Tools\Template;
 
+use Seriti\Tools\BASE_UPLOAD;
+use Seriti\Tools\UPLOAD_DOCS;
+
 use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\ContainerHelpers;
 use Seriti\Tools\MessagerHelpers;
@@ -48,13 +51,16 @@ class Wizard {
     protected $form_input = false;
     protected $bread_crumbs = false;
     protected $pages = array();
+    protected $upload_dir;
+
     //for defining form variables and types
     protected $variables = array();
     protected $types = array('INTEGER','DECIMAL','STRING','TEXT','EMAIL','URL','DATE','BOOLEAN','PASSWORD','DATETIME','TIME',
                              'IMAGE','FILE','CUSTOM');
+    protected $files = []; //for IMAGE/FILE types
+
     //all form $variable must be defined
     protected $strict_var = true;
-
     protected $template;
      
     public function __construct(DbInterface $db, ContainerInterface $container, Cache $cache, Template $template) 
@@ -65,6 +71,8 @@ class Wizard {
         $this->template = $template;
         
         if(defined(__NAMESPACE__.'\DEBUG')) $this->debug = DEBUG;
+
+        $this->upload_dir = BASE_UPLOAD.UPLOAD_DOCS;
     }
     
     public function setup($param = []) 
@@ -74,6 +82,8 @@ class Wizard {
         if(isset($param['bread_crumbs'])) $this->bread_crumbs = $param['bread_crumbs'];
         
         if(isset($param['page_no'])) $this->page_no = $param['page_no'];
+
+        if(isset($param['upload_dir'])) $this->upload_dir = $param['upload_dir'];
     }
 
     //define all variable for validation/security purposes
@@ -101,6 +111,12 @@ class Wizard {
             if(!isset($var['min'])) $var['min'] = -100000000;
             if(!isset($var['max'])) $var['max'] = 100000000;
         }
+
+        if($var['type'] === 'FILE' or $var['type'] === 'IMAGE') {
+            if(!isset($var['min'])) $var['min'] = 0;
+            if(!isset($var['max'])) $var['max'] = 10;
+            $this->files[$var['id']] = $var;
+        }    
                              
         $this->variables[$var['id']] = $var;
     }
@@ -189,7 +205,8 @@ class Wizard {
     public function process($param = array()) 
     {
         $this->form_input = false;
-        $error_str = '';
+        $error = '';
+        $message = '';
         $html = '';
         
         if(isset($_GET['page']))  { 
@@ -209,7 +226,7 @@ class Wizard {
         //only process form variables if form has been submitted
         if($this->form_input) {
             //NB1: $this->form variables persist over pages and are only set when found in $_POST
-            //NB2: checkbox inputs must be explicitly handled in custom process_page() code as unchecked setting results in NO $_POST value
+            //NB2: checkbox inputs must be explicitly handled in custom processPage() function as unchecked setting results in NO $_POST value
             foreach($_POST as $key => $value) {
                 if(isset($this->variables[$key])) {
                     $var = $this->variables[$key];
@@ -220,8 +237,8 @@ class Wizard {
                             $this->addError('<b>'.$var['title'].'</b> is a required field! Please enter a value.'); 
                         }  
                     } else {
-                        $this->validate($var['id'],$value,$error_str);
-                        if($error_str != '') $this->addError($error_str);
+                        $this->validate($var['id'],$value,$error);
+                        if($error != '') $this->addError($error);
                     }  
                     
                     //value only saved to cache if no errors
@@ -232,8 +249,24 @@ class Wizard {
                         if($key !== 'seriti_wizard') $this->addError('Form value['.$key.'] is not a valid form variable!');
                     }  
                 }  
-                
             } 
+
+            //Form::uploadFiles returns an array[0=>[],1=>[],...n=>[]] of single/multiple file data matching form id $key
+            foreach($_FILES as $key => $value) {
+                if(isset($this->files[$key])) {
+                    $upload_options = [];
+                    $upload_options['debug'] = $this->debug;
+                    $upload_options['upload_dir'] = $this->upload_dir;
+                    $this->form[$key] = Form::uploadFiles($key,$this->db,$upload_options,$error,$message);
+                    if($error !== '') $this->addError($error);    
+                    if($message !== '') $this->addMessage($message);
+                } else {
+                    //this will force only defined wizard file uploads
+                    if($this->strict_var) {
+                        $this->addError('Form file upload value['.$key.'] is not a valid form variable!');
+                    } 
+                }
+            }    
             
             //placeholder function for custom validation etc
             $this->processPage();

@@ -4,6 +4,7 @@ namespace Seriti\Tools;
 use Exception;
 use Seriti\Tools\Date;
 use Seriti\Tools\Secure;
+use Seriti\Tools\DbInterface;
 
 //class intended as a pseudo namespace for a group of functions to be referenced as "Form::function_name()"
 class Form 
@@ -36,6 +37,115 @@ class Form
         return $html;
     }  
     
+    //uploads SINGLE OR MULTIPLE files with sequential file name
+    public static function uploadFiles($form_id,DbInterface $db,$options = [],&$error,&$message) 
+    {
+        $error = '';
+        
+        if(!isset($options['debug'])) $options['debug'] = false; 
+        if(!isset($options['rename'])) $options['rename'] = true; //rename using system file counter
+        if(!isset($options['overwrite'])) $options['overwrite'] = true;
+        if(!isset($options['upload_dir'])) $options['upload_dir'] = 'upload/';
+        if(!isset($options['max_size'])) $options['max_size'] = '5000000';
+        if(!isset($options['allow_ext'])) $options['allow_ext'] = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','msg','jpg','jpeg','gif','png');
+
+        //create a flattened file array [0=>[attributes],1=>[attributes],2=>[attributes]....]
+        $files = [];
+
+        $form = $_FILES[$form_id];
+        //check if multiple upload
+        if (is_array($form['name'])) {
+            //$attribute = name,type,tmp_name,error,size
+            foreach ($form as $attribute => $list) {
+                //$key = 0,1,2,3...N file count
+                foreach ($list as $key => $value) {
+                    $files[$key][$attribute]=$value;
+                }
+            }
+        } else {
+            $files[0] = $form;
+        }
+        
+        //now process all files
+        foreach($files as $f=>$file) {
+            $count = 0;
+            $error_file = '';
+
+            if($file['name'] !== '') {
+                $count++;
+
+                switch ($file['error']) {
+                    case 1 : $error_file .= 'size exceeded limit : '.ini_get('upload_max_filesize'); break;
+                    case 2 : $error_file .= 'size exceeded limit specified in HTML '; break;
+                    case 3 : $error_file .= 'was only partially uploaded'; break;
+                    case 4 : $error_file .= 'no file was uploaded'; break;
+                    case 6 : $error_file .= 'missing temporary folder.'; break;
+                    case 7 : $error_file .= 'could not write to disk.'; break;
+                    case 8 : $error_file .= 'upload stopped by extension!'; break;
+                }
+
+                if($error_file === '' and $file['size'] == 0) {
+                    $error_file .= 'file size exceeded either POST limit : '.ini_get('post_max_size').' or UPLOAD limit : '.ini_get('upload_max_filesize');
+                }
+
+                if($error_file === '') {
+                    $parts = Doc::fileNameParts($file['name']);
+                    $file_ext = strtolower($parts['extension']);
+                    $base_name = $parts['basename'];
+                    $file_size = $file['size'];
+
+                    if(!in_array($file_ext,$options['allow_ext'])) {
+                        $error_file .= 'Not a supported filetype! '.
+                                       'Please upload only '.strtoupper(implode(' : ',$options['allow_ext'])).' files. Thanks. ';
+                    }
+                    
+                    if($file_size > $options['max_size']) {
+                        $error_file .= 'Size['.Calc::displayBytes($file_size).'] greater than '.
+                                       'maximum allowed['.Calc::displayBytes($options['max_size']).'] ';
+                    }    
+                }
+
+                if($error_file === '') {
+                    if($options['rename']) {
+                        $save_name = Calc::getFileId($db);
+                        $save_name = $save_name.'.'.$file_ext;
+                    } else {
+                        $save_name = $base_name.'.'.$file_ext;
+                    }
+                                        
+                    $file_path = $options['upload_dir'].$save_name;
+                    if(file_exists($file_path) and !$options['overwrite']) {
+                        $error_file .= 'File already exists! Please contact support!<br/>';
+                    } else {    
+                        if(!move_uploaded_file($file['tmp_name'],$file_path))  {
+                            if($options['debug']) {
+                                $error_file .= 'Error moving uploading file['.$file['tmp_name'].'] to ['.$file_path.']' ;
+                            } else {
+                                $error_file .= 'Error moving uploaded from temporary folder.' ;
+                            }    
+                        }
+                    } 
+
+                    $file['extension'] = $file_ext;
+                    $file['save_name'] = $save_name;
+                    $file['save_path'] = $file_path;
+                }
+            } 
+
+            if($error_file !== '') {
+                $error .= 'Error uploading file['.$file['name'].'] :'.$error_file.'<br/>';
+                unset($files[$f]);
+            } else {
+                $message .= 'Success uploading file['.$file['name'].']<br/>';
+                $files[$f] = $file;
+            } 
+        }
+        
+        //NB: Successfully uploaded files only!
+        return $files; 
+    }
+
+    //uploads a SINGLE file selection, NOT multiple file selection!
     public static function uploadFile($form_id,$save_name,$options=array(),&$error_str) 
     {
         $error_str = '';
@@ -103,6 +213,8 @@ class Form
     } 
     
     
+
+
     public static function hiddenInput($data = array(),$param = array()) 
     {
         $html =  '';
@@ -210,7 +322,7 @@ class Form
         return $html;
     } 
 
-    public static function sqlList($sql,$db,$name,$value,$param = array()) 
+    public static function sqlList($sql,DbInterface $db,$name,$value,$param = array()) 
     {
         $html = '';
         $xtra = '';

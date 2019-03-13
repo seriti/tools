@@ -23,10 +23,15 @@ trait  IconsClassesLinks
                            'plus'=>'<span class="glyphicon glyphicon-plus"></span>',
                            'minus'=>'<span class="glyphicon glyphicon-minus"></span>',
                            'import'=>'<span class="glyphicon glyphicon-import"></span>',
-                           'setup'=>'<span class="glyphicon glyphicon-wrench"></span>' );
+                           'setup'=>'<span class="glyphicon glyphicon-wrench"></span>',
+                           'arrow_up'=>'<span class="glyphicon glyphicon-arrow-up"></span>',
+                           'arrow_down'=>'<span class="glyphicon glyphicon-arrow-down"></span>',
+                           'arrow_left'=>'<span class="glyphicon glyphicon-arrow-left"></span>',
+                           'arrow_right'=>'<span class="glyphicon glyphicon-arrow-right"></span>');
         
     //configured for bootstrap defaults                     
     protected $classes=array('button'=>'btn btn-primary',
+                             'button_plain'=>'btn btn-default',
                              'file_browse'=>'form-control btn btn-primary ',
                              'table'=>'table  table-striped table-bordered table-hover table-condensed',
                              'search'=>'form-control input-small',
@@ -52,7 +57,8 @@ trait  IconsClassesLinks
                              'start_link'=>'btn btn-primary',
                              'browse_link'=>'',
                              'reset_link'=>'',
-                             'file_list'=>'margin_t10'); 
+                             'file_list'=>'margin_t10',
+                             'anchor'=>'anchor'); 
 
     protected  $js_links=array('back'=>'<a href="javascript: history.go(-1)"> [&laquo; go back]</a>',
                                'close'=>'<a href="Javascript:onClick=window.close()">[close window]</a>',
