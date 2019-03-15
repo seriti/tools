@@ -83,10 +83,11 @@ class Doc
 
         //if no variables specified
         if($name === '') $name = 'dummy.doc';
-        if($type === '')
-        {
-            $doc_info = pathinfo($doc_path);
+        if($type === '') {
+            $doc_info = pathinfo($name);
             $type = strtolower($doc_info['extension']);
+        } else {
+            $type = strtolower($type);
         }
 
         switch($destination)

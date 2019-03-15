@@ -112,12 +112,12 @@ trait  ModelHelpers
         return $value;
     }
 
-    protected function getErrors() 
+    public function getErrors() 
     {
         return $this->errors;
     }
 
-    protected function getMessages() 
+    public function getMessages() 
     {
         return $this->messages;
     }

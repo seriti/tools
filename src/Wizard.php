@@ -127,6 +127,13 @@ class Wizard {
         $page['no'] = $no;
         $page['title'] = $title;
         $page['template'] = $template; 
+
+        if(!isset($param['form_tag'])) $param['form_tag'] = 'DEFAULT';
+        //specifies final page in wizard
+        if(!isset($param['final'])) $param['final'] = false;
+        //if last page and no form tag specified then do not wrap in default form tags
+        if($param['final'] and $param['form_tag'] === 'DEFAULT') $param['form_tag'] = '';
+
         $page['param'] = $param;
                 
         $this->pages[$no] = $page;   
@@ -146,12 +153,6 @@ class Wizard {
         $param = $page['param'];
 
         $this->setupPageData($no);
-
-        if(!isset($param['form_tag'])) $param['form_tag'] = 'DEFAULT';
-        //check if final page
-        if(!isset($param['final'])) $param['final'] = false;
-        //if last page and no form tag specified then do not wrap in default form tags
-        if($param['final'] and $param['form_tag'] === 'DEFAULT') $param['form_tag'] = '';
         
         if(!isset($page['template'])) {
             $error_page = true;

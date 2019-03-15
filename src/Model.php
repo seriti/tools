@@ -90,48 +90,48 @@ class Model
     //NB: if you used addAllCols() then this will overwite individual col settings
     protected function addCol($col = []) 
     {
-         if(!in_array($col['type'],$this->col_types)) $col['type']='STRING';
-         if(!isset($col['title'])) $col['title']=$col['id'];
-         if(!isset($col['list'])) $col['list']=true;
-         if(!isset($col['required'])) $col['required']=true;
-         if(!isset($col['edit'])) $col['edit']=true;
-         if(!isset($col['view'])) $col['view']=true;
+         if(!in_array($col['type'],$this->col_types)) $col['type'] = 'STRING';
+         if(!isset($col['title'])) $col['title'] = $col['id'];
+         if(!isset($col['list'])) $col['list'] = true;
+         if(!isset($col['required'])) $col['required'] = true;
+         if(!isset($col['edit'])) $col['edit'] = true;
+         if(!isset($col['view'])) $col['view'] = true;
          //force user to repeat an important input for verifiction using name=$col['id']."_repeat" 
-         if(!isset($col['repeat'])) $col['repeat']=false;
+         if(!isset($col['repeat'])) $col['repeat'] = false;
          //will encrypt TEXT and STRING fields only
-         if(!isset($col['encrypt'])) $col['encrypt']=false;
+         if(!isset($col['encrypt'])) $col['encrypt'] = false;
          
-         if(!isset($col['key'])) $col['key']=false;
+         if(!isset($col['key'])) $col['key'] = false;
          if($col['key']) {
-           $col['edit']=false; 
-           if(!isset($col['key_auto'])) $col['key_auto']=false;  
-           if($col['key_auto']) $col['required']=false;
-           $this->key=$col;
-           $this->sql_order=$col['id'].' DESC';
+           $col['edit'] = false; 
+           if(!isset($col['key_auto'])) $col['key_auto'] = false;  
+           if($col['key_auto']) $col['required'] = false;
+           $this->key = $col;
+           $this->sql_order = $col['id'].' DESC';
          }  
          
          //used for inserting placeholders values from joined tables or inserting {KEY_VALUE}
-         if(isset($col['linked'])) $col['edit']=false; 
+         if(isset($col['linked'])) $col['edit'] = false; 
                   
-         if($col['type']=='STRING' or $col['type']=='PASSWORD' or $col['type']=='EMAIL') {
-            if(!isset($col['min'])) $col['min']=1;
-            if(!isset($col['max'])) $col['max']=64;
-            if(!isset($col['secure'])) $col['secure']=true;
+         if($col['type'] === 'STRING' or $col['type'] === 'PASSWORD' or $col['type'] === 'EMAIL') {
+            if(!isset($col['min'])) $col['min'] = 1;
+            if(!isset($col['max'])) $col['max'] = 64;
+            if(!isset($col['secure'])) $col['secure'] = true;
          }
          
-         if($col['type']=='TEXT') {
-            if(!isset($col['html'])) $col['html']=false;
-            if(!isset($col['secure'])) $col['secure']=true;
-            if(!isset($col['min'])) $col['min']=1;
-            if(!isset($col['max'])) $col['max']=64000;
+         if($col['type'] === 'TEXT') {
+            if(!isset($col['html'])) $col['html'] = false;
+            if(!isset($col['secure'])) $col['secure'] = true;
+            if(!isset($col['min'])) $col['min'] = 1;
+            if(!isset($col['max'])) $col['max'] = 64000;
          }
          
-         if($col['type']=='INTEGER' OR $col['type']=='DECIMAL') {
-            if(!isset($col['min'])) $col['min']=-1000000000;
-            if(!isset($col['max'])) $col['max']=1000000000;
+         if($col['type'] === 'INTEGER' OR $col['type'] === 'DECIMAL') {
+            if(!isset($col['min'])) $col['min'] = -1000000000;
+            if(!isset($col['max'])) $col['max'] = 1000000000;
          }
          
-         $this->cols[$col['id']]=$col;
+         $this->cols[$col['id']] = $col;
 
          return $col;
     }

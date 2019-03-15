@@ -118,7 +118,7 @@ class Mysql implements DbInterface
     
     public function getRecord($table,$where = array()) 
     {
-        $sql='SELECT * FROM `'.$table.'` WHERE ';
+        $sql = 'SELECT * FROM `'.$table.'` WHERE ';
         foreach($where as $key => $value) {
             $sql .= $key.' = "'.$this->escapeSql($value).'" AND ';
         }
@@ -151,9 +151,9 @@ class Mysql implements DbInterface
     
     public function updateRecord($table,$rec = array(),$where = array(),&$error) 
     {
-        $error='';
+        $error = '';
                 
-        $sql='UPDATE `'.$table.'` SET ';
+        $sql = 'UPDATE `'.$table.'` SET ';
         foreach($rec as $key => $value) {
             $sql .= $key.' = "'.$this->escapeSql($value).'",';
         }
@@ -176,13 +176,13 @@ class Mysql implements DbInterface
     
     public function insertRecord($table,$rec = array(),&$error) 
     {
-        $error='';
-        $fields='';
-        $values='';
+        $error = '';
+        $fields = '';
+        $values = '';
                 
-        foreach($rec as $key=>$value) {
-            $fields.=$key.',';
-            $values.='"'.$this->escapeSql($value).'",';
+        foreach($rec as $key => $value) {
+            $fields .= $key.',';
+            $values .= '"'.$this->escapeSql($value).'",';
         }
         $fields = '('.substr($fields,0,-1).')';
         $values = '('.substr($values,0,-1).')';
@@ -202,36 +202,36 @@ class Mysql implements DbInterface
     
     //updates a record, and inserts if no record existed to update
     public function updateInsertRecord($table,$rec = array(),$where = array(),$options = array(),&$error) {
-        $error='';
+        $error = '';
         
         $this->updateRecord($table,$rec,$where,$error);
-        if($error=='') {
+        if($error === '') {
             //check if any record updated/exists
-            if($this->db->affected_rows==0) {
+            if($this->db->affected_rows == 0) {
                 //add any insert specific vaues
                 if(isset($options['insert_add'])) {
-                    foreach($options['insert_add'] as $key=>$value) {
-                        $rec[$key]=$value; 
+                    foreach($options['insert_add'] as $key => $value) {
+                        $rec[$key] = $value; 
                     }  
                 } 
                 //assign where key identifiers to record
-                foreach($where as $key=>$value) {
-                    $rec[$key]=$value; 
+                foreach($where as $key => $value) {
+                    $rec[$key] = $value; 
                 }  
                 $this->insertRecord($table,$rec,$error);
             }  
         }
         
-        if($error==='') return true; else return false;  
+        if($error === '') return true; else return false;  
     } 
  
     public function checkTableExists($table) {
-        $sql='show tables like "'.$this->escapeSql($table).'" ';
-        $result=$this->readSqlList($sql);
-        if($result===0) {
-            $exists=false; 
+        $sql = 'show tables like "'.$this->escapeSql($table).'" ';
+        $result = $this->readSqlList($sql);
+        if($result === 0) {
+            $exists = false; 
         } else {
-            $exists=true;
+            $exists = true;
         }  
         
         return $exists;
@@ -239,11 +239,11 @@ class Mysql implements DbInterface
 
     public function executeSql($sql,&$error) 
     {
-        $error='';
+        $error = '';
         
-        if($this->db->query($sql)===false) {
-            $error='MYSQL_EXECUTE_ERROR:';
-            if($this->debug) $error.='Error['.$this->db->error.'] for SQL['.$sql.']';
+        if($this->db->query($sql) === false) {
+            $error = 'MYSQL_EXECUTE_ERROR:';
+            if($this->debug) $error .= 'Error['.$this->db->error.'] for SQL['.$sql.']';
             return false;
         } else {
             return $this->db->affected_rows;
@@ -256,8 +256,8 @@ class Mysql implements DbInterface
 
         $result = $this->db->query($sql);
         if($result === false) {
-            $error='MYSQL_READ_ERROR:';
-            if($this->debug) $error.='Error['.$this->db->error.'] for SQL['.$sql.']';
+            $error = 'MYSQL_READ_ERROR:';
+            if($this->debug) $error .= 'Error['.$this->db->error.'] for SQL['.$sql.']';
 
             throw new Exception($error); 
         }
@@ -271,7 +271,7 @@ class Mysql implements DbInterface
         $result = $this->readSql($sql);
         if($result->num_rows == 0) {
             $result->free();
-            $result=0;
+            $result = 0;
         } 
 
         //NB: $result->free(); must be in calling code where $result!=0
@@ -283,12 +283,12 @@ class Mysql implements DbInterface
     {
         $result = $this->readSql($sql);
         If($result->num_rows == 0) {
-            $value=$no_value;
+            $value = $no_value;
         } else {
-            $row=$result->fetch_array(MYSQLI_NUM);
-            $value=$row[0];
+            $row = $result->fetch_array(MYSQLI_NUM);
+            $value = $row[0];
             //when SQL has SUM() or other group function and no matching records a record is returned with null value
-            if($value===null) $value=$no_value;
+            if($value === null) $value = $no_value;
         }
         $result->free();
 
@@ -302,7 +302,7 @@ class Mysql implements DbInterface
             $list = 0;
         } else {
             $col_count = $result->field_count;
-            $list=array();
+            $list = array();
             while($row = $result->fetch_array(MYSQLI_NUM)) {
                 if($col_count > 1) $list[$row[0]] = $row[1]; else $list[] = $row[0];
             }
@@ -370,23 +370,23 @@ class Mysql implements DbInterface
 
     public function checkSql($sql,$sql_type = 'READ') 
     {
-        $error='';
+        $error = '';
         
-        if($sql=='') {
-            $error.='Empty SQL statement';
+        if($sql === '') {
+            $error .= 'Empty SQL statement';
         } else {
-            if($sql_type=='READ') {
-                $str=strtoupper($sql);
-                if (strpos($str,'UPDATE ')!==false)  $error.='UPDATE command called in a READ ONLY function ';
-                if (strpos($str,'DELETE ')!==false)  $error.='DELETE command called in a READ ONLY function ';
-                if (strpos($str,'INSERT ')!==false)  $error.='INSERT command called in a READ ONLY function ';
-                if (strpos($str,'REPLACE ')!==false) $error.='REPLACE command called in a READ ONLY function ';
+            if($sql_type === 'READ') {
+                $str = strtoupper($sql);
+                if (strpos($str,'UPDATE ') !== false)  $error .= 'UPDATE command called in a READ ONLY function ';
+                if (strpos($str,'DELETE ') !== false)  $error .= 'DELETE command called in a READ ONLY function ';
+                if (strpos($str,'INSERT ') !== false)  $error .= 'INSERT command called in a READ ONLY function ';
+                if (strpos($str,'REPLACE ')!== false)  $error .= 'REPLACE command called in a READ ONLY function ';
             }
         }
 
-        if($error!='') {
-            $error='MYSQL_READ_ERROR:'.$error;
-            if($this->debug) $error.=' for SQL['.$sql.']';
+        if($error !== '') {
+            $error = 'MYSQL_READ_ERROR:'.$error;
+            if($this->debug) $error .= ' for SQL['.$sql.']';
             throw new Exception($error);
         }
     }
@@ -498,7 +498,7 @@ class Mysql implements DbInterface
             if($e == 0) $message_str .= 'SUCCESS! All commands imported!'; else $message_str.='FAILURE, see errors!<br/>';
         }
         
-        if($error=='') return true; else return false;
+        if($error === '') return true; else return false;
     }
 
 }
