@@ -184,6 +184,7 @@ class SetupModuleData
 
         if(!$this->errors_found) {
             $sql = $this->insertTableName($table,$sql);
+            $sql = $this->insertTablePrefix($table,$sql);
             $this->tables_sql[$table] = $sql;
         }    
     }
