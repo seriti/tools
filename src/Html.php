@@ -52,9 +52,9 @@ class Html
             
             //populate all row arrays with key used as header
             $row = reset($array);
-            $html .= '<tr>';
-            foreach($row as $key => $value) $html .= '<th>'.$key.'</th>';
-            $html .= '</tr>';
+            $html .= '<thead>';
+            foreach($row as $key => $value) $html .= '<th>'.str_replace('_',' ',$key).'</th>';
+            $html .= '</thead>';
             
             $row_no = 0;
             foreach($array as $row) {
@@ -93,6 +93,7 @@ class Html
                 $html .= '<th>'.$col_name.'</th>';
             }
             $html.='</tr>';
+
             //remaining rows
             for($r = 1; $r < $row_count; $r++) {
                 $html .= '<tr>';

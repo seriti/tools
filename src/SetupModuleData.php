@@ -108,7 +108,7 @@ class SetupModuleData
             if($error == '') {
                 $this->addMessage('Succesfully processed ['.$action.']');
                 $this->process_count++;
-                if($this->debug) $this->addMessage('SQL['.$sql.']');
+                if($this->debug) $this->addMessage('with SQL['.$sql.']');
             } else {
                 $this->addError('Could NOT ['.$action.']');
                 if($this->debug) $this->addError('SQL['.$sql.'] error['.$error.']');
@@ -165,14 +165,14 @@ class SetupModuleData
     protected function insertTableName($table,$sql)
     {
         $table_name = $this->table_prefix.$table;
-        $sql= str_replace('TABLE_NAME',$table_name,$sql);
+        $sql = str_replace('TABLE_NAME',$table_name,$sql);
         
         return $sql;
     }
 
     protected function insertTablePrefix($sql)
     {
-        $sql= str_replace('TABLE_PREFIX',$this->table_prefix,$sql);
+        $sql = str_replace('TABLE_PREFIX',$this->table_prefix,$sql);
 
         return $sql;
     }
@@ -184,9 +184,9 @@ class SetupModuleData
 
         if(!$this->errors_found) {
             $sql = $this->insertTableName($table,$sql);
-            $sql = $this->insertTablePrefix($table,$sql);
+            $sql = $this->insertTablePrefix($sql);
             $this->tables_sql[$table] = $sql;
-        }    
+        } 
     }
 
     protected function createTable($table)
