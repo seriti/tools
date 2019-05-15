@@ -56,6 +56,7 @@ class SetupModuleData
 
         $this->checkTables();
         $this->updateData();
+        $this->afterProcess();
 
         if($this->process_count === 0) $this->addMessage('No changes processed.');
 
@@ -241,7 +242,8 @@ class SetupModuleData
         }
     }
 
-
+    /*** EVENT PLACEHOLDER FUNCTIONS ***/
+    protected function afterProcess() {}
     
 
 }

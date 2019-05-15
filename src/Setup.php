@@ -39,6 +39,10 @@ class Setup
 
             $sql = 'SHOW TABLES ';
             $tables = $this->db->readSqlList($sql);
+            if($tables == 0) {
+                unset($tables);
+                $tables = [];
+            }  
 
             if(!in_array(TABLE_SYSTEM,$tables)) $this->setupSystemTable(TABLE_SYSTEM); else $this->message[]='System table['.TABLE_SYSTEM.'] exists';
             if(!in_array(TABLE_MENU,$tables)) $this->setupMenuTable(TABLE_MENU); else $this->message[]='Menu table['.TABLE_MENU.'] exists';

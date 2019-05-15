@@ -30,7 +30,9 @@ class System extends Model
     private $container;
     protected $container_allow = ['mail','user'];
     
+    //KEY_SALT no longer used but kept for possible future use
     protected $protect_defaults = ['FILES','IMAGES','BACKUP_DOC','KEY_ENCODED','KEY_HASH','KEY_SALT'];
+
     protected $routes = ['encrypt'=>'encrypt'];
 
     public function __construct(DbInterface $db, ContainerInterface $container, $table)

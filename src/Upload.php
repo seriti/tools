@@ -21,6 +21,10 @@ use Seriti\Tools\SecurityHelpers;
 use Seriti\Tools\TableStructures;
 
 use Seriti\Tools\STORAGE;
+use Seriti\Tools\BASE_URL;
+use Seriti\Tools\URL_CLEAN;
+use Seriti\Tools\BASE_UPLOAD;
+use Seriti\Tools\UPLOAD_DOCS;
 
 use Psr\Container\ContainerInterface;
 
@@ -35,7 +39,7 @@ class Upload extends Model
     use TableStructures;
 
     private $container;
-    protected $container_allow = ['s3','mail','user','system'];
+    protected $container_allow = ['s3','mail','user','system','logger'];
 
     protected $col_label = '';
     protected $dates = array('from_days'=>30,'to_days'=>1,'zero'=>'1900-01-01');
@@ -58,7 +62,7 @@ class Upload extends Model
     protected $image_thumbnail = array('list_view'=>true,'edit_view'=>true,
                                        'list_width'=>60,'list_height'=>0,'edit_width'=>0,'edit_height'=>0); //NB:0 value is not set                            
   
-    protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,
+    protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,'url_ajax'=>BASE_URL.URL_CLEAN,
                               'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>10000000,'prefix'=>'','location'=>'ALL',
                               'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false);
   
@@ -142,10 +146,11 @@ class Upload extends Model
         
         //*** specific Upload class parameters ***
 
+        if(isset($param['url_ajax'])) $this->upload['url_ajax'] = $param['url_ajax'];
         if(isset($param['interface'])) $this->upload['interface'] = $param['interface'];
         if(isset($param['encrypt'])) $this->upload['encrypt'] = $param['encrypt'];
         if(isset($param['prefix'])) $this->upload['prefix'] = $param['prefix'];
-        if(isset($param['location'])) $this->upload['location'] = $param['location'];
+        if(isset($param['upload_location'])) $this->upload['location'] = $param['upload_location'];
         if(isset($param['upload_path_base'])) $this->upload['path_base'] = $param['upload_path_base'];
         if(isset($param['upload_path'])) $this->upload['path'] = $param['upload_path'];
 
@@ -744,7 +749,7 @@ class Upload extends Model
           $html .= '<script type="text/javascript">'.
                    '$(function() {$("#uploader").pluploadQueue({'.
                    'runtimes : \'html5,flash,gears,silverlight,browserplus\','.
-                   'url : \''.$this->location.'?mode=upload_ajax\','.
+                   'url : \''.$this->upload['url_ajax'].'?mode=upload_ajax\','.
                    'max_file_size : \''.($this->upload['max_size']/1000000).'mb\','.
                    'chunk_size : \'1mb\', unique_names : true,'.
                    'filters : [';
@@ -761,7 +766,7 @@ class Upload extends Model
                    'var uploader = $(\'#uploader\').pluploadQueue();'.
                    'if (uploader.files.length > 0) {'.
                    'uploader.bind(\'StateChanged\', function() {'.
-                   'if (uploader.files.length === (uploader.total.uploaded + uploader.total.failed)) {document.forms["upload_form"].submit();}'.
+                   'if (uploader.files.length === (uploader.total.uploaded + uploader.total.failed)) {document.forms["upload_form"].submit();}'.//document.forms["upload_form"].submit();
                    '});'.
                    'uploader.start();'.
                    '} else { alert(\'You must queue at least one file.\');}'.
@@ -1543,12 +1548,14 @@ class Upload extends Model
 
 
     protected function uploadAjax($id) {
+        //$log = $this->getContainer('logger');
+
         header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
         header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
         header("Cache-Control: no-store, no-cache, must-revalidate");
         header("Cache-Control: post-check=0, pre-check=0", false);
         header("Pragma: no-cache");
-        
+
         $targetDir = $this->getPath('UPLOAD','');
         if(substr($targetDir,-1) == '/') $targetDir = substr($targetDir,0,-1);
 
@@ -1561,7 +1568,9 @@ class Upload extends Model
 
         // Clean the fileName for security reasons
         $fileName = preg_replace('/[^\w\._]+/', '', $fileName);
-        
+
+        //$log->info('target_dir:'.$targetDir. ' File:'.$fileName);
+
         // Look for the content type header
         if(isset($_SERVER["HTTP_CONTENT_TYPE"])) $contentType = $_SERVER["HTTP_CONTENT_TYPE"];
 

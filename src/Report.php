@@ -19,7 +19,8 @@ class Report {
     use MessageHelpers;
     use ContainerHelpers;
 
-    private $container;
+    //do NOT make private as Reports often require container to be passed to them
+    protected $container;
     protected $container_allow = ['s3','mail','user','system'];
 
     protected $report_header = '';

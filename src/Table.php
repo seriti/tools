@@ -1026,9 +1026,8 @@ class Table extends Model
         $this->delete($id);
                 
         //delete any images/files or other data associated with record. 
-        if(!$this->errors_found) { 
-        } 
-            
+        //rather leave for manual deletion using afterDelete() event
+                    
         if($this->errors_found) {
             if($type === 'SINGLE') {
                 $this->mode = 'list';
