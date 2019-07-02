@@ -4,7 +4,7 @@ namespace Seriti\Tools;
 trait  MessageHelpers 
 {
 
-    protected function viewMessages() 
+    public function viewMessages() 
     {
         $html = '';
                                         

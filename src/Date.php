@@ -553,7 +553,7 @@ class Date
         return $number;
     }  
     
-    public static function getNoMonths($include='ALL',$from_time,$to_time) 
+    public static function getNoMonthsTime($include='ALL',$from_time,$to_time) 
     {
         $no_months=0;
         
@@ -570,7 +570,7 @@ class Date
         return $no_months;
     } 
     
-    public static function getNoMonths2($from_month,$from_year,$to_month,$to_year) 
+    public static function getNoMonths($from_month,$from_year,$to_month,$to_year) 
     {
         $no_months=($to_year-$from_year)*12 + ($to_month-$from_month) + 1;
         if($no_months<0) $no_months=0;
@@ -578,16 +578,16 @@ class Date
         return $no_months;
     }
     
-    public static function incrementMonth($month,$increment) 
+    public static function incrementMonth($month,$no_months) 
     {
-        $month=$month+$increment ;
+        $month=$month+$no_months ;
         if($month>12) $month=$month-12;
         if($month<1) $month=$month+12;
          
         return $month;
     } 
     
-    public static function incrementMonth2($month,$year,$no_months) 
+    public static function incrementMonthYear($month,$year,$no_months) 
     {
         $time=mktime(0,0,0,$month+$no_months,1,$year);
         $date=getdate($time);
