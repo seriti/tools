@@ -18,6 +18,7 @@ class Config
     
     protected function constants()
     {
+        define(__NAMESPACE__.'\VERSION','1.0.0');
         define(__NAMESPACE__.'\SITE_NAME',SITE_NAME);
         define(__NAMESPACE__.'\DECIMAL_SEPARATOR','.'); 
         define(__NAMESPACE__.'\THOUSAND_SEPARATOR',[',',' ']);
