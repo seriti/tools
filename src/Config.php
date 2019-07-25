@@ -19,12 +19,13 @@ class Config
     protected function constants()
     {
         define(__NAMESPACE__.'\VERSION','1.0.0');
+        
         define(__NAMESPACE__.'\SITE_NAME',SITE_NAME);
         define(__NAMESPACE__.'\DECIMAL_SEPARATOR','.'); 
         define(__NAMESPACE__.'\THOUSAND_SEPARATOR',[',',' ']);
-        define(__NAMESPACE__.'\DEBUG',DEBUG);
-        define(__NAMESPACE__.'\AUDIT',AUDIT);
-        define(__NAMESPACE__.'\STORAGE',STORAGE);
+        define(__NAMESPACE__.'\DEBUG',DEBUG); //boolean
+        define(__NAMESPACE__.'\AUDIT',AUDIT); //boolean
+        define(__NAMESPACE__.'\STORAGE',STORAGE); // 'S3' or 'LOCAL'
 
         define(__NAMESPACE__.'\CURRENCY_SYMBOL',CURRENCY_SYMBOL);
         
@@ -60,21 +61,18 @@ class Config
     protected function setup()
     { 
         //database configuration
-        $this->config['db']['charset'] = 'utf8';
-        $this->config['db']['host'] = '127.0.0.1';
+        $this->config['db']['charset'] = DB_CHARSET; //'utf8'
+        $this->config['db']['host'] = DB_HOST; // 'localhost';
         $this->config['db']['name'] = DB_NAME;
         $this->config['db']['user'] = DB_USER;
         $this->config['db']['password'] = DB_PASSWORD;
-        $this->config['db']['encrypt_key'] = 'encryptkey'; //not used curently
-        $this->config['db']['encrypt_salt'] = 'encryptpassowrd';
         
-
         //email configuration. default method = 'php' too use mail() or 'smtp' to use PhpMailer class
         $this->config['email']['enabled'] = MAIL_ENABLED;
-        $this->config['email']['format'] = 'text';
+        $this->config['email']['format'] = MAIL_FORMAT; // 'text' 'html'
         $this->config['email']['footer'] = '';
-        $this->config['email']['method'] = 'smtp'; 
-        $this->config['email']['charset'] = 'UTF-8';
+        $this->config['email']['method'] = MAIL_METHOD; // 'smtp' 'php'
+        $this->config['email']['charset'] = MAIL_CHARSET; // 'UTF-8'
         $this->config['email']['from'] = ['address'=>MAIL_FROM,'name'=>SITE_NAME];
         $this->config['email']['reply'] = MAIL_FROM;
         $this->config['email']['notify'] = MAIL_WEBMASTER;
