@@ -482,7 +482,7 @@ trait  ModelViews
         $image_count = 0;
         if($this->images['list']) {
             $sql = 'SELECT '.$this->file_cols['file_id'].' AS id,'.$this->file_cols['file_name_orig'].' AS name , '.$this->file_cols['file_name_tn'].' AS thumbnail  '.
-                   'FROM '.$this->files['table'].' '.
+                   'FROM '.$this->images['table'].' '.
                    'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
                    'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC LIMIT '.$this->images['list_no'];
             $images = $this->db->readSqlArray($sql);
@@ -497,7 +497,7 @@ trait  ModelViews
                             $url = $this->images['s3']->getS3Url($image['thumbnail']);
                             if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
                         } else {
-                            $path=$this->images['path'].$image['thumbnail'];
+                            $path = $this->images['path'].$image['thumbnail'];
                             $url = Image::getImage('SRC',$path,$error);
                             if($error != '') $this->addError('Thumbnail error: '.$error);
                         }   
