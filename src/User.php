@@ -35,7 +35,7 @@ class User extends Model
     protected $user_id = 0;
     protected $data = array();
 
-    private $container;
+    protected $container;
     protected $container_allow = ['system','config','mail'];
 
     protected $mode = '';

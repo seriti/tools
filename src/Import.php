@@ -31,7 +31,7 @@ class Import extends Model {
     use TableStructures;
     use SecurityHelpers;
     
-    private $container;
+    protected $container;
     protected $container_allow = ['mail','user'];
 
     protected $data_type = 'CSV';

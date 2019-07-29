@@ -26,7 +26,7 @@ class Backup extends Model
     use SecurityHelpers;
     use TableStructures;
     
-    private $container;
+    protected $container;
     protected $container_allow = ['config','mail','system'];
     
     //basic types for primary database and source code as defined by config, can be extended by add_database() and add_source()                            

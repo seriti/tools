@@ -27,7 +27,7 @@ class System extends Model
     use ContainerHelpers;
     use TableStructures;
 
-    private $container;
+    protected $container;
     protected $container_allow = ['mail','user'];
     
     //KEY_SALT no longer used but kept for possible future use

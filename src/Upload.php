@@ -38,7 +38,7 @@ class Upload extends Model
     use SecurityHelpers;
     use TableStructures;
 
-    private $container;
+    protected $container;
     protected $container_allow = ['s3','mail','user','system','logger'];
 
     protected $col_label = '';

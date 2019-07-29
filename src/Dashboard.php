@@ -19,7 +19,7 @@ class Dashboard {
     use MessageHelpers;
     use ContainerHelpers;
 
-    private $container;
+    protected $container;
     protected $container_allow = ['s3','mail','user','system'];
 
     //store all form data here
