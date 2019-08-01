@@ -252,7 +252,7 @@ trait  ModelHelpers
         if(!isset($param['width'])) $param['width'] = '700';
         if(!isset($param['icon'])) $param['icon'] = '';
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
-         
+        
         $this->file_upload = true;
         $this->files = $param;
     }

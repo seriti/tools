@@ -30,6 +30,8 @@ class Task {
     protected $messages = array();
     protected $tasks = array();
     protected $list_header = '';
+
+    protected $user_id;
   
      
     public function __construct(DbInterface $db, ContainerInterface $container, $param = array()) 
@@ -38,6 +40,8 @@ class Task {
         $this->container = $container;
                 
         if(defined(__NAMESPACE__.'\DEBUG')) $this->debug = DEBUG;
+
+        $this->user_id = $this->getContainer('user')->getId();
     }
     
     //default function to handle all processing and views
@@ -133,7 +137,7 @@ class Task {
                       server_task.param="task_id='.$id.'";
                         
                       var div=document.getElementById(server_task.progress_div);
-                      div.innerHTML="Processing task '.$id.'....";
+                      div.innerHTML="Processing task ....";
                       document.body.style.cursor = "progress";
                       
                       server_task_run();

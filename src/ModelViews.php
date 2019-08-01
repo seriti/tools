@@ -471,7 +471,6 @@ trait  ModelViews
         $error_tmp = '';
 
         $location_id = $this->images['location'].$this->db->escapeSql($data[$this->key['id']]);
-        $location_title = $this->images['title'].' for ['.str_replace('\'','\\\'',$data[$this->col_label]).'] ';
         if(isset($this->images['icon'])) $show = $this->images['icon']; else $show = $this->icons['images'];
                 
         if($this->images['manage']) {
@@ -529,9 +528,8 @@ trait  ModelViews
         $html = '';
 
         $location_id = $this->files['location'].$this->db->escapeSql($data[$this->key['id']]);
-        $location_title = $this->files['title'].' for ['.str_replace('\'','\\\'',$data[$this->col_label]).'] ';
         if($this->files['icon'] != '') $show = $this->files['icon']; else $show = $this->icons['files'];
-        
+
         if($this->files['manage']) {
             $url = $this->files['link_url'].'?id='.Secure::clean('basic',$data[$this->key['id']]);
             $html .= '<a href="Javascript:open_popup(\''.$url.'\','.$this->files['width'].','.$this->files['height'].')">'.$show.'</a>';

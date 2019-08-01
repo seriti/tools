@@ -52,6 +52,16 @@ class Mysql implements DbInterface
         return $db;
     }
 
+    public function disableAudit()
+    {
+        $this->audit = false;
+    }
+
+    public function enableAudit()
+    {
+        if($this->audit_table !== '') $this->audit = true;
+    }
+
     public function setupAudit($param = [])
     {
         if($param['enabled'] !== true) {

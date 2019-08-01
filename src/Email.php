@@ -32,7 +32,8 @@ class Email
     protected $to = [];  
     protected $cc = [];
     protected $bcc = []; 
-    protected $attach = []; 
+    protected $attach = []; //for file attachements
+    protected $embed = [];  //for embedded images
     protected $wrap_text = 0;
 
     public function __construct(PHPMailer $mailer,$param = [])
@@ -127,8 +128,42 @@ class Email
         }    
     }
 
-    //for bulk emails use sendEmailList()
-    public function sendEmail($from,$to,$subject,$body,&$error,$param = []) {
+    //$embed can be single file path or an array of paths/names/links
+    public function addEmbeddedImage($embed,$link_id,$name = '')
+    {
+        $error = '';
+        $embed_files = [];
+        if(is_array($embed)) {
+            foreach($embed as $file) {
+                if(!isset($file['path'])) throw new Exception('EMAIL_EMBED_FILE: No file path set in multiple embed array.');
+                if(!isset($file['name'])) $file['name'] = '';
+                if(!isset($file['link'])) throw new Exception('EMAIL_EMBED_FILE: No link id set in multiple embed array.');
+                $embed_files[] = $file;
+            }    
+        } else {
+            $file = ['path'=>$embed,'link'=>$link_id,'name'=>$name];
+            $embed_files[] = $file;
+        }
+
+
+        foreach($embed_files as $file) {
+            if(!file_exists($file['path'])) {
+                $error = 'EMAIL_EMBED_FILE: File path does not exist.';
+                if($this->debug) $error .= ' Path['.$file['path'].']';
+                throw new Exception($error);
+            }    
+            if($file['name'] === '') {
+                $info = Doc::fileNameParts($file['path']);
+                $file['name'] = $info['basename'];
+            }    
+
+            $this->embed[] = $file;
+        }    
+    }
+
+    
+    public function sendEmail($from,$to,$subject,$body,&$error,$param = []) 
+    {
         $error = '';
         //NB: set to false or other value with extreme caution!  
         if(!isset($param['reset'])) $param['reset'] = 'ALL';
@@ -152,6 +187,7 @@ class Email
         if(isset($param['reply'])) $this->addAddress('reply',$param['reply']);
 
         if(isset($param['attach'])) $this->addAttachment($param['attach']);
+        if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
 
         $this->subject = $subject;
         $this->body = $body;
@@ -168,13 +204,70 @@ class Email
         if($error === '') return true; else return false;
     }
 
-    protected function prepareSMTP()
+    //use in conjunction with sendBulkEmail().
+    public function setupBulkMail($from,$subject,$body,$param = [],&$error) 
     {
+        $error = '';
+        //NB: set to false or other value with extreme caution!  
+        if(!isset($param['reset'])) $param['reset'] = 'ALL';
+        if(isset($param['format'])) {
+           if($param['format'] === 'html') $this->format = 'html'; else $this->format = 'text';
+        }  
+
+        $this->prepareSMTP(['keep_alive'=>true]);
+
+        //clear message data from any previous send. Does not reset from address.
+        $this->reset($param['reset']);
+
+        //NB: from address is specified when class created, so unless different can leave blank.
+        if($from !== '' ) $this->addAddress('from',$from);
+        if(count($this->from) === 0) throw new Exception('EMAIL_SEND: No from address specified.');
+
+        if(isset($param['cc'])) $this->addAddress('cc',$param['cc']);
+        if(isset($param['bcc'])) $this->addAddress('bcc',$param['bcc']);
+        if(isset($param['reply'])) $this->addAddress('reply',$param['reply']);
+
+        if(isset($param['attach'])) $this->addAttachment($param['attach']);
+        if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
+
+        $this->subject = $subject;
+        $this->body = $body;
+
+        $this->prepareEmail();
+    }
+
+    public function sendBulkEmail($to_address,$to_name,$subject = '',$body = '',&$error) 
+    {
+        $error = '';
+
+        $this->reset('TO');
+        $this->mailer->addAddress($to_address,$to_name);
+        if($subject !== '') $this->mailer->Subject = $subject;
+        if($body !== '') $this->mailer->Body = $body;
+
+        if(!$this->mailer->Send()) {
+            $error = 'Error sending email! ';
+            if($this->debug) $error .= $this->mailer->ErrorInfo;
+        }  
+
+        if($error === '') return true; else return false;
+    }
+
+    public function closeBulkEmail() 
+    {
+        $this->mailer->smtpClose();
+    }
+
+    protected function prepareSMTP($param = [])
+    {
+        //keep_alive for BULK sends only
+        if(!isset($param['keep_alive'])) $param['keep_alive'] = false;
+
         if($this->debug) $this->mailer->SMTPDebug = $this->debug_level;
         
         $this->mailer->IsSMTP();              // set mailer to use SMTP
         $this->mailer->SMTPAuth = true;
-        //$mail->SMTPKeepAlive = true; FOR BULK SENDS
+        if($param['keep_alive']) $this->mailer->SMTPKeepAlive = true; 
 
         $this->mailer->Host = $this->host;    
         $this->mailer->SMTPAuth = true;       
@@ -204,7 +297,9 @@ class Email
         if($this->format === 'text' and  $this->wrap_text) $this->mailer->WordWrap = $this->wrap_text;
 
         foreach($this->attach as $file) $this->mailer->addAttachment($file['path'],$file['name']);
-        //also an $mail->addStringAttachment() option for encoded images from a database
+        
+        foreach($this->embed as $file) $this->mailer->AddEmbeddedImage($file['path'],$file['link'],$file['name']);
+        //also an $mailer->addStringAttachment() option for encoded images from a database
 
         if($this->format === 'html') $html = true; else $html = false;
         $this->mailer->IsHTML($html);
@@ -245,50 +340,40 @@ class Email
         }
     }
 
-    //**************************************************
-    
+        
     
     //standard php mail function
-    public static function sendPhpMail($mail_from,$mail_to,$mail_cc,$mail_bcc,$subject,$body,$options=array())  {
-        global $seriti_config;
-        $error_str='';
+    public static function sendPhpMail($mail_from,$mail_to,$mail_cc,$mail_bcc,$subject,$body,$options = [])  {
         
-        //drop out immediately if mail not enabled!
-        if($seriti_config['email']['enabled']===false) return true;
+        if(!isset($options['html'])) $options['html'] = false;
+        if(!isset($options['wrap'])) $options['wrap'] = 0;
+        if(!isset($options['footer'])) $options['footer'] = '';
+        if(!isset($options['charset'])) $options['charset'] = 'iso-8859-1'; //utf-8
         
-        //check configuration options and use defaults if not set
-        if(!isset($options['method'])) $options['method']=$seriti_config['email']['method'];
-        if(!isset($options['html'])) $options['html']=false;
-        if(!isset($options['wrap'])) $options['wrap']=0;
-        
-        $sent=false;
+        $sent = false;
          
-        if($options['method']==='php') {
-            $headers='';
-            if($options['html']) {
-                $headers.='MIME-Version: 1.0'."\r\n";
-                $headers.='Content-type: text/html; charset=iso-8859-1'."\r\n";  //utf-8
-            }  
+        $headers = '';
+        if($options['html']) {
+            $headers .= 'MIME-Version: 1.0'."\r\n";
+            $headers .= 'Content-type: text/html; charset='.$options['charset']."\r\n"; 
+        }  
 
-            $headers.='From: '.$mail_from."\r\n".
-                                'Reply-To: '.$mail_from."\r\n";
-                                 
-            //comma separate multiple values          
-            if($mail_cc!='') $headers.='Cc: '.$mail_cc."\r\n"; 
-            if($mail_bcc!='') $headers.='Bcc: '.$mail_bcc."\r\n";
-             
-            //NB: this must come after cc and bcc fields
-            $headers.='X-Mailer: PHP/'.phpversion();
-             
-            //add any footer/disclaimer 
-            self::insert_footer($body,$options['html']); 
-             
-            if($options['wrap'] and !$options['html']) $body=wordwrap($body,$options['wrap']);  
-             
-            if(mail($mail_to,$subject,$body,$headers)) $sent=true;
-        } 
+        $headers .= 'From: '.$mail_from."\r\n".
+                    'Reply-To: '.$mail_from."\r\n";
+                             
+        //comma separate multiple values          
+        if($mail_cc !== '') $headers .= 'Cc: '.$mail_cc."\r\n"; 
+        if($mail_bcc !== '') $headers .= 'Bcc: '.$mail_bcc."\r\n";
          
-        
+        //NB: this must come after cc and bcc fields
+        $headers .= 'X-Mailer: PHP/'.phpversion();
+         
+        if($options['footer'] !== '') $body .= $options['footer'];
+         
+        if($options['wrap'] and !$options['html']) $body = wordwrap($body,$options['wrap']);  
+         
+        if(mail($mail_to,$subject,$body,$headers)) $sent = true;
+    
          
         return $sent;
     }
@@ -341,163 +426,6 @@ class Email
         
         return $emails;
     }  
-    
-    
-    
-    //*** start IMAP related static functions which are independant of rest of class ***
-
-    public static function imapConnnect($host,$user,$pwd,$options = [],&$error_str) 
-    {
-        $error_str = '';
-        //NB can have 'pop3' or 'nntp' protocol as well
-        if(!isset($options['protocol'])) $options['protocol'] = 'imap';
-        if(!isset($options['ssl'])) $options['ssl'] = false;   
-        if(!isset($options['read_only'])) $options['read_only'] = true;   
-        if(!isset($options['port'])) {
-            if($options['ssl']) $options['port'] = '993'; else $options['port'] = '110';
-        }  
-        if(!isset($options['box'])) $options['box'] = 'INBOX';  
-        
-        $mbox = '{'.$host.':'.$options['port'].'/'.$options['protocol'];
-        if($options['ssl']) $mbox .= '/ssl';
-        if($options['read_only']) $mbox .= '/readonly';
-        $mbox .= '}'.$options['box'];
-        
-        //try and establish connection
-        $conn = imap_open($mbox, $user, $pwd);
-        if($conn === false) $error_str .= 'Could not connect: '.imap_last_error();  
-        return $conn;   
-    }  
-    
-    public static function imapGetMessage($conn,$msg_id,$options=array()) 
-    {
-        if(!isset($options['id_type'])) $options['id_type'] = 'UID'; //can be SEQ or UID
-        if(!isset($options['header'])) $options['header'] = true;
-        if(!isset($options['body'])) $options['body'] = true;
-        if(!isset($options['attachments'])) $options['attachments'] = true;
-                
-        if($options['id_type'] === 'UID') {
-            $msg_no = imap_msgno($conn,$msg_id);
-        } else {
-            $msg_no = $msg_id;
-            $msg_id = imap_uid($msg_no);
-        }  
-        
-        $message = array();
-        $message['text'] = '';
-        $message['html'] = '';
-        $message['attachments'] = array();
-        $message['id'] = $msg_id;
-        $message['no'] = $msg_no;
-        //get all header info
-        if($options['header']) {
-            $header = imap_headerinfo($conn,$msg_no);
-            $message['time'] = $header->udate;
-            $message['date'] = date('F j, Y, g:i a', $header->udate);
-            $message['from_name'] = $header->fromaddress;
-            $message['from'] = $header->from[0]->mailbox.'@'.$header->from[0]->host;
-            $message['to_name'] = $header->toaddress;
-            $message['to'] = $header->to[0]->mailbox.'@'.$header->to[0]->host;
-            $message['subject'] = $header->subject;
-        }
-                
-        if($options['body'] or $options['attachments']) {
-            $structure = imap_fetchstructure($conn,$msg_id,FT_UID);
-            if(!isset($structure->parts)) {  
-                $part_no = '0';
-                $part = $structure;
-                self::imap_get_message_part($conn,$msg_id,$part,$part_no,$options,$message);
-            } else {
-                foreach($structure->parts as $key => $part) {
-                    $part_no = strval($key+1);
-                    self::imapGetMessagePart($conn,$msg_id,$part,$part_no,$options,$message);
-                }  
-            }  
-        }   
-         
-        return $message;
-    }  
-        
-    static function imapGetMessagePart($conn,$msg_id,$part,$part_no,$options,&$message) 
-    {
-        //$part_no = '1', '2', '2.1', '2.1.3', etc for multipart, 0 if simple
-        //get all parameters, like charset, filenames of attachments, etc.
-        $params = array();
-        if(isset($part->parameters)) {
-            foreach($part->parameters as $x) {
-                $params[strtolower($x->attribute)] = $x->value;
-            }  
-        } 
-        if(isset($part->dparameters)) {
-            foreach($part->dparameters as $x) {
-                $params[strtolower($x->attribute)] = $x->value;
-            }  
-        }
-                        
-        //ATTACHMENTS
-        if($options['attachments'] and isset($part->disposition) and $part->disposition == "ATTACHMENT") {
-            $data = imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
-            $data = self::imapDecode($data,$part->type);
-            
-            // filename may be given as 'Filename' or 'Name' or both
-            $file_name = ($params['filename'])? $params['filename'] : $params['name'];
-            // filename may be encoded, so see imap_mime_header_decode()
-            $message['attachments'][$file_name]=$data;// this is a problem if two files have same name
-        }
-        
-        //BODY
-        if($options['body']) {
-            if($part_no == '0') {
-                $data = imap_body($conn,$msg_id,FT_UID);  
-            } else {
-                $data = imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
-            }    
-            $data = self::imapDecode($data,$part->type);
-            
-            if($part->type == 0 and $data) {
-                // Messages may be split in different parts because of inline attachments,   // so append parts together with blank row.
-                if(strtolower($part->subtype) == 'plain') {
-                    $message['text'] .= trim($data)."\n\n";
-                } else {
-                    $message['html'] .= $data.'<br/><br/>';
-                    $message['charset'] = $params['charset'];  // assume all parts are same charset
-                }    
-            } elseif($part->type == 2 and $data) { // There are no PHP functions to parse embedded messages, so this just appends the raw source to the main message.
-                $message['text'] .= $data."\n\n";
-            }
-        }
-                
-        //NB: SUBPART RECURSION
-        if(isset($part->parts)) {
-            foreach($part->parts as $key => $part_2) {
-                $part_no2 = $part_no.'.'.strval($key+1);
-                self::imapGetMessagePart($conn,$msg_id,$part_2,$part_no2,$options,$message); 
-            }  
-        }
-        
-    }
-    
-    public static function imapDecode($value,$encoding) 
-    {
-        /* php.net/manual/en/function.imap-fetchstructure.php
-        0 7BIT
-        1 8BIT
-        2 BINARY
-        3 BASE64
-        4 QUOTED-PRINTABLE
-        5 OTHER
-        */
-        switch($encoding) {
-            case 0:$value = imap_8bit($value);break;
-            case 1:$value = imap_8bit($value);break;
-            case 2:$value = imap_binary($value);break;
-            case 3:$value = imap_base64($value);break;
-            case 4:$value = imap_qprint($value);break;
-            case 5:$value = imap_base64($value);break;
-        }
-
-        return $value;
-    }
     
 }   
 ?>
