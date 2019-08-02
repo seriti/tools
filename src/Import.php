@@ -80,19 +80,35 @@ class Import extends Model {
         $this->setupAccess($this->user_access_level);
     }
     
-    public function addImportCol($col) 
+    protected function setupCol($col) 
     {
-        $col = $this->addCol($col);
-
         if(!isset($col['class'])) $col['class'] = '';
         if(!isset($col['update'])) $col['update'] = false;
         if(!isset($col['confirm'])) $col['confirm'] = true;
 
         //allow update if record id exists
-        if($col['update'] === true) $this->update_existing = true;  
+        if($col['update'] === true) $this->update_existing = true; 
 
+        return $col;
+    }
+
+    public function addImportCol($col) 
+    {
+        $col = $this->addCol($col);
+
+        $col = $this->setupCol($col); 
+        
         $this->cols[$col['id']] = $col;
         $this->col_count++;
+    }
+
+    public function addAllImportCols() 
+    {
+        $this->addAllCols();
+        foreach($this->cols as $col) {
+           $this->cols[$col['id']] = $this->setupCol($col); 
+           $this->col_count++;
+        }
     }
 
     //create data array from import file or confirm form depending on type
