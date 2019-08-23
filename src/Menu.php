@@ -56,9 +56,9 @@ class Menu extends Tree
         if($item[$this->menu_cols['type']] === 'LINK_SYSTEM') { //system pages from webroot
             $href = $options['http_root'].$item[$this->menu_cols['route']].'?mode='.$item[$this->menu_cols['mode']]; 
         } elseif($item[$this->menu_cols['type']] === 'LINK_PAGE') { //user created public page from WEBSITE module
-            $href = $options['http_root'].$options['link_page'].'?page='.$item[$this->menu_cols['route']];
+            $href = $options['http_root'].$options['page_route'].$item[$this->menu_cols['route']];
         }elseif($item[$this->menu_cols['type']] === 'LINK_TABLE') { //user created database table management pages from CUSTOM module
-            $href = $options['http_root'].$options['link_table'].'?table='.$item[$this->menu_cols['route']]; //db_manage.php of old
+            $href = $options['http_root'].$options['table_route'].$item[$this->menu_cols['route']]; //db_manage.php of old
         } elseif($item[$this->menu_cols['type']] === 'LINK_STANDARD') { //any link page from webroot
             $href = $options['http_root'].$item[$this->menu_cols['route']].'?mode='.$item[$this->menu_cols['mode']];
         } else { 
@@ -77,8 +77,8 @@ class Menu extends Tree
 
         if(!isset($options['http_root'])) $options['http_root'] = BASE_URL;
         if(!isset($options['active_link'])) $options['active_link'] = URL_CLEAN;
-        if(!isset($options['link_page'])) $options['link_page'] = '';
-        if(!isset($options['link_table'])) $options['link_table'] = 'table';
+        if(!isset($options['page_route'])) $options['page_route'] = 'public/';
+        if(!isset($options['table_route'])) $options['table_route'] = 'table/';
         if(!isset($options['menu_static'])) $options['menu_static'] = '';
         //if false menu items with insufficient access are NOT displayed
         if(!isset($options['show_disabled'])) $options['show_disabled'] = true;

@@ -118,7 +118,11 @@ class Image
             $i = 0;
             foreach($images as $image) {
                 if($i == 0) $class = 'class="item active"'; else $class = 'class="item"';
-                $src = $options['src_root'].$image['file_name'];
+                if(isset($image['src'])) {
+                    $src = $image['src'];
+                } else {
+                    $src = $options['src_root'].$image['file_name'];
+                }  
                 $html .= '<div '.$class.'>'.
                          '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>';
                 if($image['title'] != '') {
@@ -145,7 +149,7 @@ class Image
             $i = 0;
             foreach($images as $image) {
                 //if($i==0) $class='class="item active"'; else $class='class="item"';
-                $src = $options['src_root'].$image['file_name'];
+                $src = $options['src_root'].$image['file_name_tn'];
                 $html .= '<div class="col-sm-6 col-md-4">'.
                                  '<div class="thumbnail">'.
                                      '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>'.

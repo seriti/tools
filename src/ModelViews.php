@@ -92,7 +92,7 @@ trait  ModelViews
                 $valid = true;
                 if($action['verify']) $valid = $this->verifyRowAction($action,$data);
                 
-                if($valid and $action['pos'] == $pos) {
+                if($valid and ($action['pos'] === $pos or $pos === 'ALL')) {
             
                     if($action['class'] != '') $html .= '<span class="'.$action['class'].'">';
                     
@@ -496,9 +496,14 @@ trait  ModelViews
                             $url = $this->images['s3']->getS3Url($image['thumbnail']);
                             if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
                         } else {
-                            $path = $this->images['path'].$image['thumbnail'];
-                            $url = Image::getImage('SRC',$path,$error);
-                            if($error != '') $this->addError('Thumbnail error: '.$error);
+                            if($this->images['path_public']) {
+                                $url = BASE_URL.$this->images['path'].$image['file_name_tn'];
+                            } else {
+                                $path = $this->images['path'].$image['thumbnail'];
+                                //NB: this returns encoded image and NOT url as image normally stored outside public directory
+                                $url = Image::getImage('SRC',$path,$error);
+                                if($error != '') $this->addError('Thumbnail error: '.$error);
+                            }    
                         }   
                         
                         $html .= '<img class="list_image" align="left" src="'.$url.'" '.

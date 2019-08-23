@@ -226,6 +226,7 @@ trait  ModelHelpers
         if(!isset($param['width'])) $param['width'] = '700';
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
+        if(!isset($param['path_public'])) $param['path_public'] = false;
         if(!isset($param['https'])) $param['https'] = true;
          
         $this->image_upload = true;
@@ -252,6 +253,8 @@ trait  ModelHelpers
         if(!isset($param['width'])) $param['width'] = '700';
         if(!isset($param['icon'])) $param['icon'] = '';
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
+        if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
+        if(!isset($param['path_public'])) $param['path_public'] = false;
         
         $this->file_upload = true;
         $this->files = $param;
