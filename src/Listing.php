@@ -22,7 +22,7 @@ use Seriti\Tools\TableStructures;
 
 use Psr\Container\ContainerInterface;
 
-class ListItems extends Model 
+class Listing extends Model 
 {
     
     use IconsClassesLinks;
@@ -101,13 +101,15 @@ class ListItems extends Model
     
     public function setup($param = array()) 
     {
+        //turns off any data modification functionality in Model Class
+        $this->access['read_only'] = true;
+
         //Implemented in Model Class
         if(isset($param['distinct'])) $this->distinct = $param['distinct'];
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
+        //if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
         if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
 
-        //implemented locally
         $this->dates['new'] = date('Y-m-d');
         if(isset($param['location'])) $this->location = $param['location']; //Could use URL_CLEAN_LAST
                      
@@ -200,7 +202,7 @@ class ListItems extends Model
         if($this->mode === 'list')   $html .= $this->viewList($param);
         if($this->mode === 'view')   $html .= $this->viewListItem($id);
         
-        if($this->mode === 'search') $html .= $this->search();
+        if($this->mode === 'search' or $this->mode === 'index') $html .= $this->search();
         
         if($this->mode === 'custom') $html .= $this->processCustom($id);
 
@@ -221,40 +223,44 @@ class ListItems extends Model
     protected function setupListCol($col) 
     {
         //table display parameters
-        if(!isset($col['edit_title'])) $col['edit_title']=$col['title'];
-        if(!isset($col['class'])) $col['class']='';
-        if(!isset($col['class_search'])) $col['class_search']=$col['class'];
-        if(!isset($col['new'])) $col['new']='';
-        if(!isset($col['hint'])) $col['hint']='';
-         
-         //assign type specific settings and defaults if not set
-        if($col['type']=='DATE') {
-            if(!isset($col['format'])) $col['format']='DD-MMM-YYYY';
+        if(!isset($col['edit_title'])) $col['edit_title'] = $col['title'];
+        if(!isset($col['class'])) $col['class'] = '';
+        if(!isset($col['class_search'])) $col['class_search'] = $col['class'];
+        if(!isset($col['new'])) $col['new'] = '';
+        if(!isset($col['hint'])) $col['hint'] = '';
+        if(!isset($col['prefix'])) $col['prefix'] = '';
+        if(!isset($col['suffix'])) $col['suffix'] = '';
+        //used when searching on a tree hierarchy, must contain SQL alias for JOINed table
+        if(!isset($col['tree'])) $col['tree'] = '';
+
+        //assign type specific settings and defaults if not set
+        if($col['type'] === 'DATE') {
+            if(!isset($col['format'])) $col['format'] = 'DD-MMM-YYYY';
         }
          
-        if($col['type']=='DATETIME') {
-            if(!isset($col['format'])) $col['format']='DD-MMM-YYYY HH:MM';
+        if($col['type'] === 'DATETIME') {
+            if(!isset($col['format'])) $col['format'] = 'DD-MMM-YYYY HH:MM';
         }
          
-        if($col['type']=='TIME') {
-            if(!isset($col['format'])) $col['format']='HH:MM';
+        if($col['type'] === 'TIME') {
+            if(!isset($col['format'])) $col['format'] = 'HH:MM';
         }
          
-        if($col['type']=='TEXT') {
-            if(!isset($col['encode'])) $col['encode']=true;
-            if(!isset($col['rows'])) $col['rows']=5;
-            if(!isset($col['cols'])) $col['cols']=50;
+        if($col['type'] === 'TEXT') {
+            if(!isset($col['encode'])) $col['encode'] = true;
+            if(!isset($col['rows'])) $col['rows'] = 5;
+            if(!isset($col['cols'])) $col['cols'] = 50;
         }
          
-        if(!isset($col['sort'])) $col['sort']='';
+        if(!isset($col['sort'])) $col['sort'] = '';
 
          //assign list cols to order by list 
-        if($col['list']==true and !isset($col['join'])) {
+        if($col['list'] === true and !isset($col['join'])) {
             $this->addSortOrder($col['id'],$col['edit_title']);
         }  
          
         //assign column value to use in row level warnings and messages if not already set
-        if($this->col_label === '') $this->col_label=$col['id'];
+        if($this->col_label === '') $this->col_label = $col['id'];
         
         return $col;
     }
@@ -338,16 +344,8 @@ class ListItems extends Model
         } 
     }
 
-    public function addSearchAggregate($aggregate) 
-    {
-        $this->calc_aggregate = true;
-        //$aggregate['sql'],$aggregate['title'] as a minimum
-        //ie:$aggregate=['sql'=>'SUM(amount)','title'=>'Total amount'];
-        $this->search_aggregate[] = $aggregate; 
-    } 
     
-    
-    public function addSearch($cols,$param=array()) 
+    public function addSearch($cols,$param = []) 
     {
         if($this->access['search']) {
             $this->search = array_merge($this->search,$cols);
@@ -363,7 +361,7 @@ class ListItems extends Model
     }
     
     //NB: this public function can sometimes be replicated by using 'xtra'=>'X.col_id' in standard col definition
-    public function addSearchXtra($col_id,$col_title,$param=array()) 
+    public function addSearchXtra($col_id,$col_title,$param = []) 
     {
         if($this->access['search']) { 
             //NB: col_id must have join table alias... ie TX.col_id 
@@ -381,11 +379,45 @@ class ListItems extends Model
         } 
     }
         
-    public function addSortOrder($order_by,$description,$type='') {
+    public function addSortOrder($order_by,$description,$type = '') {
          if($type=='DEFAULT' or $this->order_by_current=='') $this->order_by_current=$order_by;
          $this->order_by[$order_by]=$description;
     } 
     
+    //processed by search()
+    public function viewSearchIndex($type,$col_id,$form = [],$param = [])
+    {
+        $html = '';
+
+        if(!isset($param['select_submit'])) $param['select_submit'] = true;
+        if(!isset($param['select_all'])) $param['select_all'] = true;
+        if(!isset($param['class'])) $param['class'] = 'input-inline';
+
+        if(isset($form[$col_id])) $value = $form[$col_id]; else $value = '';
+
+        $html .= '<span id="index_div">';
+        
+        $html .= '<form method="post" enctype="multipart/form-data" action="?mode=index" name="index_form" id="index_form" class="'.$param['class'].'">';
+        $html .= $this->formState();        
+
+        //NB: $col_id needs to have been setup using addSelect()
+        if($type === 'SELECT' and isset($this->select[$col_id])) {
+            $select_param = [];
+            if($param['select_all']) $select_param['xtra'] = 'ALL';
+            if($param['select_submit']) $select_param['onchange'] = 'this.form.submit()';
+
+            if(isset($this->select[$col_id]['sql'])) {
+                $html .= Form::sqlList($this->select[$col_id]['sql'],$this->db,$col_id,$value,$select_param);
+            } elseif(isset($this->select[$col_id]['list'])) { 
+                $html .= Form::arrayList($this->select[$col_id]['list'],$col_id,$value,$this->select[$col_id]['list_assoc'],$select_param);
+            }  
+        
+        }
+
+        $html .= '</form></span>';
+
+        return $html;
+    }
     
     public function viewList($param=array()) 
     {
@@ -447,10 +479,10 @@ class ListItems extends Model
         $nav = $this->viewNavigation('TABLE'); 
                        
 
-        if($this->show_header) $header = $this->viewHeader('','TOP','STD');
+        if($this->show_header) $header = $this->viewHeader('','TOP');
 
         if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;//'<p align="center">'.$nav.'</p>';
-        //if($info != '') $html .= $info;
+        
         if($this->search_rows != 0) $html .= $this->viewSearch($form);
        
         $html .= '<div id="'.$this->div_id.'">'; 
@@ -528,17 +560,17 @@ class ListItems extends Model
         return $html;
     }
     
-    protected function viewHeader($tag,$position='TOP',$format = 'STD') 
+    protected function viewHeader($tag,$position='TOP') 
     {
         $html = '';
         
-        if($format === 'STD') {
+        if($this->format === 'STANDARD') {
             //bootstrap responsive cols
             $size = floor(12 / $this->col_count);
             $col_class = 'class="col-sm-'.$size.'"';
 
 
-            $html .= '<div class="row" '.$tag.'>';
+            $html .= '<div class="'.$this->list_classes['row'].'" '.$tag.'>';
 
             if($this->action_col_left) $html .= '<div '.$col_class.'>'.$this->action_header.'</div>';
 
@@ -550,10 +582,35 @@ class ListItems extends Model
                 if($col['list']) $html .= '<div '.$col_class.'>'.$col['title'].'</div>'; 
             }    
 
-            if($this->action_col_right) $html .= '<div '.$col_class.'>'.$actions_right.'</div>';              
+            if($this->action_col_right) $html .= '<div '.$col_class.'>'.$this->action_header.'</div>';              
                              
             $html .= '</div>';
 
+        }
+
+        if($this->format === 'MERGE_COLS') {
+            $col_count = 1; 
+            if($this->action_col_left) $col_count++;
+            if($this->image_upload) $col_count++;
+            if($this->file_upload) $col_count++;
+            if($this->action_col_right) $col_count++;
+
+            $size = floor(12 / $col_count);
+            $col_class = 'class="col-sm-'.$size.'"';
+
+            $html .= '<div class="'.$this->list_classes['row'].'" '.$tag.'>';
+
+            if($this->action_col_left) $html .= '<div '.$col_class.'>'.$this->action_header.'</div>';
+
+            if($this->image_upload) $html .= '<div '.$col_class.'>'.$this->images['title'].'</div>';
+
+            if($this->file_upload) $html .= '<div '.$col_class.'>'.$this->files['title'].'</div>';
+
+            $html .= '<div '.$col_class.'>'.$this->row_name.' description</div>'; 
+            
+            if($this->action_col_right) $html .= '<div '.$col_class.'>'.$this->action_header.'</div>';              
+                             
+            $html .= '</div>';
         }
           
         return $html; 
@@ -614,9 +671,14 @@ class ListItems extends Model
             default : $value = Secure::clean('string',$value);
         }
 
+        if($col['prefix'] !== '') $value = $col['prefix'].$value;
+        if($col['suffix'] !== '') $value = $value.$col['suffix'];
+
         if($col['class'] !== '') {
            $value = '<span class="'.$col['class'].'">'.$value.'</span>';
         }
+
+
         
         return $value;        
     }
@@ -835,22 +897,32 @@ class ListItems extends Model
                 $value = $_POST["$col_id"];
                 $value_mod = $value;
                 
-                //strip value of search specific terms like <>+* and set sql_parse operators
+                //strip $value_mod of search specific terms like <>+* and set sql_parse operators
                 $this->db->parseSearchTerm($value_mod,$sql_parse);
                 
-                //NB: validate routines also modify $value sometimes(like stripping out thousand separators)
+                //NB: validate routines also modify $value_mod sometimes(like stripping out thousand separators)
                 $this->validate($col_id,$value_mod,'SEARCH');
                                     
                 if($value_mod != '') {
+                    $value_mod = $this->db->escapeSql($value_mod);
+
                     if(isset($this->select[$col_id])) {
-                        if($value_mod != 'ALL') $where .= $col_str.' = "'.$this->db->escapeSql($value_mod).'" AND ';
+                        if($value_mod != 'ALL') {
+                            if($col['tree'] != '') {
+                                //$col['tree'] must be SQL alias for JOINed tree table
+                                $csv_col = $col['tree'].'.'.$this->tree_cols['lineage'];
+                                $where .= '('.$col_str.' = "'.$value_mod.'" OR FIND_IN_SET("'.$value_mod.'",'.$csv_col.') > 0) AND ';
+                            } else {
+                                $where .= $col_str.' = "'.$value_mod.'" AND ';
+                            }    
+                        }     
                     } else {
                         if($value_mod == 'null') {
                             if($sql_parse['operator'] == '') $sql_parse['operator'] = '=';
                             $where .= $col_str.' '.$sql_parse['operator'].' "" AND ';
                         } else {  
                             $where .= $col_str.' '.$sql_parse['operator'].' "'.
-                                      $sql_parse['prefix'].$this->db->escapeSql($value_mod).$sql_parse['suffix'].'" AND ';
+                                      $sql_parse['prefix'].$value_mod.$sql_parse['suffix'].'" AND ';
                         }  
                     }   
                 }

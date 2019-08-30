@@ -23,16 +23,19 @@ trait  ModelViews
         $html .= '<a class="nav_list" href="?mode=list_all'.$state_param.'">List all '.$this->row_name_plural.'</a>';
         if($this->show_info) $html .= '&nbsp;-&nbsp;<a class="nav_info" href="javascript:toggle_display_scroll(\'info_div\')">Info</a>';
         //'delete' included for when there is an error while attempting to delete
-        if($this->mode === 'list' or $this->mode === 'search' or $this->mode === 'delete') {
+        if($this->mode === 'list' or $this->mode === 'search' or $this->mode === 'index' or $this->mode === 'delete') {
             if($this->show_search) $html .= '&nbsp;-&nbsp;<a class="nav_search" href="javascript:toggle_display_scroll(\'search_div\')">Search</a>';
-            if($this->access['import']) $html .= '&nbsp;-&nbsp;<a class="nav_import" href="javascript:toggle_display_scroll(\'import_div\')">Import</a>';
-            if($this->access['add']) {
-                if($this->add_href !== '') {
-                    $html .= '&nbsp;-&nbsp;<a class="nav_add" href="'.$this->add_href.'">Add a new '.$this->row_name.'</a>';
-                } else {  
-                    $html .= '&nbsp;-&nbsp;<a class="nav_add" href="?mode=add'.$state_param.'">Add a new '.$this->row_name.'</a>';
-                }  
-            }  
+
+            if(!$this->access['read_only']) {
+                if($this->access['import']) $html .= '&nbsp;-&nbsp;<a class="nav_import" href="javascript:toggle_display_scroll(\'import_div\')">Import</a>';
+                if($this->access['add']) {
+                    if($this->add_href !== '') {
+                        $html .= '&nbsp;-&nbsp;<a class="nav_add" href="'.$this->add_href.'">Add a new '.$this->row_name.'</a>';
+                    } else {  
+                        $html .= '&nbsp;-&nbsp;<a class="nav_add" href="?mode=add'.$state_param.'">Add a new '.$this->row_name.'</a>';
+                    }  
+                }
+            }      
             
             $html.='&nbsp;:&nbsp;'; 
              
