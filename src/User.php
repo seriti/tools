@@ -54,8 +54,8 @@ class User extends Model
     //cache id's used to maintain state between requests using setCache()/getcache()
     protected $cache = array('user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url');
     
-    //all possible user access settings, NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW
-    protected $access_levels = array('GOD','ADMIN','USER','VIEW');
+    //all possible user access settings, NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW > PUBLIC
+    protected $access_levels = array('GOD','ADMIN','USER','VIEW','PUBLIC');
     protected $access_level = 'NONE';
 
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
@@ -71,8 +71,6 @@ class User extends Model
     {
         //Implemented in Model Class
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
 
         //local setup
         if(isset($param['access_levels']) and is_array($param['access_levels'])) $this->access_levels = $param['access_levels'];
@@ -552,55 +550,14 @@ class User extends Model
                 return false;
             }  
         } else {
-            $access = true;
-
-            if($level === 'GOD') {
-                $this->access['read_only'] = false;
-                $this->access['edit']      = true;
-                $this->access['view']      = true;
-                $this->access['delete']    = true;
-                $this->access['add']       = true;
-                $this->access['search']    = true;
-                $this->access['email']     = true;
-            }
-
-            if($level === 'ADMIN') {
-                $this->access['read_only'] = false;
-                $this->access['edit']      = true;
-                $this->access['view']      = true;
-                $this->access['delete']    = true;
-                $this->access['add']       = true;
-                $this->access['search']    = true;
-            }
-            
-            if($level === 'USER') {
-                $this->access['read_only'] = false;
-                $this->access['edit']      = true;
-                $this->access['view']      = true;
-                $this->access['delete']    = false;
-                $this->access['add']       = true;
-                $this->access['search']    = true;
-            }
-            
-            if($level === 'VIEW') {
-                $this->access['read_only'] = true;
-                $this->access['view']      = true;
-                $this->access['search']    = true;
-            } 
-            
-            //add a placeholder public function here for custom access
-            //$this->modifyAccess();
-            
             return true;
-            //return $this->access;
         }  
-        
     }
     
+    //NB: ASSUMES $this->access_levels sequence is from highest to lowest access
     public function checkUserAccess($level_required) {
         $access = false;
-        
-        //NB: $this->access_levels sequence is from highest to lowest access
+                
         $user = array_search($this->access_level,$this->access_levels);
         $required = array_search($level_required,$this->access_levels);
         if($user !== false and $user <= $required) $access = true;

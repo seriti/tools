@@ -49,9 +49,7 @@ class System extends Model
     {
         //Implemented in Model Class
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
-
+        
         //local setup
         if(isset($param['protect_defaults'])) $this->protect_defaults = $protect_defaults;
 

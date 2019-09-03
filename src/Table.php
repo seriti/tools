@@ -96,9 +96,7 @@ class Table extends Model
         //Implemented in Model Class
         if(isset($param['distinct'])) $this->distinct = $param['distinct'];
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
-
+        
         //implemented locally
         $this->dates['new'] = date('Y-m-d');
         if(isset($param['location'])) $this->location = $param['location']; //Could use URL_CLEAN_LAST
@@ -119,8 +117,6 @@ class Table extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
-        if(isset($param['show_add'])) $this->access['add'] = $param['show_add']; 
-
 
         $this->user_access_level = $this->getContainer('user')->getAccessLevel();
         $this->user_id = $this->getContainer('user')->getId();
@@ -968,9 +964,10 @@ class Table extends Model
     protected function updateRow($id,$form)  
     {
         $html = '';
+        $error = '';
         
-        $this->verifyCsrfToken(); 
-
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
+        
         $edit_type = $form['edit_type'];
         if($edit_type !== 'UPDATE' and $edit_type !== 'INSERT') {
            $this->addError('Cannot determine if UPDATE or INSERT!'); 
@@ -1019,11 +1016,12 @@ class Table extends Model
     protected function deleteRow($id,$type = 'SINGLE') 
     {
         $html = '';
-        $data='';
+        $data = '';
+        $error = '';
         
-        $this->verifyCsrfToken(); 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
 
-        $this->delete($id);
+        if(!$this->errors_found) $this->delete($id);
                 
         //delete any images/files or other data associated with record. 
         //rather leave for manual deletion using afterDelete() event

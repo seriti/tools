@@ -9,37 +9,48 @@ use Seriti\Tools\Form;
 trait  SecurityHelpers 
 {
 
-    protected function verifyCsrfToken() 
+    protected function verifyCsrfToken(&$error) 
     {   
         $error = '';
         if(!isset($this->user_csrf_token)) {
-            $error .= 'Invalid request! ';
+            $error .= 'CSRF token error! ';
             if($this->debug) $error .= 'user CSRF token NOT set.';
         } elseif($this->csrf_token === '') {
-            $error .= 'Invalid request! ';
+            $error .= 'CSRF token error! ';
             if($this->debug) $error .= 'Form or Link CSRF token NOT set.';
         } else {    
             if($this->user_csrf_token !== $this->csrf_token) {
-                $error .= 'Invalid request! ';
+                $error .= 'CSRF token error! ';
                 if($this->debug) $error .= 'CSRF request token['.$this->csrf_token.'] does not match user Token['.$this->user_csrf_token.']';
             }
         }
 
-        if($error !== '') throw new Exception($error);
+        if($error !== '') return false; else return true;
     }
 
-    protected function setupAccess($user_access) 
+    protected function setupAccess($access_level) 
     {
-        switch ($user_access) {
-            case 'VIEW' : {
+        switch ($access_level) {
+            case 'GOD' : {
                 $this->access['view'] = true;
                 $this->access['search'] = true;
-                $this->access['read_only'] = true;
-                $this->access['edit'] = false;
-                $this->access['add'] = false;
-                $this->access['delete'] = false;
-                $this->access['email'] = false;
-                $this->access['link'] = false;
+                $this->access['read_only'] = false;
+                $this->access['edit'] = true;
+                $this->access['add'] = true;
+                $this->access['delete'] = true;
+                $this->access['email'] = true;
+                $this->access['link'] = true;
+                break;
+            }
+            case 'ADMIN' : {
+                $this->access['view'] = true;
+                $this->access['search'] = true;
+                $this->access['read_only'] = false;
+                $this->access['edit'] = true;
+                $this->access['add'] = true;
+                $this->access['delete'] = true;
+                $this->access['email'] = true;
+                $this->access['link'] = true;
                 break;
             }
             case 'USER' : {
@@ -53,15 +64,38 @@ trait  SecurityHelpers
                 $this->access['link'] = false;
                 break;
             }
-            case 'ADMIN' : {
+            case 'VIEW' : {
                 $this->access['view'] = true;
                 $this->access['search'] = true;
-                $this->access['read_only'] = false;
-                $this->access['edit'] = true;
-                $this->access['add'] = true;
-                $this->access['delete'] = true;
-                $this->access['email'] = true;
-                $this->access['link'] = true;
+                $this->access['read_only'] = true;
+                $this->access['edit'] = false;
+                $this->access['add'] = false;
+                $this->access['delete'] = false;
+                $this->access['email'] = false;
+                $this->access['link'] = false;
+                break;
+            }
+            case 'PUBLIC' : {
+                $this->access['view'] = true;
+                $this->access['search'] = true;
+                $this->access['read_only'] = true;
+                $this->access['edit'] = false;
+                $this->access['add'] = false;
+                $this->access['delete'] = false;
+                $this->access['email'] = false;
+                $this->access['link'] = false;
+                break;
+            }
+            
+            default : {
+                $this->access['view'] = true;
+                $this->access['search'] = true;
+                $this->access['read_only'] = true;
+                $this->access['edit'] = false;
+                $this->access['add'] = false;
+                $this->access['delete'] = false;
+                $this->access['email'] = false;
+                $this->access['link'] = false;
                 break;
             }
             

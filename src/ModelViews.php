@@ -62,7 +62,7 @@ trait  ModelViews
         }  
          
         if($context === 'TABLE') {        
-            if($this->mode === 'list' or $this->mode === 'search') {
+            if($this->mode === 'list' or $this->mode === 'search' or $this->mode === 'index') {
                 $html .= '&nbsp;<span class="nav_sort">(Sorted by '.$this->order_by[$this->order_by_current].')</span>'; 
             }    
         }  

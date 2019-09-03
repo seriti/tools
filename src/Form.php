@@ -408,7 +408,7 @@ class Form
         if(isset($param['class'])) $xtra .= 'class="'.$param['class'].'" ';
         if(isset($param['onchange'])) $xtra .= 'onchange="'.$param['onchange'].'" ';
         if(isset($param['form'])) $xtra .= 'form="'.$param['form'].'" ';
-        
+                
         if(isset($param['select'])) {
             $html .= $param['select'];
         } else {

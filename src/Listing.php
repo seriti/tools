@@ -55,8 +55,8 @@ class Listing extends Model
     protected $add_repeat = false; //set to true to continue adding records after submit rather than show list view
     protected $add_href = '';//change add nav link to some external page or wizard
     protected $key_error = '';
-                
-    protected $excel_csv = true;
+    
+    protected $list_action = false;//where multiple rows can be acted on
     protected $actions = array();
     protected $location = '';
     protected $search = array();
@@ -84,12 +84,24 @@ class Listing extends Model
 
     protected $col_count = 0;
     //additional classes from standard admin IconsClassesLinks;
-    protected $list_classes = ['row'=>'row list_items_row','image'=>'list_items_image','title'=>'list_title','width'=>'list_width'];
+    protected $list_classes = ['row'=>'row list_items_row',
+                               'image'=>'list_items_image',
+                               'title'=>'list_title',
+                               'width'=>'list_width',
+                               'select'=>'form-control input-small input-inline'];
     protected $image_pos = 'LEFT';
     protected $show_header = false;
     protected $div_id = 'list_items_div';
     protected $format = 'STANDARD';
-    
+    protected $no_image_src = BASE_URL.'images/no_image.png';
+    protected $action_mode = 'AJAX';
+    protected $action_route = '';
+    protected $action_button_text = 'Add to cart';
+    protected $col_options = '';
+
+    //select lists for action col
+    protected  $action_select = [];
+
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
     {
         parent::__construct($db,$table);
@@ -107,9 +119,7 @@ class Listing extends Model
         //Implemented in Model Class
         if(isset($param['distinct'])) $this->distinct = $param['distinct'];
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        //if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
-
+        
         $this->dates['new'] = date('Y-m-d');
         if(isset($param['location'])) $this->location = $param['location']; //Could use URL_CLEAN_LAST
                      
@@ -128,8 +138,6 @@ class Listing extends Model
             $this->pop_up = $param['pop_up'];
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
-        //if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
-        //if(isset($param['show_add'])) $this->access['add'] = $param['show_add']; 
 
 
         $this->user_access_level = $this->getContainer('user')->getAccessLevel();
@@ -139,10 +147,17 @@ class Listing extends Model
 
 
         //******************* new stuff
-
+        if(isset($param['order_by'])) $this->order_by_current = $param['order_by'];
         if(isset($param['image_pos'])) $this->image_pos = $param['image_pos'];
         if(isset($param['show_header'])) $this->show_header = $param['show_header'];
         if(isset($param['format'])) $this->format = $param['format'];
+        if(isset($param['no_image_src'])) $this->no_image_src = $param['no_image_src'];
+        if(isset($param['col_options'])) $this->col_options = $param['col_options'];
+
+        if(isset($param['no_image_src'])) $this->no_image_src = $param['no_image_src'];
+        if(isset($param['action_mode'])) $this->action_mode = $param['action_mode'];
+        if(isset($param['action_route'])) $this->action_route = $param['action_route'];
+        if(isset($param['action_button_text'])) $this->action_button_text = $param['action_button_text'];
     }
            
     public function processList() 
@@ -205,9 +220,7 @@ class Listing extends Model
         if($this->mode === 'search' or $this->mode === 'index') $html .= $this->search();
         
         if($this->mode === 'custom') $html .= $this->processCustom($id);
-
-        //no longer supported as all record docs handled by Upload class!!
-        if($this->mode === 'download') $html .= $this->fileDownload($id);
+        
                         
         return $html;
     } 
@@ -291,44 +304,39 @@ class Listing extends Model
     }
     
     
-    public function addListAction($action = []) 
+    public function addListAction($action_id,$action = []) 
     {
-        if(!isset($action['pos'])) $action['pos'] = 'L';
-
         $action_valid = true;
+
+        if(!isset($action['pos'])) $action['pos'] = 'L';
         if(!isset($action['icon'])) $action['icon'] = false;
-        
-        if($action['type'] == 'edit') {
-            if($action['icon'] === true) $action['icon'] = $this->icons['edit'];
-            $action['mode'] = 'edit';
-            if(!$this->access['edit']) $action_valid = false;
-        }  
-        if($action['type'] == 'view') {
-            if($action['icon'] === true) $action['icon'] = $this->icons['view'];
-            $action['mode'] = 'view';
-        }
-        if($action['type'] == 'delete') {
-            if($action['icon'] === true) $action['icon'] = $this->icons['delete'];
-            $action['mode'] = 'delete';
-            if(!$this->access['delete']) $action_valid = false;
-        } 
+        if(!isset($action['class'])) $action['class'] = '';    
+        if(!isset($action['mode'])) $action['mode'] = 'ajax';
+        if(!isset($action['verify'])) $action['verify'] = false;
+        if(!isset($action['spacer'])) $action['spacer'] = '</br>';
+        if(!isset($action['text'])) $action['text'] = '';
+        if(!isset($action['value'])) $action['value'] = ''; 
+        if(!isset($action['param'])) $action['param'] = []; 
+                 
         if($action['type'] == 'popup') {
             if(!isset($action['width'])) $action['width'] = 600;
             if(!isset($action['height'])) $action['height'] = 400;
         } 
-        //this action allows multiple rows in table to be selected and an action performed on all checked records
+        //this action allows multiple rows in table to be selected and an action performed on all
         if($action['type'] == 'check_box') {
             if($this->access['read_only'] or !$this->access['edit']) {
                 $action_valid = false;
             } else {  
-                $this->table_action = true; 
+                $this->list_action = true; 
             }  
         } 
-                
-        if(!isset($action['class'])) $action['class'] = '';    
-        if(!isset($action['mode'])) $action['mode'] = 'list';
-        if(!isset($action['verify'])) $action['verify'] = false;
-        if(!isset($action['spacer'])) $action['spacer'] = '&nbsp;';
+        
+        if($action['type'] == 'select') {
+            //can have 'sql' statement or 'list' array
+            if(isset($action['list'])) {
+                if(!isset($action['list_assoc'])) $action['list_assoc'] = false;
+            } 
+        }    
                         
         if($action_valid) {
             if($action['pos'] == 'L' and !$this->action_col_left) {
@@ -340,10 +348,13 @@ class Listing extends Model
                 $this->col_count++;
             }    
             
-            $this->actions[] = $action;
+            //NB: "." is not allowed in variable names or array keys by PHP
+            $action_id = str_replace('.','_',$action_id);
+            $this->actions[$action_id] = $action;
         } 
     }
 
+    
     
     public function addSearch($cols,$param = []) 
     {
@@ -445,10 +456,12 @@ class Listing extends Model
                 $this->row_count = $this->getCache('sql_count');
                 $form = $this->getCache('form');
                 //after search with null result and then add a new record
+                /* legacy from Table class
                 if($this->row_count == 0) {
                   $initialise = true;
                   unset($param['sql']);
-                }  
+                } 
+                */ 
             }  
         } 
         
@@ -504,16 +517,92 @@ class Listing extends Model
         
         $html = $this->viewMessages().$html;
 
+        $html .= $this->getJavascript('list_action');
+
         return $html;
+    }
+
+    protected function getJavascript($type)
+    {
+        //var elem = document.getElementById(form_id).elements;
+        $js = "\r\n<script type='text/javascript'>\r\n";
+        
+        if($type === 'list_action') {
+
+            $js .= "function process_list_action(form,response_id) {
+                        var param = 'csrf_token='+encodeURIComponent('".$this->user_csrf_token."')+'&';
+                        var elem = form.elements;
+                        for(i=0;i<elem.length;i++) {
+                            param+=elem[i].name+'='+encodeURIComponent(elem[i].value);
+                            if(i<(elem.length-1)) param+='&';
+                        } 
+
+                        alert('WTF:'+param+' route:'+'".$this->action_route."');
+
+                        //return false;
+
+                        xhr('".$this->action_route."',param,list_action_callback,response_id);
+
+                        return false; //to prevent form submission
+                    }\r\n";
+
+            $js .= "function list_action_callback(response,response_id) {
+                        
+                        alert('WTF response:'+response+' response id:'+response_id);
+                    }";        
+         }        
+
+        
+        $js .= "</script>";
+
+        return $js;
+
+    }
+
+    //convert options text into array list assuming line format "key:opt1,opt2,opt3..."
+    protected function parseOptions($text) 
+    {
+        $options = [];
+
+        if($text !== '') {
+            $lines = explode("\r",$text); 
+            foreach($lines as $line) {
+                $param = explode(':',trim($line)); 
+                if(count($param)>1) {
+                    $key = trim($param[0]);
+                    $values = explode(',',$param[1]);
+                    $options[$key] = $values; 
+                }
+            }
+        }
+
+        return $options;
     }
 
     protected function viewListActions($data,$row_no,$pos = 'L') 
     {
         $html = '';
         $state_param = $this->linkState();
-         
+        $hidden = [];
+
         if(count($this->actions) != 0) {
-            foreach($this->actions as $action) {
+            $form_id = 'action_'.$data[$this->key['id']];
+            $hidden[$this->key['id']] = $data[$this->key['id']];
+
+            //check for item specific options
+            $item_options = false;
+            if($this->col_options !== '' and isset($data[$this->col_options])) {
+                $options = $this->parseOptions($data[$this->col_options]);
+                if(count($options)) $item_options = true;
+            }
+
+
+            $html .= '<form method="post" action="?mode=update_table" id="'.$form_id.'" '.
+                       'onSubmit="return process_list_action(this,\''.$form_id.'\')">';
+
+            $html .= Form::hiddenInput($hidden);
+
+            foreach($this->actions as $action_id => $action) {
                 $valid = true;
                 if($action['verify']) $valid = $this->verifyRowAction($action,$data);
                 
@@ -540,6 +629,24 @@ class Listing extends Model
                     } elseif($action['type'] === 'check_box'){
                         $param['class'] = 'checkbox_action';
                         $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
+                    } elseif($action['type'] === 'select'){
+                        $select_param = $action['param'];
+
+                        if(!isset($select_param['class'])) $select_param['class'] = $this->list_classes['select'];
+                        
+                        if(isset($action['sql'])) {
+                            $html .= $show.Form::sqlList($action['sql'],$this->db,$action_id,$action['value'],$select_param);
+                        } elseif(isset($action['list'])) { 
+                            //check for custom item options
+                            if($item_options and isset($options[$action_id])) {
+                                $action['list'] = $options[$action_id];
+                                $action['list_assoc'] = false;
+                            }
+
+                            if(count($action['list'])) {
+                                $html .= $show.Form::arrayList($action['list'],$action_id,$action['value'],$action['list_assoc'],$select_param);
+                            }    
+                        } 
                     } else {    
                         $onclick = '';
                         if($action['type'] == 'delete') {
@@ -555,6 +662,9 @@ class Listing extends Model
                     $html .= $action['spacer'];       
                 } 
             }
+
+            $html .= '<input type="submit" name="submit" value="'.$this->action_button_text.'" class="'.$this->classes['button'].'">';
+            $html .= '</form>';
         } 
         
         return $html;
@@ -844,6 +954,8 @@ class Listing extends Model
                     $html .= '<img class="'.$this->list_classes['image'].'" src="'.$url.'" title="'.$image['name'].'" align="left">';
                 
                 }
+            } else {
+                $html .= '<img class="'.$this->list_classes['image'].'" src="'.$this->no_image_src.'" title="No image available" align="left">';
             } 
         } 
         
@@ -860,12 +972,17 @@ class Listing extends Model
         $error = '';
         $where = '';
         
-        $form['order_by'] = Secure::clean('basic',$_POST['order_by']);
-        if(isset($_POST['order_by_desc']) and substr($form['order_by'],-4) != 'DESC') {
-            $form['order_by_desc'] = true; 
-        } else {
-            $form['order_by_desc'] = false;
-        } 
+        if($this->mode === 'index') {
+            $form['order_by'] = $this->order_by_current; 
+            $form['order_by_desc'] =  false;
+        } else  {
+            $form['order_by'] = Secure::clean('basic',$_POST['order_by']);
+            if(isset($_POST['order_by_desc']) and substr($form['order_by'],-4) != 'DESC') {
+                $form['order_by_desc'] = true; 
+            } else {
+                $form['order_by_desc'] = false;
+            }
+        }     
         
         foreach($this->search as $col_id) {
             $col = $this->cols[$col_id];
@@ -1007,14 +1124,14 @@ class Listing extends Model
         return $html; 
     } 
          
-    
-    
+       
 
     /*** PLACEHOLDERS ***/
    
     protected function beforeProcess($id = 0) {}
     protected function processCustom($id) {}
     protected function afterUpdateTable($action) {}
+
     
 }
 ?>

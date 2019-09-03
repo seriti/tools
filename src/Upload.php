@@ -119,9 +119,7 @@ class Upload extends Model
     {
         //Implemented in Model Class
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
-
+        
         //*** standard Table class parameters ***
         $this->dates['new'] = date('Y-m-d');
         if(isset($param['location'])) $this->location = $param['location']; //Could use URL_CLEAN_LAST
@@ -142,7 +140,6 @@ class Upload extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }    
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
-        if(isset($param['show_add'])) $this->access['add'] = $param['show_add']; 
         
         //*** specific Upload class parameters ***
 
@@ -1213,11 +1210,10 @@ class Upload extends Model
     //NB: only updates existing file data
     protected function updateFile($id,$form) {
         $html = '';
-             
-        $this->verifyCsrfToken(); 
+        $error = '';
 
-        $edit_type = 'UPDATE';
-        
+        if(!$this->verifyCsrfToken($error)) $this->addError($error); 
+       
         if(!$this->errors_found) $output = $this->update($id,$form);
         
         if($this->errors_found) {
@@ -1226,7 +1222,7 @@ class Upload extends Model
             if($this->pop_up) $this->setCache('popup_updated',true);
             
             $location = $this->location.'?mode=list'.$this->linkState().
-                        '&msg='.urlencode('successful '.$edit_type.' of '.$this->row_name).
+                        '&msg='.urlencode('successful UPDATE of '.$this->row_name).
                         '&page='.$this->page_no.'&row='.$this->row_no.'#'.$this->row_no;
             $location = Secure::clean('header',$location);
             header('location: '.$location);
@@ -1242,10 +1238,10 @@ class Upload extends Model
         $error = '';
         $html = '';
         
-        $this->verifyCsrfToken(); 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error); 
 
-        $encrypt_files=false;
-        if($this->upload['encrypt'] and isset($form['encrypt_uploaded_files'])) $encrypt_files=true;  
+        $encrypt_files = false;
+        if($this->upload['encrypt'] and isset($form['encrypt_uploaded_files'])) $encrypt_files = true;  
             
         $error = '';
         $this->beforeUpload($id,$form,$error);

@@ -83,7 +83,7 @@ class Config
         $this->config['email']['secure'] = MAIL_SECURE; //set for 'ssl' or 'tls' if secure smtp connection required
 
         //user connfiguration
-        $this->config['user']['access'] = ['GOD','ADMIN','USER','VIEW']; //NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW
+        $this->config['user']['access'] = ['GOD','ADMIN','USER','VIEW','PUBLIC']; //NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW > PUBLIC
         $this->config['user']['status'] = ['OK','HIDE'];
         //$this->config['user']['routes'] = ['login'=>'login','logout'=>'login?mode=logout','default'=>'dashboard'];
         //$this->config['user']['default_route'] = ['GOD'=>'admin/user','ADMIN'=>'admin/dashboard','USER'=>'admin/dashboard','VIEW'=>'admin/dashboard'];

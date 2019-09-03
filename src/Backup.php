@@ -287,15 +287,17 @@ class Backup extends Model
         $html = '';
         $error = '';
 
-        $this->verifyCsrfToken();
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
 
-        //allow for extended time-out
-        set_time_limit($this->time_out);
-        
-        $data = $this->get($id);
-        $type=$data[$this->backup_cols['type']];
-        if(substr($type,0,4)==='DATA')  $file_name = $this->backupDatabase($id,$type);
-        if(substr($type,0,6)==='SOURCE')  $file_name = $this->backupSource($id,$type);  
+        if(!$this->errors_found) {
+            //allow for extended time-out
+            set_time_limit($this->time_out);
+            
+            $data = $this->get($id);
+            $type=$data[$this->backup_cols['type']];
+            if(substr($type,0,4)==='DATA')  $file_name = $this->backupDatabase($id,$type);
+            if(substr($type,0,6)==='SOURCE')  $file_name = $this->backupSource($id,$type);  
+        }    
         
         //get filesize and move backup file to external location if required
         if(!$this->errors_found) {
@@ -337,29 +339,31 @@ class Backup extends Model
     {
         $html = '';
         
-        $this->verifyCsrfToken();
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
 
-        $data = $this->get($id);
-        
-        //get backup type and process accordingly
-        $type = $data[$this->backup_cols['type']];
-        if(substr($type,0,4) === 'DATA') {
-            $file_name = $data[$this->backup_cols['file_name']];
-            if($this->backup['source'] === 'LOCAL') {
-                $file_path = $this->path['base'].$this->path['backup'].$file_name;
-            }
+        if(!$this->errors_found) {
+            $data = $this->get($id);
             
-            if($this->backup['source'] === 'AMAZON') {
-                $s3 = $this->getContainer('s3');
+            //get backup type and process accordingly
+            $type = $data[$this->backup_cols['type']];
+            if(substr($type,0,4) === 'DATA') {
+                $file_name = $data[$this->backup_cols['file_name']];
+                if($this->backup['source'] === 'LOCAL') {
+                    $file_path = $this->path['base'].$this->path['backup'].$file_name;
+                }
+                
+                if($this->backup['source'] === 'AMAZON') {
+                    $s3 = $this->getContainer('s3');
 
-                $file_path = $this->path['base'].$this->path['temp'].$file_name;
-                $s3->getFile($data[$this->backup_cols['file_name']],$file_path,$error);
-                if($error != '') $this->addError($error);
+                    $file_path = $this->path['base'].$this->path['temp'].$file_name;
+                    $s3->getFile($data[$this->backup_cols['file_name']],$file_path,$error);
+                    if($error != '') $this->addError($error);
+                }
+                
+                //finally run mysql restore command on backup file
+                if(!$this->errors_found) restoreDatabase($type,$file_path);
             }
-            
-            //finally run mysql restore command on backup file
-            if(!$this->errors_found) restoreDatabase($type,$file_path);
-        }  
+        }      
         
         if(!$this->errors_found) {
             $this->addMessage('SUCCESSFULY restored data from ['.$file_name.']!');
@@ -380,31 +384,33 @@ class Backup extends Model
         $html = '';
         $error = '';
         
-        $this->verifyCsrfToken();
-        
-        $data = $this->get($id);
-        
-        //remove any backup files first
-        if($data[$this->backup_cols['file_name']] !== '') {
-            if($this->backup['source'] === 'LOCAL') {
-                $file_path = $this->path['base'].$this->path['backup'].$data[$this->backup_cols['file_name']];
-                if(file_exists($file_path)) {
-                    if(!unlink($file_path)) $this->addError('Could NOT delete backup file');
-                } else {
-                    $this->addError('Coud not find backup file['.$file_path.']'); 
-                }   
-            } 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
+
+        if(!$this->errors_found) {
+            $data = $this->get($id);
             
-            if($this->backup['source'] === 'AMAZON') {
-                $s3 = $this->getContainer('s3');
-                $s3->deleteFile($data[$this->backup_cols['file_name']],$error);
-                if($error_str=='') {
-                    $this->addError('Could NOT remove backup file from Amazon S3 storage!');
-                }
+            //remove any backup files first
+            if($data[$this->backup_cols['file_name']] !== '') {
+                if($this->backup['source'] === 'LOCAL') {
+                    $file_path = $this->path['base'].$this->path['backup'].$data[$this->backup_cols['file_name']];
+                    if(file_exists($file_path)) {
+                        if(!unlink($file_path)) $this->addError('Could NOT delete backup file');
+                    } else {
+                        $this->addError('Coud not find backup file['.$file_path.']'); 
+                    }   
+                } 
+                
+                if($this->backup['source'] === 'AMAZON') {
+                    $s3 = $this->getContainer('s3');
+                    $s3->deleteFile($data[$this->backup_cols['file_name']],$error);
+                    if($error_str=='') {
+                        $this->addError('Could NOT remove backup file from Amazon S3 storage!');
+                    }
+                }  
             }  
-        }  
-        
-        $this->delete($id);
+        }
+
+        if(!$this->errors_found) $this->delete($id);
 
         if($this->errors_found) {
             $this->addError('Could not delete backup record');

@@ -81,9 +81,7 @@ class Tree extends Model
     {
         //Implemented in Model Class
         if(isset($param['encrypt_key'])) $this->encrypt_key = $param['encrypt_key'];
-        if(isset($param['read_only'])) $this->access['read_only'] = $param['read_only'];
-        if(isset($param['audit'])) $this->access['audit'] = $param['audit'];
-
+        
         //implemented locally
 
         //*** standard Table class parameters ***
@@ -104,7 +102,6 @@ class Tree extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
-        if(isset($param['show_add'])) $this->access['add'] = $param['show_add']; 
         
         //add all standard tree cols which MUST exist, 
         $this->addTreeCol(['id'=>$this->tree_cols['node'],'title'=>'Node','type'=>'INTEGER','key'=>true,'key_auto'=>true,'list'=>false]);
@@ -237,7 +234,7 @@ class Tree extends Model
     {
         $html = '';
 
-        $this->verifyCsrfToken(); 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
                 
         $edit_type = $form['edit_type'];
         if($edit_type !== 'UPDATE' and $edit_type !== 'INSERT') {
@@ -356,21 +353,24 @@ class Tree extends Model
     {
         $html = '';
         $data = '';
+        $error = '';
         
-        $this->verifyCsrfToken(); 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
 
-        $node=$this->getNode($id);
+        if(!$this->errors_found) {
+            $node = $this->getNode($id);
 
-        //check NO child nodes before delete
-        $sql = 'SELECT COUNT(*) FROM '.$this->table.' '.
-               'WHERE '.$this->tree_cols['parent'].' = "'.$this->db->escapeSql($id).'" ';
-        $count = $this->db->readSqlValue($sql,0);
-        if($count > 0) {
-            $error = 'You cannot delete node['.$node['title'].'] as you will create orphaned child nodes!'.
-                     'Please move or delete ['.$count.'] child nodes first!';
-            if($this->debug) $error .= ' Node ID['.$id.']';
-            $this->addError($error);
-        }
+            //check NO child nodes before delete
+            $sql = 'SELECT COUNT(*) FROM '.$this->table.' '.
+                   'WHERE '.$this->tree_cols['parent'].' = "'.$this->db->escapeSql($id).'" ';
+            $count = $this->db->readSqlValue($sql,0);
+            if($count > 0) {
+                $error = 'You cannot delete node['.$node['title'].'] as you will create orphaned child nodes!'.
+                         'Please move or delete ['.$count.'] child nodes first!';
+                if($this->debug) $error .= ' Node ID['.$id.']';
+                $this->addError($error);
+            }
+        }    
 
         if(!$this->errors_found) {
             $this->delete($id);

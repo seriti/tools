@@ -233,16 +233,20 @@ class SetupModule
 
     protected function resetAll()
     {
-        $this->verifyCsrfToken();
+        $error = '';
 
-        foreach($this->default as $default) {
-            $reset = $this->system->removeDefault($default['id']);
-            if($reset) {
-                $this->addMessage('Successfully reset: '.$default['title']);
-            } else {
-                $this->addError('Could NOT reset default: '.$default['title']);
-            }    
-        }  
+        if(!$this->verifyCsrfToken($error)) {
+            $this->addError($error);
+        } else {    
+            foreach($this->default as $default) {
+                $reset = $this->system->removeDefault($default['id']);
+                if($reset) {
+                    $this->addMessage('Successfully reset: '.$default['title']);
+                } else {
+                    $this->addError('Could NOT reset default: '.$default['title']);
+                }    
+            }  
+        }    
     }
 
 
@@ -251,88 +255,90 @@ class SetupModule
         $updated = array();
         $error = '';
 
-        $this->verifyCsrfToken();
-          
-        foreach($this->default as $default) {
-            if($default['type'] === 'TEXT') {
-                if(isset($form[$default['id']])) {
-                    $value_exist = $this->system->getDefault($default['id'],$default['value']);
-                    $value = Secure::clean('string',$form[$default['id']]);
-                    if($value_exist !== $value) {
-                        $this->system->setDefault($default['id'],$value);
-                        $this->addMessage('Successfully updated '.$default['title'].' setting.');
-                        $updated[$default['id']] = true;
-                        $this->change_count++;
-                    } else {
-                        $updated[$default['id']] = false; 
+        if(!$this->verifyCsrfToken($error)) $this->addError($error);
+        
+        if(!$this->errors_found) {  
+            foreach($this->default as $default) {
+                if($default['type'] === 'TEXT') {
+                    if(isset($form[$default['id']])) {
+                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value = Secure::clean('string',$form[$default['id']]);
+                        if($value_exist !== $value) {
+                            $this->system->setDefault($default['id'],$value);
+                            $this->addMessage('Successfully updated '.$default['title'].' setting.');
+                            $updated[$default['id']] = true;
+                            $this->change_count++;
+                        } else {
+                            $updated[$default['id']] = false; 
+                        }   
                     }   
-                }   
-            }  
-            
-            if($default['type'] === 'TEXTAREA') {
-               if(isset($form[$default['id']])) {
-                    $value_exist = $this->system->getDefault($default['id'],$default['value']);
-                    $value = Secure::clean('text',$form[$default['id']]);
-                    if($value_exist !== $value) {
-                        $this->system->setDefault($default['id'],$value);
-                        $this->addMessage('Successfully updated '.$default['title'].' setting.');
-                        $updated[$default['id']] = true;
-                        $this->change_count++;
-                    } else {
-                        $updated[$default['id']] = false; 
+                }  
+                
+                if($default['type'] === 'TEXTAREA') {
+                   if(isset($form[$default['id']])) {
+                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value = Secure::clean('text',$form[$default['id']]);
+                        if($value_exist !== $value) {
+                            $this->system->setDefault($default['id'],$value);
+                            $this->addMessage('Successfully updated '.$default['title'].' setting.');
+                            $updated[$default['id']] = true;
+                            $this->change_count++;
+                        } else {
+                            $updated[$default['id']] = false; 
+                        }   
                     }   
-                }   
-            } 
+                } 
 
-            if($default['type'] === 'HTML') {
-               if(isset($form[$default['id']])) {
-                    $value_exist = $this->system->getDefault($default['id'],$default['value']);
-                    //NB: NO cleaning of input as anything goes
-                    $value = $form[$default['id']];
-                    if($value_exist !== $value) {
-                        $this->system->setDefault($default['id'],$value);
-                        $this->addMessage('Successfully updated '.$default['title'].' setting.');
+                if($default['type'] === 'HTML') {
+                   if(isset($form[$default['id']])) {
+                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        //NB: NO cleaning of input as anything goes
+                        $value = $form[$default['id']];
+                        if($value_exist !== $value) {
+                            $this->system->setDefault($default['id'],$value);
+                            $this->addMessage('Successfully updated '.$default['title'].' setting.');
+                            $updated[$default['id']] = true;
+                            $this->change_count++;
+                        } else {
+                            $updated[$default['id']] = false; 
+                        }   
+                    }   
+                }  
+
+                if($default['type'] === 'SELECT') {
+                    if(isset($form[$default['id']])) {
+                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value = Secure::clean('alpha',$form[$default['id']]);
+                        if($value_exist !== $value) {
+                            $this->system->setDefault($default['id'],$value);
+                            $this->addMessage('Successfully updated '.$default['title'].' setting.');
+                            $updated[$default['id']] = true;
+                            $this->change_count++;
+                        } else {
+                            $updated[$default['id']] = false; 
+                        }   
+                    }   
+                }  
+
+                if($default['type'] === 'IMAGE') {
+                    $file_options = array();
+                    $file_options['upload_dir'] = $this->upload_dir;
+                    $file_options['allow_ext'] = array('jpg','jpeg','png','gif');
+                    $file_options['max_size'] = $default['max_size'];
+                    $save_name = $default['id'];
+                    $image_name = Form::uploadFile($default['id'],$save_name,$file_options,$error);
+                    if($error !== '') {
+                        if($error !== 'NO_FILE') $this->addError($default['title'].': '.$error);
+                        $updated[$default['id']] = false;
+                    } else {
+                        $this->system->setDefault($default['id'],$image_name);
+                        $this->addMessage('Successfully updated '.$default['title'].' image.');
                         $updated[$default['id']] = true;
                         $this->change_count++;
-                    } else {
-                        $updated[$default['id']] = false; 
-                    }   
-                }   
-            }  
-
-            if($default['type'] === 'SELECT') {
-                if(isset($form[$default['id']])) {
-                    $value_exist = $this->system->getDefault($default['id'],$default['value']);
-                    $value = Secure::clean('alpha',$form[$default['id']]);
-                    if($value_exist !== $value) {
-                        $this->system->setDefault($default['id'],$value);
-                        $this->addMessage('Successfully updated '.$default['title'].' setting.');
-                        $updated[$default['id']] = true;
-                        $this->change_count++;
-                    } else {
-                        $updated[$default['id']] = false; 
-                    }   
-                }   
-            }  
-
-            if($default['type'] === 'IMAGE') {
-                $file_options = array();
-                $file_options['upload_dir'] = $this->upload_dir;
-                $file_options['allow_ext'] = array('jpg','jpeg','png','gif');
-                $file_options['max_size'] = $default['max_size'];
-                $save_name = $default['id'];
-                $image_name = Form::uploadFile($default['id'],$save_name,$file_options,$error);
-                if($error !== '') {
-                    if($error !== 'NO_FILE') $this->addError($default['title'].': '.$error);
-                    $updated[$default['id']] = false;
-                } else {
-                    $this->system->setDefault($default['id'],$image_name);
-                    $this->addMessage('Successfully updated '.$default['title'].' image.');
-                    $updated[$default['id']] = true;
-                    $this->change_count++;
-                }     
-            }  
-        }  
+                    }     
+                }  
+            }
+        }      
       
 
         if($this->change_count === 0) {
