@@ -9,6 +9,7 @@ use Seriti\Tools\Form;
 use Seriti\Tools\Date;
 use Seriti\Tools\Calc;
 use Seriti\Tools\Audit;
+use Seriti\Tools\Error;
 
 use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\ModelViews;
@@ -49,14 +50,15 @@ class User extends Model
     protected $login_days = array(1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
                                   14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year'); 
 
-    protected $routes = array('login'=>'login','logout'=>'login','default'=>'dashboard');
+    protected $routes = array('login'=>'login','logout'=>'login','default'=>'admin/dashboard','default_public'=>'public/dashboard','error'=>'error');
 
     //cache id's used to maintain state between requests using setCache()/getcache()
     protected $cache = array('user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url');
     
     //all possible user access settings, NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW > PUBLIC
-    protected $access_levels = array('GOD','ADMIN','USER','VIEW','PUBLIC');
+    protected $access_levels = array('GOD','ADMIN','USER','VIEW');
     protected $access_level = 'NONE';
+    protected $access_zone = 'NONE';
 
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
     {
@@ -74,15 +76,19 @@ class User extends Model
 
         //local setup
         if(isset($param['access_levels']) and is_array($param['access_levels'])) $this->access_levels = $param['access_levels'];
+        if(isset($param['route_error'])) $this->routes['error'] = $param['route_error'];
         if(isset($param['route_login'])) $this->routes['login'] = $param['route_login'];
         if(isset($param['route_logout'])) $this->routes['logout'] = $param['route_logout'];
         if(isset($param['route_default'])) $this->routes['default'] = $param['route_default'];
+        if(isset($param['route_default_public'])) $this->routes['default_public'] = $param['route_default_public'];
         if(isset($param['bypass_security'])) $this->bypass_security = $param['bypass_security'];
 
         //add all standard user_cols which MUST exist, NB: required=>false as many partial field updates
         $this->addCol(['id'=>$this->user_cols['id'],'title'=>'User ID','type'=>'INTEGER','key'=>true,'key_auto'=>true,'list'=>true]);
         $this->addCol(['id'=>$this->user_cols['name'],'title'=>'Name','type'=>'STRING','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['email'],'title'=>'Email','type'=>'EMAIL','required'=>false]);
+        $this->addCol(['id'=>$this->user_cols['access'],'title'=>'Access','type'=>'STRING','required'=>false]);
+        $this->addCol(['id'=>$this->user_cols['zone'],'title'=>'Zone','type'=>'STRING','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['password'],'title'=>'Password','type'=>'STRING','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['pwd_date'],'title'=>'Password date','type'=>'DATE','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['pwd_salt'],'title'=>'Password Salt','type'=>'STRING','required'=>false]);
@@ -93,21 +99,86 @@ class User extends Model
         $this->addCol(['id'=>$this->user_cols['csrf_token'],'title'=>'CSRF token','type'=>'STRING','required'=>false]);
     }  
     
+    public function createUser($name,$email,$password,$access,$zone,$status,&$error) 
+    {
+        $error = '';
+        $error_tmp = '';
+    
+        Validate::string('Name: ',1,250,$name,$error_tmp);
+        if($error_tmp !== '') $this->addError($error_tmp);
+
+        $rules = [];
+        Validate::securePassword($password,$rules,$error_tmp);
+        if($error_tmp !== '') $this->addError('Insecure password: '.$error_tmp);
+
+        Validate::email('Email address',$email,$error_tmp);
+        if($error_tmp !== '') $this->addError($error_tmp);
+
+        if(array_search($access,$this->access_levels) === false) {
+            $error_tmp = 'INVALID access level!';
+            $this->addError($error_tmp);
+        } 
+
+        Validate::string('Zone: ',1,64,$zone,$error_tmp);
+        if($error_tmp !== '') $this->addError($error_tmp);   
+
+        Validate::string('Status: ',1,64,$status,$error_tmp);
+        if($error_tmp !== '') $this->addError($error_tmp);
+
+        if(!$this->errors_found) {
+            $salt = Crypt::makeSalt();
+            $password_hash = Crypt::passwordHash($password,$salt);
+
+            $data[$this->user_cols['name']] = $name;
+            $data[$this->user_cols['email']] = $email;
+            $data[$this->user_cols['password']] = $password_hash;
+            $data[$this->user_cols['pwd_salt']] = $salt;
+            $data[$this->user_cols['pwd_date']] = date('Y-m-d');
+            $data[$this->user_cols['access']] = $access;
+            $data[$this->user_cols['zone']] = $zone;
+            $data[$this->user_cols['status']] = $status;
+            $this->create($data);
+        }
+
+        if($this->errors_found) {
+            $error = implode('. ',$this->errors);
+        } else {
+            return true;     
+        }    
+    }
+
     //default function to handle all processing and views
     public function processLogin() 
     {
         $html = '';
-        
+                
         //get mode that needs to be processed   
         if(isset($_GET['mode'])) $this->mode = Secure::clean('basic',$_GET['mode']);
         
         $form = $_POST;
 
         //redirect to default page if user accidentally went to login page
-        if($this->mode === '' and $this->getCache($this->cache['user']) !== '' ) {
-            //die('WTF');
-            header('location: '.$this->routes['default']);
-            exit;
+        if($this->mode === '') {
+                       
+            $this->user_id = $this->getCache($this->cache['user']);    
+            if($this->user_id !== '') {
+                $this->addMessage('You are already logged in! You can login as another user or '.$this->js_links['back']);
+
+                /*
+                $error = 'USER_LOGIN_ERROR: you are already logged in.';
+                if($this->debug) $error .= ' User ID['.$this->user_id.']: accessed login route while logged in?';
+                throw new Exception($error);
+                */
+                /*
+                $this->data = $this->getUser('ID',$this->user_id);
+                $level = $this->data[$this->user_cols['access']];
+                $zone = $this->data[$this->user_cols['zone']];
+
+                if($zone === 'PUBLIC') $route = $this->routes['default_public']; else $route = $this->routes['default'];
+                header('location: '.BASE_URL.$route);
+                exit;
+                */
+            }
         }  
 
         if($this->mode === 'logout') $this->manageUserAction('LOGOUT');
@@ -209,7 +280,7 @@ class User extends Model
             
             $rules = [];
             Validate::securePassword($password,$rules,$error);
-            if($error != '') $this->addError('Insecure password: '.$error);
+            if($error !== '') $this->addError('Insecure password: '.$error);
                  
             $password_repeat = $form['password_repeat'];  
             if($password_repeat !== $password) $this->addError('Password repeat does NOT match!');
@@ -309,7 +380,7 @@ class User extends Model
     }
 
     public function manageUserAction($action = 'LOGIN',$user = [],$remember_me = false,$days_expire = 0,$token = '') {
-        if($action === 'LOGIN' or $action === 'LOGIN_AUTO') {
+        if($action === 'LOGIN' or $action === 'LOGIN_AUTO' or $action === 'LOGIN_REGISTER') {
             if(count($user) == 0) {
                 throw new Exception('USER_AUTH_ERROR: Invalid user data');
             } else { 
@@ -328,7 +399,7 @@ class User extends Model
             if($remember_me) {
                 if($days_expire < 1) $days_expire = 1;
 
-                if($action === 'LOGIN') {
+                if($action === 'LOGIN' or $action === 'LOGIN_REGISTER') {
                     //expire days as selected by user on login
                     $login_token = $this->insertLoginToken($this->user_id,$days_expire);
                 } 
@@ -354,6 +425,11 @@ class User extends Model
                 Audit::action($this->db,$this->user_id,$action,$description);
                 //redirect to page last visited or default
                 $this->redirectLastPage();
+            } 
+
+            if($action === 'LOGIN_REGISTER') {
+                $description = 'Email['.$user[$this->user_cols['email']].'] login SUCCESS after registration';
+                Audit::action($this->db,$this->user_id,$action,$description);
             } 
         }
         
@@ -457,7 +533,7 @@ class User extends Model
     }
     
     
-    protected function getUser($type,$value)
+    public function getUser($type,$value)
     {
         if($type === 'ID') {
             $user = $this->get($value);
@@ -502,70 +578,85 @@ class User extends Model
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));
         } else {
-            header('location: '.BASE_URL.$this->routes['default']);
+            if($this->access_zone === 'PUBLIC') {
+                $route = $this->routes['default_public'];
+            } else {
+                $route = $this->routes['default'];
+            } 
+            header('location: '.BASE_URL.$route);
         } 
         exit;
     }
 
-    //validate access, autologin if possible, redirect to login if invalid
-    public function checkAccessRights(&$route){
+    //validate user, autologin if possible, return login route if invalid
+    public function checkAccessRights($access_zone){
         $error = '';
-  
+        
+        $level = 'NONE';
+        $zone = 'NONE';
+        $level_valid = false;
+        $zone_valid = false;
+    
         $this->user_id = $this->getCache($this->cache['user']);    
         if($this->user_id !== '') {
             $this->data = $this->get($this->user_id);
             $level = $this->data[$this->user_cols['access']];
+            $zone = $this->data[$this->user_cols['zone']];
         } else {  
-            $level = 'NONE';
-            
             //check for auto login cookie and re-login if valid
             $login_token = Form::getCookie($this->login_cookie);
             if($login_token !== ''){
                 $user = $this->getUser('LOGIN_TOKEN',$login_token);
                 if($user != 0) {
                     $level = $user[$this->user_cols['access']];
+                    $zone = $user[$this->user_cols['zone']];
 
                     $remember_me = true;
                     $days_expire = 30; //ignored as login token expiry already set. 
                     $this->manageUserAction('LOGIN_AUTO',$user,$remember_me,$days_expire,$login_token);
                 } 
             } 
-                        
-            if($level === 'NONE') {
-                $this->setLastPage();
-                $route = $this->routes['login'];
-                return false;
-            } 
         }
-        
-        //assign current user access level
-        $this->access_level = $level;
-        if(array_search($level,$this->access_levels) === false) {
-            if($level != '') {
+
+        //check user level is valid
+        if($level === 'NONE') {
+            $this->setLastPage();
+        } else  { 
+            if(array_search($level,$this->access_levels) === false) {
                 $error = 'INVALID access level:'.$level;
                 if($this->debug) $error .= ' allowed: '.var_export($this->access_levels,true);
                 throw new Exception('USER_AUTH_ERROR: '.$error);
-            } else {  
-                $route = $this->routes['login'];
-                return false;
-            }  
-        } else {
-            return true;
-        }  
+            } else {
+                $this->access_level = $level;
+                $level_valid = true;
+            }
+        }
+
+        //check user zone is valid
+        if($zone === 'ALL' or $zone === $access_zone) {
+            $this->access_zone = $zone;
+            $zone_valid = true;
+        } 
+
+        if($level_valid and $zone_valid) return true; else return false;     
     }
     
     //NB: ASSUMES $this->access_levels sequence is from highest to lowest access
     public function checkUserAccess($level_required) {
         $access = false;
-                
-        $user = array_search($this->access_level,$this->access_levels);
-        $required = array_search($level_required,$this->access_levels);
-        if($user !== false and $user <= $required) $access = true;
+         
+        if($level_required === 'NONE') {
+            $access = true;
+        } else {       
+            $user = array_search($this->access_level,$this->access_levels);
+            $required = array_search($level_required,$this->access_levels);
+            if($user !== false and $user <= $required) $access = true;
+        }    
         
+        //echo 'required:'.$level_required.' user:'.$this->access_level.'<br/>';
         return $access;     
     }
     
-
     // *** HELPER FUNCTIONS FOR ANY USER, NOT JUST CURRENT LOGGED IN USER ****
 
     //send ANY user link so they can reset password of their own choice
@@ -685,7 +776,7 @@ class User extends Model
             
             $to = $user[$this->user_cols['email']];
             $from = ''; //default config email from used
-            $subject = SITE_NAME.' user login token reset';
+            $subject = SITE_NAME.' user login token';
             $body = 'Please click on the link below to login from this device....'."\r\n".
                     'This login will expire on: '.$date_expire.' or earlier if you reset cookies for site.'."\r\n".
                     BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($email_token).'&days='.$days_expire;

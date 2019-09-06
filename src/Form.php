@@ -666,19 +666,26 @@ class Form
 
     public static function createPassword($param=array()) 
     {
-        if(!isset($param['length'])) $param['length'] = 8;
+        if(!isset($param['min_length'])) $param['min_length'] = 8;
         if(!isset($param['level'])) $param['level'] = 2;
         if(!isset($param['repeat'])) $param['repeat'] = false;
+        if(!isset($param['number'])) $param['number'] = true;
+        if(!isset($param['lowercase'])) $param['lowercase'] = true;
+        if(!isset($param['uppercase'])) $param['uppercase'] = true;
         
         $password = '';
         $count = 0;
         $l = $param['level'];
+
+        $number = '123456789';
+        $lowercase = 'abcdefghjkmnpqrstuvwxyz';
+        $uppercase = 'ABCDEFGHIJKLMNPQRSTUVWXYZ';
         
         $set[1] = '123456789abcdefghjkmnpqrstuvwxyz';
         $set[2] = '123456789abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
         $set[3] = '123456789_!@#$%&*()-=+/abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ_!@#$%&*()-=+/';
         
-        while($count < $param['length']) {
+        while($count < $param['min_length']) {
             $char = substr($set[$l], rand(0, strlen($set[$l])-1), 1);
             
             if($param['repeat']) {
@@ -690,6 +697,21 @@ class Form
                     $count++;
                 } 
             } 
+        }
+
+        if($param['number'] and !preg_match('`[0-9]`',$password)) {
+            $char = substr($number, rand(0,strlen($number)-1), 1);
+            $password .= $char;
+        }
+
+        if($param['lowercase'] and !preg_match('`[a-z]`',$password)) {
+            $char = substr($lowercase, rand(0,strlen($lowercase)-1), 1);
+            $password .= $char;
+        }
+
+        if($param['uppercase'] and !preg_match('`[A-Z]`',$password)) {
+            $char = substr($uppercase, rand(0,strlen($uppercase)-1), 1);
+            $password .= $char;
         }
 
         return $password;

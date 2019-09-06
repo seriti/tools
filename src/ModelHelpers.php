@@ -147,12 +147,12 @@ trait  ModelHelpers
         $html = '';
         if(count($this->state) != 0) {
             foreach($this->state as $key => $value) {
-                $html .= '<input type="hidden" name="'.$key.'" value="'.$value.'"><br/>';
+                $html .= '<input type="hidden" name="'.$key.'" value="'.$value.'">';
             }  
         } 
 
         if(isset($this->user_csrf_token)) {
-            $html .= '<input type="hidden" name="csrf_token" value="'.$this->user_csrf_token.'"><br/>';
+            $html .= '<input type="hidden" name="csrf_token" value="'.$this->user_csrf_token.'">';
         }
 
         return $html;

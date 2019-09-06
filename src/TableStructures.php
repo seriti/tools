@@ -46,6 +46,7 @@ trait TableStructures
     protected $user_cols =  ['id'=>'user_id',                               //INTEGER, auto increment, PRIMARY KEY
                              'name'=>'name',                                //STRING
                              'access'=>'access',                            //STRING "GOD,ADMIN,USER,VIEW"
+                             'zone'=>'zone',                                //STRING "ALL,PUBLIC..."
                              'password'=>'password',                        //STRING
                              'email'=>'email',                              //STRING
                              'pwd_date'=>'pwd_date',                        //DATE

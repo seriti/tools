@@ -19,7 +19,18 @@ class Calc
         return false;
     }
 
-    public static function isAssocArray($arr = array()) 
+    public static function getArrayFirst($arr = []) 
+    {
+        $first = [];
+        foreach ($arr as $key => $value) {
+            $first = ['key'=>$key,'value'=>$value];
+            break;
+        }
+       
+        return $first;
+    }
+
+    public static function isAssocArray($arr = []) 
     {
         return (array_values($array) !== $array);
     }

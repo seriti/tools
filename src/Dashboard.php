@@ -20,7 +20,7 @@ class Dashboard {
     use ContainerHelpers;
 
     protected $container;
-    protected $container_allow = ['s3','mail','user','system'];
+    protected $container_allow = ['s3','config','mail','user','system'];
 
     //store all form data here
     protected $form = array();

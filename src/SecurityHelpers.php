@@ -75,18 +75,7 @@ trait  SecurityHelpers
                 $this->access['link'] = false;
                 break;
             }
-            case 'PUBLIC' : {
-                $this->access['view'] = true;
-                $this->access['search'] = true;
-                $this->access['read_only'] = true;
-                $this->access['edit'] = false;
-                $this->access['add'] = false;
-                $this->access['delete'] = false;
-                $this->access['email'] = false;
-                $this->access['link'] = false;
-                break;
-            }
-            
+                        
             default : {
                 $this->access['view'] = true;
                 $this->access['search'] = true;

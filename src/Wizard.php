@@ -15,7 +15,7 @@ use Seriti\Tools\UPLOAD_DOCS;
 use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\ContainerHelpers;
 use Seriti\Tools\MessagerHelpers;
-//use Seriti\Tools\TableStructures;
+use Seriti\Tools\TableStructures;
 
 use Psr\Container\ContainerInterface;
 
@@ -24,7 +24,7 @@ class Wizard {
     use IconsClassesLinks;
     use ContainerHelpers; 
     use MessageHelpers;
-    //use TableStructures;
+    use TableStructures;
 
     //do NOT make private as wizards often use helpers that require container to be passed to them
     protected $container;
@@ -63,6 +63,11 @@ class Wizard {
     //all form $variable must be defined
     protected $strict_var = true;
     protected $template;
+
+    protected $user_access_level;
+    protected $user_id;
+    protected $user_csrf_token;
+    protected $csrf_token = '';
      
     public function __construct(DbInterface $db, ContainerInterface $container, Cache $cache, Template $template) 
     {
@@ -85,6 +90,10 @@ class Wizard {
         if(isset($param['page_no'])) $this->page_no = $param['page_no'];
 
         if(isset($param['upload_dir'])) $this->upload_dir = $param['upload_dir'];
+
+        $this->user_access_level = $this->getContainer('user')->getAccessLevel();
+        $this->user_id = $this->getContainer('user')->getId();
+        $this->user_csrf_token = $this->getContainer('user')->getCsrfToken();
     }
 
     //define all variable for validation/security purposes
@@ -129,6 +138,7 @@ class Wizard {
         $page['title'] = $title;
         $page['template'] = $template; 
 
+        if(!isset($param['go_back'])) $param['go_back'] = true;
         if(!isset($param['form_tag'])) $param['form_tag'] = 'DEFAULT';
         //specifies final page in wizard
         if(!isset($param['final'])) $param['final'] = false;
@@ -171,7 +181,11 @@ class Wizard {
                 $html .= '<ol class="'.$this->classes['breadcrumb'].'">';
                 foreach($this->pages as $id => $data) {
                     if($id < $no) {
-                        $html .= '<li><a href="?page='.$id.'">'.$data['title'].'</a></li>';
+                        if($data['param']['go_back']) {
+                            $html .= '<li><a href="?page='.$id.'">'.$data['title'].'</a></li>';
+                        } else {
+                            $html .= '<li>'.$data['title'].'</li>';
+                        }    
                     } elseif($id == $no) {
                         $html .= '<li class="active">'.$data['title'].'</li>';  
                     }
@@ -186,6 +200,10 @@ class Wizard {
             } elseif($param['form_tag'] !== '') {
                 $html .= $param['form_tag'];
             }  
+
+            if(isset($this->user_csrf_token)) {
+                $html .= '<input type="hidden" name="csrf_token" value="'.$this->user_csrf_token.'">';
+            }
 
             //render template itself
             $html .= $this->template->render($page['template']);
@@ -211,6 +229,8 @@ class Wizard {
         $message = '';
         $html = '';
         
+        $this->csrf_token = Secure::clean('basic',Form::getVariable('csrf_token','GP'));
+
         if(isset($_GET['page']))  { 
             $this->page_no = Secure::clean('integer',$_GET['page']);
             if(isset($_POST['seriti_wizard']) and $_POST['seriti_wizard'] === 'process') $this->form_input = true;
@@ -283,10 +303,8 @@ class Wizard {
                 $this->page_no = $this->page_no_next;
             } 
         }  
-        
-        $html .= $this->viewPage($this->page_no);
 
-        //$html.='WTF:'.$this->page_no;
+        $html .= $this->viewPage($this->page_no);
 
         return $html;
     }
