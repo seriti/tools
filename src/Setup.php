@@ -123,7 +123,6 @@ class Setup
 
     protected function setupUserTable($table)
     {
-        
         $sql = 'CREATE TABLE `'.$table.'` (
                   `user_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                   `name` varchar(64) NOT NULL,
@@ -139,7 +138,8 @@ class Setup
                   `email_token_expire` datetime NOT NULL DEFAULT "2000-01-01",
                   `login_tokens` text NOT NULL,
                   `csrf_token` varchar(64) NOT NULL DEFAULT "",
-                  PRIMARY KEY (`user_id`)
+                  PRIMARY KEY (`user_id`),
+                  UNIQUE KEY `idx_user_admin1` (`email`)
                 ) ENGINE=MyISAM DEFAULT CHARSET=utf8';
 
         $this->db->executeSql($sql,$error_tmp); 
