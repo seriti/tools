@@ -147,7 +147,7 @@ class Setup
             $this->message[] = 'Succesfully created missing system table['.$table.']';
             //pwd = SUNFLOWER, ALWAYS CHANGE AFTER SETUP!!!
             $sql = 'INSERT INTO `'.$table.'` (name,access,zone,password,email,pwd_date,pwd_salt) '.
-                   'VALUES("Webmaster","GOD","ALL",$5$fe9cf8aed270072f$xU3O4YT52inJe.c8m7.JngvpXJ4ruH8YWNqRy6PN5EC","'.MAIL_WEBMASTER.'",
+                   'VALUES("Webmaster","GOD","ALL","$5$fe9cf8aed270072f$xU3O4YT52inJe.c8m7.JngvpXJ4ruH8YWNqRy6PN5EC","'.MAIL_WEBMASTER.'",
                    "2019-01-01","fe9cf8aed270072f267a89052d4d42c1") ';
             $this->db->executeSql($sql,$error_tmp); 
             if($error_tmp == '') {
