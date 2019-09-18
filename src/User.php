@@ -44,6 +44,7 @@ class User extends Model
     protected $email = '';
     protected $login_logo = 'images/logo.png';
     protected $login_cookie = 'login_token';
+    protected $temp_cookie = 'temp_token';
     protected $cookie_expire_days = 30;
     protected $login_fail_max = 10;
         
@@ -97,6 +98,9 @@ class User extends Model
         $this->addCol(['id'=>$this->user_cols['email_token'],'title'=>'Email token','type'=>'STRING','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['email_token_expire'],'title'=>'Login PRIMARY expire','type'=>'DATE','required'=>false]);
         $this->addCol(['id'=>$this->user_cols['csrf_token'],'title'=>'CSRF token','type'=>'STRING','required'=>false]);
+
+        //NB: make users with status = HIDE invisible
+        $this->addSql('WHERE',$this->user_cols['status'].' <> "HIDE" ');
     }  
     
     public function createUser($name,$email,$password,$access,$zone,$status,&$error) 
@@ -163,6 +167,14 @@ class User extends Model
             $this->user_id = $this->getCache($this->cache['user']);    
             if($this->user_id !== '') {
                 $this->addMessage('You are already logged in! You can login as another user or '.$this->js_links['back']);
+
+                if($this->debug) {
+                    $user = $this->getUser('ID',$this->user_id);
+                    $name = $user[$this->user_cols['name']];
+                    $level = $user[$this->user_cols['access']];
+                    $zone = $user[$this->user_cols['zone']];
+                    $this->addMessage("Name[$name] level[$level] zone[$zone]");
+                }
 
                 /*
                 $error = 'USER_LOGIN_ERROR: you are already logged in.';
@@ -388,6 +400,7 @@ class User extends Model
                 $this->setCache($this->cache['user'],$this->user_id);
                 $this->db->setAuditUserId($this->user_id);
                 $this->data = $user;
+                $this->access_zone = $user[$this->user_cols['zone']];
             } 
 
             $update = [];
@@ -448,6 +461,19 @@ class User extends Model
         }  
     }
 
+    //use to identify user when not logged in. For public website usage.
+    public function getTempToken()
+    {
+        $token = Form::getCookie($this->temp_cookie);
+
+        if($token === '') {
+            $token = Crypt::makeToken();
+            Form::setCookie($this->temp_cookie,$token,$this->cookie_expire_days);
+        }
+
+        return $token;    
+    }
+
     //called from login page 
     public function resetSend($form = []) {
         $error = '';
@@ -497,7 +523,7 @@ class User extends Model
         if($token !== '') {
             $user = $this->getUser('EMAIL_TOKEN',$token);
             if($user == 0) {
-                $error = 'Your email token is not recognised! ';
+                $error = 'Your email token is not recognised or has expired! ';
                 if($this->debug) $error .= $token;
                 $this->addError($error);
             } else {    
@@ -543,7 +569,8 @@ class User extends Model
             $sql = 'SELECT * FROM '.$this->table.' '.
                    'WHERE '.$this->user_cols['email_token'].' = "'.$this->db->escapeSql($value).'" AND '.
                             $this->user_cols['email_token_expire'].' >= CURDATE() AND '.
-                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max;
+                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max.' AND '.
+                            $this->user_cols['status'].' <> "HIDE" ';
             $user = $this->db->readSqlRecord($sql);
         }    
 
@@ -559,7 +586,8 @@ class User extends Model
         if($type === 'EMAIL') {
             $sql = 'SELECT * FROM '.$this->table.' '.
                    'WHERE '.$this->user_cols['email'].' = "'.$this->db->escapeSql($value).'" AND '.
-                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max;
+                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max.' AND '.
+                            $this->user_cols['status'].' <> "HIDE" ';
             $user = $this->db->readSqlRecord($sql);
         }
 
@@ -575,6 +603,7 @@ class User extends Model
     public function redirectLastPage()
     {
         $last_page = $this->getCache($this->cache['page']);
+
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));
         } else {
@@ -588,7 +617,7 @@ class User extends Model
         exit;
     }
 
-    //validate user, autologin if possible, return login route if invalid
+    //validate user, autologin if possible
     public function checkAccessRights($access_zone){
         $error = '';
         
@@ -597,11 +626,14 @@ class User extends Model
         $level_valid = false;
         $zone_valid = false;
     
-        $this->user_id = $this->getCache($this->cache['user']);    
+        $this->user_id = $this->getCache($this->cache['user']); 
         if($this->user_id !== '') {
             $this->data = $this->get($this->user_id);
-            $level = $this->data[$this->user_cols['access']];
-            $zone = $this->data[$this->user_cols['zone']];
+            //sometimes Cache can be out of sync with DB
+            if($this->data) {
+                $level = $this->data[$this->user_cols['access']];
+                $zone = $this->data[$this->user_cols['zone']];
+            }    
         } else {  
             //check for auto login cookie and re-login if valid
             $login_token = Form::getCookie($this->login_cookie);
@@ -778,7 +810,7 @@ class User extends Model
             $from = ''; //default config email from used
             $subject = SITE_NAME.' user login token';
             $body = 'Please click on the link below to login from this device....'."\r\n".
-                    'This login will expire on: '.$date_expire.' or earlier if you reset cookies for site.'."\r\n".
+                    'This link will expire on: '.$date_expire.'.'."\r\n".
                     BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($email_token).'&days='.$days_expire;
             
             $mailer = $this->getContainer('mail');

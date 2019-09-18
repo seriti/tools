@@ -419,6 +419,13 @@ class Tree extends Model
               
         $html = '';
 
+        if($this->row_count == 0)  {
+            $form = [];
+            $this->addMessage('No '.$this->row_name.' data exists! Please add your first '.$this->row_name);
+            $html .= $this->viewEdit('0',$form,'INSERT');
+            return $html;
+        }
+
         $html .= $this->viewMessages();
 
         if($this->show_info) $info = $this->viewInfo('LIST'); else $info = '';

@@ -150,15 +150,20 @@ class SetupModuleData
 
     protected function updateData()
     {
-        $last_update_time = $this->system->getDefault($this->system_id,0,'count');
+        $date = getdate();
+        $time_now = $date[0];
+
+        //if no timestamp for module update then current time_now is assumed.
+        $last_update_time = $this->system->getDefault($this->system_id,$time_now,'count');
 
         foreach($this->updates as $timestamp => $update) {
             $update_date = Date::mysqlGetDate($timestamp);
+            $update_time = $update_date[0];
             
-            if(!$this->errors_found and $update_date[0] > $last_update_time) {
+            if(!$this->errors_found and $update_time > $last_update_time) {
                 $this->processSql($update['sql'],'update['.$timestamp.'] '.$update['text']);
                 //will not update if any errors in execution
-                $this->updateTimeStamp($update_date[0]);
+                $this->updateTimeStamp($update_time);
             }
         }
     }

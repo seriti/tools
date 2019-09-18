@@ -38,12 +38,10 @@ class Menu extends Tree
     
     protected function getItemAccess($item = [])
     {
-        $access = false;
+        $access = true;
         if($this->check_access) {
             $access = $this->user->checkUserAccess($item[$this->menu_cols['access']]);
-        } else {
-            $access = true; 
-        }    
+        } 
 
         return $access;         
     }
@@ -70,11 +68,26 @@ class Menu extends Tree
         return $href;
     }
 
+    //use to check if route is valid for user
+    public function checkRouteAccess($route = '')
+    {
+        $access = true;
+        if($this->check_access and $route !== '') {
+            $sql = 'SELECT * FROM '.$this->table.' '.
+                   'WHERE '.$this->menu_cols['route'].' = "'.$this->db->escapeSql($route).'" ';
+            $item = $this->db->readSqlRecord($sql);  
+
+            //NB: only check access if valid menu item found matching route
+            if($item !== 0) {
+                $access = $this->user->checkUserAccess($item[$this->menu_cols['access']]);
+            }    
+        } 
+
+        return $access; 
+    }
+
     public function buildMenu($system = [],$options = []) 
     {
-
-        if(defined('SYSTEM_MENU')) $system = array_merge($system,SYSTEM_MENU);
-
         if(!isset($options['http_root'])) $options['http_root'] = BASE_URL;
         if(!isset($options['active_link'])) $options['active_link'] = URL_CLEAN;
         if(!isset($options['page_route'])) $options['page_route'] = 'public/';
@@ -83,11 +96,16 @@ class Menu extends Tree
         //if false menu items with insufficient access are NOT displayed
         if(!isset($options['show_disabled'])) $options['show_disabled'] = true;
 
-        if(!isset($options['logout'])) $options['logout'] = '/login?mode=logout';
         if(!isset($options['logo_link'])) $options['logo_link'] = $options['http_root'].'/home';
         if(!isset($options['logo'])) $options['logo'] = SITE_MENU_LOGO;
         if(!isset($options['style'])) $options['style'] = SITE_MENU_STYLE;
         
+        //set to empty array[] to ignore, route=>menutext
+        if(!isset($options['append'])) $options['append'] = ['/login?mode=logout'=>'logout'];
+        
+        if(!isset($options['merge_system'])) $options['merge_system'] = true;
+        if(defined('SYSTEM_MENU') and $options['merge_system']) $system = array_merge($system,SYSTEM_MENU);
+
         if($this->check_access) {
             $access_levels = $this->user->getAccessLevels();
             //first defined access level is assumed to be highest access level
@@ -116,10 +134,11 @@ class Menu extends Tree
         //NB:Static menu items must be correctly specified inside navbar html
         $html .= $options['menu_static'];
         
-        //get all menu items
+        //get all top level menu items
         $this->addSql('ORDER',$this->order_by);
         $this->addSql('WHERE',$this->tree_cols['level'].' = 1 ');
         $menu = $this->list();
+
         if($menu != 0) {
             foreach($menu AS $id => $item) {
                 $item_class = '';
@@ -199,10 +218,15 @@ class Menu extends Tree
                      '<ul class="dropdown-menu">'.$system_html.'</ul></li>';
         }  
         
-        if($options['logout'] != '') {
-            $html .= '<li><a href="'.$options['logout'].'">Logout</a></li>';
-        }  
-                     
+        //append any additional menu items without 
+        if(is_array($options['append']) and count($options['append'])) {
+            foreach($options['append'] as $route => $title) {
+                $item_class = '';
+                if($options['active_link'] == $route) $item_class = 'active';
+                $html .= '<li class="'.$item_class.'"><a href="'.$route.'">'.$title.'</a></li>';
+            }    
+        } 
+             
         //finally add footer html
         $html .= '</ul></div></div></nav>';
                      

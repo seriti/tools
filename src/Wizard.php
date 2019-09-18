@@ -16,6 +16,7 @@ use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\ContainerHelpers;
 use Seriti\Tools\MessagerHelpers;
 use Seriti\Tools\TableStructures;
+use Seriti\Tools\SecurityHelpers;
 
 use Psr\Container\ContainerInterface;
 
@@ -25,6 +26,7 @@ class Wizard {
     use ContainerHelpers; 
     use MessageHelpers;
     use TableStructures;
+    use SecurityHelpers;
 
     //do NOT make private as wizards often use helpers that require container to be passed to them
     protected $container;
@@ -64,8 +66,6 @@ class Wizard {
     protected $strict_var = true;
     protected $template;
 
-    protected $user_access_level;
-    protected $user_id;
     protected $user_csrf_token;
     protected $csrf_token = '';
      
@@ -91,9 +91,7 @@ class Wizard {
 
         if(isset($param['upload_dir'])) $this->upload_dir = $param['upload_dir'];
 
-        $this->user_access_level = $this->getContainer('user')->getAccessLevel();
-        $this->user_id = $this->getContainer('user')->getId();
-        $this->user_csrf_token = $this->getContainer('user')->getCsrfToken();
+        if(isset($param['csrf_token'])) $this->user_csrf_token = $param['csrf_token'];        
     }
 
     //define all variable for validation/security purposes
@@ -229,8 +227,6 @@ class Wizard {
         $message = '';
         $html = '';
         
-        $this->csrf_token = Secure::clean('basic',Form::getVariable('csrf_token','GP'));
-
         if(isset($_GET['page']))  { 
             $this->page_no = Secure::clean('integer',$_GET['page']);
             if(isset($_POST['seriti_wizard']) and $_POST['seriti_wizard'] === 'process') $this->form_input = true;
@@ -240,6 +236,13 @@ class Wizard {
         }  
         $page = $this->pages[$this->page_no];
         
+
+        if(isset($this->user_csrf_token) and $this->form_input) {
+            $this->csrf_token = Secure::clean('basic',Form::getVariable('csrf_token','GP'));
+            $this->verifyCsrfToken($error);
+            if($error !== '') $this->addError($error); 
+        }
+
         if(!$this->errors_found) {
             $this->getData('form');
             $this->getData('data');
@@ -317,6 +320,7 @@ class Wizard {
     public function getData($type = 'form') {
         //$this->cache defined in construct 
         $data = $this->cache->retrieve($type); 
+
         //merge with any existing template data
         if(is_array($data)) {
             //cache form values overwrite any matching keys in $this->form, $this->data...etc
