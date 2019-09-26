@@ -77,11 +77,7 @@ class Listing extends Model
     protected $calc_aggregate = false;
     protected $search_aggregate = array();
     
-    protected $user_access_level;
-    protected $user_id;
-    protected $user_csrf_token;
-    protected $csrf_token = '';
-
+    
     protected $col_count = 0;
     //additional classes from standard admin IconsClassesLinks;
     protected $list_classes = ['row'=>'row list_items_row',
@@ -101,6 +97,10 @@ class Listing extends Model
 
     //select lists for action col
     protected  $action_select = [];
+
+    protected $user_csrf_token;
+    protected $csrf_token = '';
+
 
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
     {
@@ -139,14 +139,11 @@ class Listing extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
 
-
-        $this->user_access_level = $this->getContainer('user')->getAccessLevel();
-        $this->user_id = $this->getContainer('user')->getId();
-        $this->user_csrf_token = $this->getContainer('user')->getCsrfToken();
-        $this->setupAccess($this->user_access_level);
-
-
         //******************* new stuff
+
+        //need to manually set user csrf token as wizard can used outside login env 
+        if(isset($param['csrf_token'])) $this->user_csrf_token = $param['csrf_token'];
+
         if(isset($param['order_by'])) $this->order_by_current = $param['order_by'];
         if(isset($param['image_pos'])) $this->image_pos = $param['image_pos'];
         if(isset($param['show_header'])) $this->show_header = $param['show_header'];
@@ -527,30 +524,36 @@ class Listing extends Model
         //var elem = document.getElementById(form_id).elements;
         $js = "\r\n<script type='text/javascript'>\r\n";
         
+        if(isset($this->user_csrf_token)) {
+            $param_init = "csrf_token='+encodeURIComponent('".$this->user_csrf_token."')+'&'";
+        } else {
+            $param_init = '';
+        }    
+
         if($type === 'list_action') {
+            
 
             $js .= "function process_list_action(form,response_id) {
-                        var param = 'csrf_token='+encodeURIComponent('".$this->user_csrf_token."')+'&';
+                        var param = '".$param_init."';
                         var elem = form.elements;
-                        for(i=0;i<elem.length;i++) {
-                            param+=elem[i].name+'='+encodeURIComponent(elem[i].value);
-                            if(i<(elem.length-1)) param+='&';
+                        for(i = 0; i < elem.length; i++) {
+                            param += elem[i].name+'='+encodeURIComponent(elem[i].value);
+                            if(i < (elem.length-1)) param += '&';
                         } 
 
-                        alert('WTF:'+param+' route:'+'".$this->action_route."');
-
+                        //alert('WTF:'+param+' route:'+'".$this->action_route."');
                         //return false;
 
                         xhr('".$this->action_route."',param,list_action_callback,response_id);
 
-                        return false; //to prevent form submission
+                        //to prevent form submission
+                        return false; 
                     }\r\n";
 
             $js .= "function list_action_callback(response,response_id) {
-                        
-                        alert('WTF response:'+response+' response id:'+response_id);
+                        alert(response);
                     }";        
-         }        
+        }        
 
         
         $js .= "</script>";

@@ -552,7 +552,8 @@ class Tree extends Model
         $param = array();
         $parent_node_rank = '';
 
-        $this->checkAccess($edit_type);
+        $this->checkAccess($edit_type,$id);
+
         $data = $this->edit($id);
         $this->data = $data;
 

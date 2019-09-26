@@ -62,7 +62,8 @@ class Dashboard {
 
     public function addItem($block_id,$title,$param = array()) 
     {
-        if(!isset($param['link'])) $param['link'] = '#';
+        //set $param['link'] = '#' if you want nav link styling without active link
+        if(!isset($param['link'])) $param['link'] = false;
         if(!isset($param['icon'])) $param['icon'] = false;
         if(!isset($param['separator'])) $param['separator'] = false;
         
@@ -108,9 +109,10 @@ class Dashboard {
                     if($item['param']['separator']) {
                         $item_html .= $item['title'].'<hr/>';
                     } else {
-                        $item_html .= '<a href="'.$item['param']['link'].'">';
+                        if($item['param']['link'] !== false) $item_html .= '<a href="'.$item['param']['link'].'">';
                         if($item['param']['icon']) $item_html .= $this->icons[$item['param']['icon']];
-                        $item_html .= $item['title'].'</a>';
+                        $item_html .= $item['title'];
+                        if($item['param']['link'] !== false) $item_html .= '</a>';
                     }    
                 }  
                 

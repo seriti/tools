@@ -197,6 +197,11 @@ class Table extends Model
         return $html;
     } 
     
+    public function getMode()
+    {
+        return $this->mode;
+    } 
+
     public function addAllTableCols() 
     {
         $this->addAllCols();
@@ -607,7 +612,7 @@ class Table extends Model
     {
         $html = '';
         
-        $this->checkAccess($edit_type);
+        $this->checkAccess($edit_type,$id);
         
         $data = $this->edit($id);
         $this->data = $data;

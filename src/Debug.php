@@ -35,6 +35,20 @@ class Debug
         
         return $error_str;
     }
+
+    //display contents of a variable 
+    public static function show_var($var,$format = 'html')
+    {
+        $output = '';
+
+        if($format === 'html') $output .= '<pre>'.print_r($var,true).'</pre>';
+        
+        if($format === 'text') $output .= print_r($var,true);
+       
+        if($format === 'json') $output .= json_encode($var);
+        
+        return $output;
+    }
     
 }
 

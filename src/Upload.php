@@ -888,7 +888,7 @@ class Upload extends Model
         
         $edit_type = 'UPDATE';
 
-        $this->checkAccess($edit_type);
+        $this->checkAccess($edit_type,$id);
         
         $data = $this->edit($id);
         $this->data = $data;

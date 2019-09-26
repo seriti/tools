@@ -90,7 +90,7 @@ class Wizard {
         if(isset($param['page_no'])) $this->page_no = $param['page_no'];
 
         if(isset($param['upload_dir'])) $this->upload_dir = $param['upload_dir'];
-
+        //need to manually set user csrf token as wizard can used outside login env 
         if(isset($param['csrf_token'])) $this->user_csrf_token = $param['csrf_token'];        
     }
 

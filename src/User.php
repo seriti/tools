@@ -462,11 +462,11 @@ class User extends Model
     }
 
     //use to identify user when not logged in. For public website usage.
-    public function getTempToken()
+    public function getTempToken($create = true)
     {
         $token = Form::getCookie($this->temp_cookie);
 
-        if($token === '') {
+        if($token === '' and $create) {
             $token = Crypt::makeToken();
             Form::setCookie($this->temp_cookie,$token,$this->cookie_expire_days);
         }

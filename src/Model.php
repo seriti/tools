@@ -163,21 +163,36 @@ class Model
         $this->select[$col_id] = $options;
     }
 
-    public function checkAccess($action) 
+    public function checkAccess($action,$id = '') 
     {
         $allow = false;
+        $check_restrict = false;
+        $error_add = '';
+        $data = [];
+
         if($action === 'INSERT') {
             if(!$this->access['read_only'] and $this->access['add']) $allow = true;
         }
         if($action === 'UPDATE') {
-            if(!$this->access['read_only'] and $this->access['edit']) $allow = true;
+            if(!$this->access['read_only'] and $this->access['edit']) $check_restrict = true;
         }  
         if($action === 'DELETE') {
-            if(!$this->access['read_only'] and $this->access['delete']) $allow = true;
+            if(!$this->access['read_only'] and $this->access['delete']) $check_restrict = true;
         }
+
+        //update and deletes rely on form $id which could be modified by a malicious actor to a valid id restricted from user 
+        if($check_restrict) {
+            $data = $this->get($id);
+            if($data === 0) {
+                $error_add .= 'Cannot '.$action.' a restricted record.';
+            } else {
+                $allow = true;
+            }  
+        }
+ 
         if(!$allow) {
             $error = 'MODEL_ACCESS_ERROR:You have insufficient access rights. ';
-            if($this->debug) $error .= 'Action['.$action.'] Access['.var_export($this->access,true).']';
+            if($this->debug) $error .= 'Action['.$action.'] Access['.var_export($this->access,true).'] '.$error_add;
             throw new Exception($error);
         }    
     } 
@@ -323,7 +338,7 @@ class Model
         $error = '';
         $context = 'UPDATE';
         
-        $this->checkAccess($context);
+        $this->checkAccess($context,$update_id);
         
         if(!isset($this->key['id'])) $this->addError('No primary key specified');
 
@@ -368,7 +383,7 @@ class Model
         $error = '';
         $context = 'DELETE';
        
-        $this->checkAccess($context);
+        $this->checkAccess($context,$delete_id);
          
         if(!isset($this->key['id'])) $this->addError('No primary key specified');
 
@@ -575,7 +590,7 @@ class Model
         if($type === 'DELETE') {
           $sql = 'DELETE FROM '.$this->table.' AS T '.$this->sql_join.
                  'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
-          if(count($restrict)) $sql.=implode(' AND ',$restrict);
+          if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict);
         } 
 
         return $sql;
