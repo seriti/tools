@@ -231,7 +231,19 @@ class Calc
         return $str_out;
     }
     
-    
+    //puts any text into a span and add copy to clipboard link. needs seriti/javascript.js
+    public static function viewTextCopyLink($type,$id,$text)
+    {
+        if($type === 'MASK') {
+            $text = '<span id="'.$id.'" style="display:none;">'.$text.'</span>*****&nbsp;';
+        } else {
+            $text = '<span id="'.$id.'">'.$text.'</span>&nbsp;';
+        }
+
+        $text .= '<a href="javascript:void(0);" onclick="copy_to_clipboard(\''.$id.'\');">[copy]</a>';
+        
+        return $text;
+    } 
 }
 
 

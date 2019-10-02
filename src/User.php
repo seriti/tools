@@ -213,6 +213,11 @@ class User extends Model
         return $this->user_id;
     }
 
+    public function getName()
+    {
+        return $this->data[$this->user_cols['name']];
+    }
+
     public function getCsrfToken()
     {
         return $this->data[$this->user_cols['csrf_token']];
@@ -591,6 +596,13 @@ class User extends Model
             $user = $this->db->readSqlRecord($sql);
         }
 
+        //NB: only use this option to check if user exists NOT if user valid.
+        if($type === 'EMAIL_EXIST') {
+            $sql = 'SELECT * FROM '.$this->table.' '.
+                   'WHERE '.$this->user_cols['email'].' = "'.$this->db->escapeSql($value).'" ';
+            $user = $this->db->readSqlRecord($sql);
+        }
+
         return $user;
     }
 
@@ -633,7 +645,9 @@ class User extends Model
             if($this->data) {
                 $level = $this->data[$this->user_cols['access']];
                 $zone = $this->data[$this->user_cols['zone']];
-            }    
+            } else {
+                $this->user_id = 0;
+            } 
         } else {  
             //check for auto login cookie and re-login if valid
             $login_token = Form::getCookie($this->login_cookie);

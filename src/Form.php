@@ -304,7 +304,7 @@ class Form
         return $html;
     } 
         
-    public static function radiobutton($group_name,$button_value,$value,$param = array()) 
+    public static function radioButton($group_name,$button_value,$value,$param = array()) 
     {
         $html = '';
         $xtra = '';
@@ -319,6 +319,24 @@ class Form
         if(isset($param['class'])) $xtra .= 'class="'.$param['class'].'" ';
                 
         $html .= '<input type="radio" name="'.$group_name.'" value="'.$button_value.'" '.$xtra.'>';
+        return $html;
+    }
+
+    public static function submitButton($name,$button_text,$param = array()) 
+    {
+        $html = '';
+        $xtra = '';
+        
+        if(!isset($param['class'])) $param['class'] = 'btn btn-primary';
+        $xtra .= 'class="'.$param['class'].'" ';
+
+        if(isset($param['onclick'])) $xtra .= 'onclick="'.$param['onclick'].'" ';
+        if(isset($param['onchange'])) $xtra .= 'onchange="'.$param['onchange'].'" ';
+        if(isset($param['onkeyup'])) $xtra .= 'onkeyup="'.$param['onkeyup'].'" ';
+        if(isset($param['onblur'])) $xtra .= 'onblur="'.$param['onblur'].'" ';
+        if(isset($param['form'])) $xtra .= 'form="'.$param['form'].'" ';
+                        
+        $html .= '<input type="button" name="'.$name.'" value="'.$button_text.'" '.$xtra.'>';
         return $html;
     } 
 

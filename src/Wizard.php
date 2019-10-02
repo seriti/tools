@@ -148,11 +148,6 @@ class Wizard {
         $this->pages[$no] = $page;   
     }  
     
-    public function setupPageData($no)
-    {
-        //placeholder to modify page template data
-    }
-
     public function viewPage($no) 
     {
         $html = '';
@@ -227,12 +222,14 @@ class Wizard {
         $message = '';
         $html = '';
         
+        //NB: all form and additional data reset on first(pageless) process
         if(isset($_GET['page']))  { 
             $this->page_no = Secure::clean('integer',$_GET['page']);
             if(isset($_POST['seriti_wizard']) and $_POST['seriti_wizard'] === 'process') $this->form_input = true;
         } else {
             $this->resetData('ALL');
             $this->page_no = 1;
+            $this->initialConfig();
         }  
         $page = $this->pages[$this->page_no];
         
@@ -314,7 +311,9 @@ class Wizard {
     
     
     //placeholder functions
+    public function setupPageData($no) {}
     public function processPage() {}
+    public function initialConfig() {}
     
     //helper functions
     public function getData($type = 'form') {

@@ -218,6 +218,7 @@ class Table extends Model
         if(!isset($col['class_search'])) $col['class_search']=$col['class'];
         if(!isset($col['new'])) $col['new']='';
         if(!isset($col['hint'])) $col['hint']='';
+        if(!isset($col['copylink'])) $col['copylink']=false;
          
          //assign type specific settings and defaults if not set
         if($col['type']=='DATE') {
@@ -593,9 +594,15 @@ class Table extends Model
                                           
                     default : $value = Secure::clean('string',$value);
                 }
-                    
+                
                 //placeholder to allow any xtra mods to display value
                 $this->modifyRowValue($col['id'],$data,$value);
+
+                //add javascript to copy to clipboard
+                if($col['copylink'] !== false) {
+                    $span_id = $col['id'].$row_no;
+                    $value = Calc::viewTextCopyLink($col['copylink'],$span_id,$value);
+                }
                 
                 if($col['type'] === 'DECIMAL') $style = 'style="text-align:right"'; else $style = '';
                 $html .= '<td '.$style.'>'.$value.'</td>';
@@ -620,7 +627,7 @@ class Table extends Model
         $nav = $this->viewNavigation('TABLE'); 
         if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;
         
-        if($this->show_info) $info = $this->view_info('EDIT'); else $info = '';
+        if($this->show_info) $info = $this->viewInfo('EDIT'); else $info = '';
         $html .= $info;
         
         $class_edit  = 'class="'.$this->classes['table_edit'].'"';
@@ -729,7 +736,7 @@ class Table extends Model
         $nav = $this->viewNavigation('TABLE'); 
         if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;
         
-        if($this->show_info) $info = $this->view_info('VIEW'); else $info = '';
+        if($this->show_info) $info = $this->viewInfo('VIEW'); else $info = '';
         $html .= $info;
         
         $class_label = 'class="'.$this->classes['col_label'].'"';
@@ -807,8 +814,15 @@ class Table extends Model
                         
                         default : $value=Secure::clean('string',$value);
                     }
+
                     $this->modifyRecordValue($col['id'],$data,$value);
-                     
+                    
+                    //add javascript to copy to clipboard
+                    if($col['copylink']) {
+                        $span_id = 'copy'.$col['id'];
+                        $value = Calc::viewTextCopyLink($col['copylink'],$span_id,$value);
+                    }
+
                     $html .= '<div class="row">'.
                              '<div '.$class_label.'>'.$col['title'].':</div>'.
                              '<div '.$class_value.'>'.$value.'</div>'.

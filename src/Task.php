@@ -25,14 +25,20 @@ class Task {
     protected $db;
     protected $debug = false;
     protected $mode = 'list';
-    protected $errors = array();
+    protected $errors = [];
     protected $errors_found = false; 
-    protected $messages = array();
-    protected $tasks = array();
+    protected $messages = [];
+    
     protected $list_header = '';
 
     protected $user_id;
   
+    protected $blocks = [];
+    protected $block_tasks = [];
+    protected $tasks = [];
+
+    protected $col_count = 3;
+    protected $row_count = 1;
      
     public function __construct(DbInterface $db, ContainerInterface $container, $param = array()) 
     {
@@ -50,7 +56,10 @@ class Task {
         $html = '';
         $param = array();
         $id = 0;
-            
+        
+        //create default block for pre-blocks legacy code
+        if(count($this->blocks) === 0) $this->addBlock('DEFAULT',1,1,'');
+        
         if(isset($_GET['mode'])) $this->mode = Secure::clean('basic',$_GET['mode']);
         
         if(isset($_GET['id'])) $id = Secure::clean('basic',$_GET['id']); 
@@ -76,9 +85,9 @@ class Task {
         } 
         
         if($this->mode === 'list') {
-          $html .= $this->viewTasks();
+            $html .= $this->viewBlocks();
         } else {
-          $html .= '<h1>'.$task['title'].': (<a href="?mode=list">return</a> to task list)</h1>';
+            $html .= '<h1>'.$task['title'].': (<a href="?mode=list">return</a> to task list)</h1>';
         }  
         
         $html .= $this->viewMessages();
@@ -86,37 +95,75 @@ class Task {
         return $html;
     }
 
-    public function addTask($id,$title,$param = array()) 
+    public function addBlock($id,$col,$row,$title,$param = []) 
+    {
+        if($row > $this->row_count) $this->row_count = $row;
+        $this->blocks[$col][$row] = ['id'=>$id,'title'=>$title];
+    }
+
+    public function viewBlocks() 
+    {
+        $html = '<div class="container">';
+        for($row = 1; $row<=$this->row_count; $row++) {
+            $html .= '<div class="row">';
+
+            $class_col = 'col-sm-'.floor(12/$this->col_count);
+            for($col = 1; $col<=$this->col_count; $col++) {
+                $html .= '<div class="'.$class_col.'">';
+                if(isset($this->blocks[$col][$row])) {
+                    $block = $this->blocks[$col][$row];
+                    $block_id = $block['id'];
+                    $html .= '<h2>'.$block['title'].'</h2>'; 
+                    $html .= $this->viewBlockTasks($block_id);
+                } 
+                
+                $html .= '</div>';
+            }
+            $html .= '</div>';
+        }
+
+        $html .= '</div>';
+        return $html;
+    }
+
+    protected function viewBlockTasks($block_id) 
+    {
+        $html = '';
+
+        $block_tasks = $this->block_tasks[$block_id];
+        
+        if(count($block_tasks) != 0) {
+            $html .= '<ul class="'.$this->classes['list'].'">';
+            foreach($block_tasks as $task_id) {
+                $task = $this->tasks[$task_id];
+                $task_html = $this->viewTask($task_id,$task);
+                if($task_html == '') {
+                    $task_html = '<a href="?mode=task&id='.$task['id'].'">';
+                    if($task['param']['icon']) $task_html .= $this->icons[$task['param']['icon']];
+                    $task_html .= $task['title'].'</a>';
+                    if($task['param']['separator']) $task_html .= '<hr/>';
+                }  
+                
+                $html .= '<li class="'.$this->classes['list_item'].'">'.$task_html.'</li>';  
+            }  
+          $html .= '</ul>';
+        }  
+            
+        return $html;
+    }
+   
+
+    public function addTask($block_id,$id,$title,$param = []) 
     {
         if(!isset($param['ajax'])) $param['ajax'] = false;
         if(!isset($param['wizard'])) $param['wizard'] = false;
         if(!isset($param['separator'])) $param['separator'] = false;
         
         $this->tasks[$id] = array('id'=>$id,'title'=>$title,'param'=>$param);
+
+        $this->block_tasks[$block_id][] = $id;
     } 
     
-    public function viewTasks() 
-    {
-        $html = '';
-        
-        if(count($this->tasks) != 0) {
-            $html .= '<div id="task_div">'.$this->list_header.
-                     '<ul class="'.$this->classes['list'].'">';
-            foreach($this->tasks as $id => $task) {
-                $task_html = $this->viewTask($id,$task);
-                if($task_html == '') {
-                    $task_html = '<a href="?mode=task&id='.$task['id'].'">'.$task['title'].'</a>';
-                    if($task['param']['separator']) $task_html .= '<hr/>';
-                }  
-                
-                $html .= '<li class="'.$this->classes['list_item'].'">'.$task_html.'</li>';  
-            }  
-          $html .= '</ul></div>';
-        }  
-            
-        return $html;
-    }
-
     public function insertAjax($id,$param=array()) 
     {
         $js = '';
