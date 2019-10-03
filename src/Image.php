@@ -126,7 +126,9 @@ class Image
                 $html .= '<div '.$class.'>'.
                          '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>';
                 if($image['title'] != '') {
-                    $html .= '<div class="carousel-caption"><h3>'.$image['title'].'</h3><p>'.$image['description'].'</p></div>';    
+                    $html .= '<div class="carousel-caption"><h3>'.$image['title'].'</h3>';
+                    if(isset($image['description']) and $image['description'] != '') $html .= '<p>'.$image['description'].'</p>';
+                    $html .=  '</div>';    
                 }         
                 $html .= '</div>';   
                 $i++;
@@ -148,14 +150,20 @@ class Image
             
             $i = 0;
             foreach($images as $image) {
-                //if($i==0) $class='class="item active"'; else $class='class="item"';
-                $src = $options['src_root'].$image['file_name_tn'];
+                if(isset($image['src'])) {
+                    $src = $image['src'];
+                } else {
+                    $src = $options['src_root'].$image['file_name_tn'];
+                }
+
+                $description = '';
+                if(isset($image['description']) and $image['description'] != '') $description = '<p>'.$image['description'].'</p>';
+
                 $html .= '<div class="col-sm-6 col-md-4">'.
                                  '<div class="thumbnail">'.
                                      '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>'.
                                      '<div class="caption">'.
-                                         '<h3>'.$image['title'].'</h3>'.
-                                         '<p>'.$image['description'].'</p>'.
+                                         '<h3>'.$image['title'].'</h3>'.$description.
                                      '</div>'.
                                  '</div>'.
                              '</div>';   

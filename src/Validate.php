@@ -3,6 +3,7 @@ namespace Seriti\Tools;
 
 use Exception;
 use Seriti\Tools\Secure;
+use Seriti\Tools\Date;
 
 //referenced as "Validate::function_name()"
 //NB: some functions modify $value as well to make compatible with database, see cellNo/boolean/number/integer
@@ -426,4 +427,57 @@ class Validate
         
         if($error=='')  return true; else return false;  
     }
+
+    public static function dateInterval($date_from,$date_to,&$error)  {
+       $error = '';
+       $error_tmp = '';
+
+       if(!Self::date('Start date',$date_from,'YYYY-MM-DD',$error_tmp)) {
+          $error .= $error_tmp;
+       }
+
+       if(!Self::date('End date',$date_to,'YYYY-MM-DD',$error_tmp)) {
+          $error .= $error_tmp;
+       }
+
+       if($error === '') {
+           $from = Date::getDate($date_from); 
+           $to = Date::getDate($date_to); 
+
+           if($from[0] >= $to[0]) {
+              $error = 'Start date['.$date_from.'] cannot be after End date['.$date_to.']';
+           } 
+       }
+    }
+
+    public static function monthInterval($from_month,$from_year,$to_month,$to_year,&$error)  {
+       $error = '';
+       $error_tmp = '';
+
+       if($from_month < 1 or $from_month > 12) {
+          $error .= 'From month['.$from_month.'] is not valid month number.' ;
+       }
+
+       if($from_year < 1900 or $from_year > 2100) {
+          $error .= 'From year['.$from_year.'] is not valid year.' ;
+       }
+
+       if($to_month < 1 or $to_month > 12) {
+          $error .= 'To month['.$to_month.'] is not valid month number.' ;
+       }
+
+       if($to_year < 1900 or $to_year > 2100) {
+          $error .= 'To year['.$to_year.'] is not valid year.' ;
+       }
+
+       if($error === '') {
+           $from_count = $from_year*12 + $from_month;
+           $to_count = $to_year*12 + $to_month;
+
+           if($from_count > $to_count) {
+              $error = 'From month['.$from_year.':'.$from_month.'] cannot be after To month['.$to_year.':'.$to_month.']';
+           } 
+       }
+    }
+
 }

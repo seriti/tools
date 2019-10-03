@@ -381,16 +381,23 @@ class Mysql implements DbInterface
     public function checkSql($sql,$sql_type = 'READ') 
     {
         $error = '';
+        $prevent = ['UPDATE','DELETE','INSERT','REPLACE'];
         
         if($sql === '') {
             $error .= 'Empty SQL statement';
         } else {
             if($sql_type === 'READ') {
                 $str = strtoupper($sql);
-                if (strpos($str,'UPDATE ') !== false)  $error .= 'UPDATE command called in a READ ONLY function ';
-                if (strpos($str,'DELETE ') !== false)  $error .= 'DELETE command called in a READ ONLY function ';
-                if (strpos($str,'INSERT ') !== false)  $error .= 'INSERT command called in a READ ONLY function ';
-                if (strpos($str,'REPLACE ')!== false)  $error .= 'REPLACE command called in a READ ONLY function ';
+                foreach($prevent as $cmd) {
+                    //first look for command folowed by space
+                    $pos = strpos($str,$cmd.' ');
+                    if($pos !== false)  {
+                        //if command at beginning of statement or preceded by space or ;
+                        if($pos === 0 or $str[$pos-1] === ' ' or $str[$pos-1] === ';') {
+                            $error .= $cmd.' command called in a READ ONLY function ';
+                        }    
+                    }    
+                }
             }
         }
 

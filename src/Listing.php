@@ -69,6 +69,7 @@ class Listing extends Model
     protected $action_col_right = false;
     protected $images = array();
     protected $image_upload = false;
+    protected $image_popup = ['show'=>true,'height'=>600,'width'=>600];
     protected $files = array();
     protected $file_upload = false;
     protected $data_prev = array(); //previous rows data 
@@ -146,6 +147,7 @@ class Listing extends Model
 
         if(isset($param['order_by'])) $this->order_by_current = $param['order_by'];
         if(isset($param['image_pos'])) $this->image_pos = $param['image_pos'];
+        if(isset($param['image_popup']) and is_array($param['image_popup'])) $this->image_popup = $param['image_popup'];
         if(isset($param['show_header'])) $this->show_header = $param['show_header'];
         if(isset($param['format'])) $this->format = $param['format'];
         if(isset($param['no_image_src'])) $this->no_image_src = $param['no_image_src'];
@@ -965,6 +967,10 @@ class Listing extends Model
         //wrap in a scroll box)
         //if($image_count > 10) $style = 'style="overflow: auto; height:200px;"'; else $style = '';
         //$html = '<div '.$style.'>'.$html.'</div>';
+
+        if($this->image_popup['show'] === true) {
+            $html = '<a href="javascript:open_popup(\'image_popup?id='.$data[$this->key['id']].'\','.$this->image_popup['width'].','.$this->image_popup['height'].')">'.$html.'</a>';
+        }
         
         return $html;
     }

@@ -35,7 +35,8 @@ class Record extends Model
     protected $container_allow = ['config','s3','mail','user','system'];
 
     protected $record_id = 0;
-    protected $nav_show = 'TOP_BOTTOM';
+    protected $action_text = 'Actions:';
+    protected $action_show = 'TOP'; //TOP, BOTTOM, TOP_BOTTOM, 
     protected $col_label='';
     protected $mode = 'view';
     protected $record_name = 'record';
@@ -81,7 +82,7 @@ class Record extends Model
                      
         if(isset($param['record_name'])) $this->record_name = $param['record_name'];
         
-        if(isset($param['nav_show'])) $this->nav_show = $param['nav_show'];
+        if(isset($param['action_show'])) $this->action_show = $param['action_show'];
         
         if(isset($param['col_label'])) $this->col_label = $param['col_label'];
         
@@ -195,18 +196,74 @@ class Record extends Model
 
         $this->cols[$col['id']] = $col;
     }
+    
+     protected function viewRecordActions($context,$data,$row_no,$pos = 'L') 
+    {
+        $html = '';
+        $state_param = $this->linkState();
+         
+        if(count($this->actions) != 0) {
+            foreach($this->actions as $action) {
+                $valid = true;
+                if($action['verify']) $valid = $this->verifyRowAction($action,$data);
+                
+                if($context === 'INSERT' or $context === 'UPDATE') {
+                    if($action['type'] === 'edit' or $action['type'] === 'delete') $valid = false;
+                }
+
+                if($valid and ($action['pos'] === $pos or $pos === 'ALL')) {
+            
+                    if($action['class'] != '') $html .= '<span class="'.$action['class'].'">';
+                    
+                    $show = '';
+                    if($action['icon'] !== false) $show .= $action['icon'];
+                    if(isset($action['col_id'])) $show .= $data[$action['col_id']];
+                    if($action['text'] != '') $show .= $action['text']; 
+                        
+                    if($action['type'] === 'popup') {
+                        if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod = '&';
+                        $url = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
+                        $html .= '<a class="action" href="Javascript:open_popup(\''.$url.'\','.
+                                     $action['width'].','.$action['height'].')">'.$show.'</a>';     
+                    } elseif($action['type'] === 'link') {
+                        if(isset($action['target'])) $target = 'target="'.$action['target'].'"'; else $target='';
+                        if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod='&';
+                        $href = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
+                        if($action['mode'] != '') $href .= '&mode='.$action['mode'];
+                        $html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
+                    } elseif($action['type'] === 'check_box'){
+                        $param['class'] = 'checkbox_action';
+                        $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
+                    } else {    
+                        $onclick = '';
+                        if($action['type'] === 'delete') {
+                            $item = $this->record_name.'['.$data[$this->col_label].']';
+                            $onclick = 'onclick="javascript:return confirm(\'Are you sure you want to DELETE '.$item.'?\')" '; 
+                        }
+                        $href = '?mode='.$action['mode'].'&id='.$data[$this->key['id']].$state_param;  
+                        $html .= '<a class="action" href="'.$href.'" '.$onclick.'>'.$show.'</a>';  
+                    } 
+                    
+                    if($action['class'] != '') $html .= '</span>';
+                    //space between actions, if &nbsp; then no auto breaks
+                    $html .= $action['spacer'];       
+                } 
+            }
+        } 
         
+        return $html;
+    }
+
     protected function viewEdit($form = [],$edit_type = 'UPDATE') 
     {
         $html = '';
+        $action_html = '';
         
         $this->checkAccess($edit_type,$this->record_id);
         
         $data = $this->edit($this->record_id);
         $this->data = $data;
         
-        $nav = $$this->viewActions($data,0,'L');; 
-        if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;
         
         if($this->show_info) $info = $this->viewInfo('EDIT'); else $info = '';
         $html .= $info;
@@ -215,30 +272,44 @@ class Record extends Model
         $class_label = 'class="'.$this->classes['col_label'].'"';
         $class_value = 'class="'.$this->classes['col_value'].'"';
         $class_submit= 'class="'.$this->classes['col_submit'].'"';
+
+        if($this->action_show !== '') {
+            $actions = $this->viewRecordActions($edit_type,$data,0,'ALL');
+            $action_html .= '<div class="row">'.
+                            '<div '.$class_label.'>'.$this->action_text.'</div>'.
+                            '<div '.$class_label.'><input id="edit_submit" type="submit" name="submit" value="Update" class="'.$this->classes['button'].'">'.$actions.'</div>'.
+                            '</div>';    
+        }
         
         $html .= '<div id="edit_div" '.$class_edit.'>';
         $html .= '<form method="post" enctype="multipart/form-data" action="?mode=update&id='.$this->record_id.'" name="update_form" id="update_form">';
         $html .= $this->formState();        
                
         $html .= '<input type="hidden" name="edit_type" value="'.$edit_type.'">'; 
-                                
+
+        if(strpos($this->action_show,'TOP') !== false) $html .= $action_html;
+                                        
         if($edit_type === 'UPDATE') {   
-            $html .= '<div class="row">'.
-                     '<div '.$class_label.'>'.$this->key['title'].':</div>'.
-                     '<div '.$class_value.'><input type="hidden" name="'.$this->key['id'].'" value="'.$this->record_id.'"><b>'.$this->record_id.'</b></div>'.
-                     '</div>';
+            $html .= '<input type="hidden" name="'.$this->key['id'].'" value="'.$this->record_id.'">';
+
+            if($this->key['view']) {
+                $html .= '<div class="row">'.
+                         '<div '.$class_label.'>'.$this->key['title'].':</div>'.
+                         '<div '.$class_value.'><b>'.$this->record_id.'</b></div>'.
+                         '</div>';
+            }             
         }
 
-        if($edit_type === 'INSERT') {        
-            $html .= '<div class="row"><div '.$class_label.'>'.$this->key['title'].':</div>'.
-                     '<div '.$class_value.'>';
+        if($edit_type === 'INSERT') {   
             if($this->key['key_auto']) {
-                $html .= '<input type="hidden" name="'.$this->key['id'].'" value="0"><b>Automatically generated!</b>';        
-            } else {
-                $html .= '<input type="text" class="'.$this->classes['edit'].'" name="'.$this->key['id'].'" '.
-                         'value="'.@$form[$this->key['id']].'">(Must be a UNIQUE identifier)';  
-            } 
-            $html .= '</div></div>';         
+                $html .= '<input type="hidden" name="'.$this->key['id'].'" value="0">';        
+            } else {     
+                $html .= '<div class="row">'.
+                         '<div '.$class_label.'>'.$this->key['title'].':</div>'.
+                         '<div '.$class_value.'>'.
+                         '<input type="text" class="'.$this->classes['edit'].'" name="'.$this->key['id'].'" value="'.@$form[$this->key['id']].'">(Must be a UNIQUE identifier)'.
+                         '</div></div>';
+            }               
         }          
         
         foreach($this->cols as $col) {
@@ -285,9 +356,8 @@ class Record extends Model
         
         $html .= $this->viewEditXtra($this->record_id,$form,$edit_type);
         
-        $html .= '<div class="row"><div '.$class_submit.'>'.
-                 '<input id="edit_submit" type="submit" name="submit" value="Update" class="'.$this->classes['button'].'">'.
-                 '</div></div>';
+        if(strpos($this->action_show,'BOTTOM') !== false) $html .= $action_html;
+        
         $html .= '</form>';
         $html .= '</div>';
         
@@ -302,36 +372,32 @@ class Record extends Model
         
         $data=$this->view($this->record_id);
                 
-        $nav = $this->viewActions($form,0,'L'); 
-        if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;
-        
+                
         if($this->show_info) $info = $this->viewInfo('VIEW'); else $info = '';
         $html .= $info;
         
         $class_label = 'class="'.$this->classes['col_label'].'"';
         $class_value = 'class="'.$this->classes['col_value'].'"';
         
+        if($this->action_show !== '') {
+            $actions = $this->viewRecordActions($edit_type,$data,0,'ALL');
+            if($actions !== '') {
+                $action_html .= '<div class="row">'.
+                                '<div '.$class_label.'>'.$this->action_text.'</div>'.
+                                '<div '.$class_label.'>'.$actions.'</div>'.
+                                '</div>';    
+            }
+        }
         
         $html .= '<div id="edit_div">';
         $html .= '<div class="container">';
 
         if($data === 0) {
             $html .= '<p>'.$this->record_name.'['.$this->record_id.'] not recognised!</p>';
-        } else {  
-            if($this->access['edit']) {
-                foreach($this->actions as $action) {
-                    if($action['type'] === 'edit') {
-                        if(isset($action['icon']) and $action['icon'] != false) {
-                            $show = '<img class="action" src="'.$action['icon'].'" border="0" title="'.$action['text'].' '.$this->record_name.'" >';
-                            if(isset($action['icon_text'])) $show .= $action['icon_text'];
-                        } else {  
-                            $show = $action['text'];
-                        } 
-                        $html .= '<a class="action" href="?mode=edit&id='.$this->record_id.'" >'.$show.'</a>';
-                    }  
-                }  
-            } 
-            
+        } else { 
+
+            if(strpos($this->action_show,'TOP') !== false) $html .= $action_html;
+
             foreach($this->cols as $col) {
                 if($col['view']) {
                     $value=$data[$col['id']];
@@ -399,6 +465,9 @@ class Record extends Model
                 } 
             }
         }   
+        
+        if(strpos($this->action_show,'BOTTOM') !== false) $html .= $action_html;
+
         $html.='</div>';
         
         $html=$this->viewMessages().$html;
