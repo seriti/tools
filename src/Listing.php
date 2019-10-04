@@ -504,7 +504,7 @@ class Listing extends Model
             $row_no = 0;
             foreach($list as $row) {
                 $row_no++;
-                $html .= $this->viewListRow($row,$row_no);
+                $html .= $this->viewListRow($row_no,$row);
                 //store as previous row
                 $this->data_prev = $row;
             }
@@ -798,44 +798,48 @@ class Listing extends Model
         return $value;        
     }
 
-    protected function viewListRow($data,$row_no)  
+    protected function viewListRow($row_no,$data)  
     {
         $html = '';
-        $tag = '';
         $actions_left = '';
         $actions_right = '';
         $images = '';
         $files = '';
         $items = [];
 
+        //NB: data value mods will still be cleaned in formatItemValue() unless col type allows
+        $this->modifyRowData($data,$row_no);
+
         //get standard formatted row content
-        if($this->row_tag) $tag = 'id="'.$row_no.'"';
         if($this->action_col_left) $actions_left = $this->viewListActions($data,$row_no,'L');
         if($this->action_col_right) $actions_right = $this->viewListActions($data,$row_no,'R');
         if($this->image_upload) $images = $this->viewListImages($data);
         if($this->file_upload) $files = $this->viewFiles($data);
 
-        foreach($this->cols as $key => $col) {
+        foreach($this->cols as $col) {
             $item = [];
-            $item['id'] = $col['id'];
             $item['value'] = $data[$col['id']];
             $item['formatted'] = $this->formatItemValue($item['value'],$col);
             $item['list'] = $col['list'];
 
-            $items[] = $item;
+            $items[$col['id']] = $item;
         }
 
-
-        $html .= $this->viewRowFormatted($row_no,$tag,$actions_left,$actions_right,$images,$files,$items);
+        $html .= $this->viewRowFormatted($row_no,$actions_left,$actions_right,$images,$files,$items);
 
         return $html;
     } 
     
 
 
-    protected function viewRowFormatted($row_no,$tag,$actions_left,$actions_right,$images,$files,$items = [])
+    protected function viewRowFormatted($row_no,$actions_left,$actions_right,$images,$files,$items = [])
     {
         $html = '';
+        $tag = '';
+
+        $this->modifyRowFormatted($row_no,$actions_left,$actions_right,$images,$files,$items);
+
+        if($this->row_tag) $tag = 'id="'.$row_no.'"';
 
         if($this->format === 'STANDARD') {
             $image_left = false;
@@ -969,7 +973,8 @@ class Listing extends Model
         //$html = '<div '.$style.'>'.$html.'</div>';
 
         if($this->image_popup['show'] === true) {
-            $html = '<a href="javascript:open_popup(\'image_popup?id='.$data[$this->key['id']].'\','.$this->image_popup['width'].','.$this->image_popup['height'].')">'.$html.'</a>';
+            $html = '<a href="javascript:open_popup(\'image_popup?id='.$data[$this->key['id']].'\','.$this->image_popup['width'].','.$this->image_popup['height'].')">'.
+                    $html.'</a>';
         }
         
         return $html;
@@ -1136,7 +1141,8 @@ class Listing extends Model
        
 
     /*** PLACEHOLDERS ***/
-   
+    protected function modifyRowData(&$data,$row_no) {}
+    protected function modifyRowFormatted($row_no,&$actions_left,&$actions_right,&$images,&$files,&$items) {}
     protected function beforeProcess($id = 0) {}
     protected function processCustom($id) {}
     protected function afterUpdateTable($action) {}

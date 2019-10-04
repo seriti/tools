@@ -13,6 +13,7 @@ trait  IconsClassesLinks
                            'view'=>'<img src="'.BASE_URL.'images/view.png" border="0" title="View">',
                            'files'=>'<img src="'.BASE_URL.'images/folder.png" border="0" title="Files">manage',
                            'images'=>'<img src="'.BASE_URL.'images/folder.png" border="0" title="Images">manage',
+                           'gallery'=>'<span class="glyphicon glyphicon-picture" aria-hidden="true"></span>',
                            'download'=>'<img src="'.BASE_URL.'images/disk.png" border="0" title="Download">',
                            'required'=>'<span class="star">*</span>',
                            'excel'=>'<img src="'.BASE_URL.'images/excel_icon.gif" border="0" title="Download excel/csv file of data">',
