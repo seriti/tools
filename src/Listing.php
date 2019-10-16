@@ -634,6 +634,8 @@ class Listing extends Model
                     } elseif($action['type'] === 'check_box'){
                         $param['class'] = 'checkbox_action';
                         $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
+                    } elseif($action['type'] === 'text'){
+                        $html .= $show;
                     } elseif($action['type'] === 'select'){
                         $select_param = $action['param'];
 
@@ -819,7 +821,7 @@ class Listing extends Model
         foreach($this->cols as $col) {
             $item = [];
             $item['value'] = $data[$col['id']];
-            $item['formatted'] = $this->formatItemValue($item['value'],$col);
+            $item['formatted'] = $col['title'].': '.$this->formatItemValue($item['value'],$col);
             $item['list'] = $col['list'];
 
             $items[$col['id']] = $item;

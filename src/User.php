@@ -215,17 +215,17 @@ class User extends Model
 
     public function getName()
     {
-        return $this->data[$this->user_cols['name']];
+        if(count($this->data)) return $this->data[$this->user_cols['name']]; else return '';
     }
 
     public function getCsrfToken()
     {
-        return $this->data[$this->user_cols['csrf_token']];
+        if(count($this->data)) return $this->data[$this->user_cols['csrf_token']]; else return '';
     }
 
     public function getEmail()
     {
-        return $this->data[$this->user_cols['email']];
+        if(count($this->data)) return $this->data[$this->user_cols['email']]; else return '';
     }
 
     public function getAccessLevel()
