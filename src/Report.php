@@ -78,7 +78,7 @@ class Report {
             }
         } 
         
-        if($this->mode === 'list' or $this->always_list_reports) {
+        if($this->mode === 'list' or $this->mode === 'list_all' or $this->always_list_reports) {
             $html .= $this->viewReports();
         } 
 

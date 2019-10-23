@@ -520,9 +520,10 @@ class Model
     public function sqlConstruct($type,$id=0) {
         $sql='';
 
-        //restrictions which apply to all queries
+        //restrictions which apply to all queries. 
         $restrict = [];
-        if($this->child) {
+        //NB: sometimes master['key_val'] is not know when fetching a record, like with fileDownload() in Upload class
+        if($this->child and $type !== 'SELECT_RAW') {
             $restrict[] = 'T.'.$this->master['child_col'].' = "'.$this->db->escapeSql($this->master['child_prefix'].$this->master['key_val']).'" ';
         }    
         if($this->sql_restrict != '') $restrict[] = $this->sql_restrict; 

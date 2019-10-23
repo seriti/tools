@@ -190,9 +190,6 @@ class Table extends Model
         if($this->mode === 'search') $html .= $this->search();
         
         if($this->mode === 'custom') $html .= $this->processCustom($id);
-
-        //no longer supported as all record docs handled by Upload class!!
-        if($this->mode === 'download') $html .= $this->fileDownload($id);
                         
         return $html;
     } 

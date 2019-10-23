@@ -531,7 +531,7 @@ trait  ModelViews
         return $html;
     }
     
-    protected function viewFiles($data) 
+    protected function viewFiles($data,$view = 'BLOCK') 
     {
         $html = '';
 
@@ -544,7 +544,7 @@ trait  ModelViews
         }  
         
         $file_count = 0;
-        if($this->files['list']) {
+        if($this->files['list'] and $view === 'BLOCK') {
             $sql = 'SELECT '.$this->file_cols['file_id'].' AS id,'.$this->file_cols['file_name_orig'].' AS name , '.$this->file_cols['file_size'].' AS size '.
                    'FROM '.$this->files['table'].' '.
                    'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
@@ -562,15 +562,20 @@ trait  ModelViews
                     $html .= '<br/>';
                 }  
             } 
-        } else {
-            $sql = 'SELECT COUNT(*) FROM '.$this->files['table'].' WHERE location_id = "'.$location_id.'" ';
-            $count = $this->db->readSqlValue($sql,0);
-            if($count != 0) $html .= '&nbsp;('.$count.')';
+        } 
+
+        if($view === 'SUMMARY') {
+            $sql = 'SELECT COUNT(*) AS num, MAX('.$this->file_cols['file_date'].') AS latest '.
+                   'FROM '.$this->files['table'].' WHERE location_id = "'.$location_id.'" ';
+            $files = $this->db->readSqlRecord($sql);
+            if($files != 0 and $files['num'] > 0) $html .= '&nbsp;('.$files['num'].$this->files['name'].' '.$files['latest'].')';
         }   
         
         //wrap in a scroll box)
-        if($file_count > 10) $style = 'style="overflow: auto; height:200px;"'; else $style = '';
-        $html = '<div '.$style.'>'.$html.'</div>';
+        if($view === 'BLOCK') { 
+            if($file_count > 10) $style = 'style="overflow: auto; height:200px;"'; else $style = '';
+            $html = '<div '.$style.'>'.$html.'</div>';
+        }    
         
         return $html;
     }

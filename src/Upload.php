@@ -291,11 +291,16 @@ class Upload extends Model
             if($this->mode === 'delete')       $html .= $this->deleteFile($id,'SINGLE');
           
         }  
+
         if($this->mode === 'search')     $html .= $this->search();
-        if($this->mode === 'download')   $html .= $this->fileDownload($id);
         if($this->mode === 'custom')     $html .= $this->processCustom($id);
         if($this->mode === 'view_image') $html .= $this->viewImage($id);
-                        
+        
+        if($this->mode === 'download')   {
+            $this->upload['interface'] = 'download';
+            $html .= $this->fileDownload($id);
+        }
+
         return $html;
     } 
     
@@ -448,7 +453,7 @@ class Upload extends Model
 
             if($this->order_by_current != '') $this->addSql('ORDER',$this->order_by_current);   
         } 
-        
+       
         //redirect to add a new row if none exist
         if($this->row_count == 0 and $this->mode == 'list') {
             if($this->access['add']) {
@@ -470,7 +475,7 @@ class Upload extends Model
         //pagination mods to final sql statement
         $sql_limit=(($this->page_no-1)*$this->max_rows).', '.$this->max_rows.' ';
         $this->addSql('LIMIT',$sql_limit);
-        
+         
         //get all matching data
         $table = $this->list($param);
 
@@ -478,9 +483,9 @@ class Upload extends Model
         $html = '';
 
         if($this->show_info) $info = $this->viewInfo('LIST'); else $info = '';
-        
+       
         $nav = $this->viewNavigation('TABLE'); 
-                        
+                         
         $header = $this->viewHeader('TOP');
 
         if(strpos($this->nav_show,'TOP') !== false) $html .= $nav;
@@ -579,6 +584,7 @@ class Upload extends Model
                                'WHERE '.$this->master['key'].' <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
                                'ORDER BY '.$this->master['label'].' ';
                     }
+
                     $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
                 } else { 
                     $param['class'] = $this->classes['search'];
@@ -1707,18 +1713,13 @@ class Upload extends Model
         //NB: normally called from a link so only addError() at end of function
         $error = '';
         
-        if($id == '') {
-          $id = $_GET['id'];
-          if(!is_numeric($id)) $this->addError('INVALID File identification!');
-        } else {
-            $file = $this->get($id);
-            if($file == 0) $this->addError('Could not find file['.$id.'] in database');
-        }
-
+        $file = $this->get($id);
+        if($file == 0) $this->addError('Could not find file['.$id.'] in database');
+        
         if(!$this->errors_found) {
             $this->beforeDownload($id,$error);
             if($error != '') $this->addError($error);
-        }    
+        } 
 
         if(!$this->errors_found) {
             $file_path = $this->getPath('UPLOAD',$file[$this->file_cols['file_name']]);
@@ -1812,7 +1813,6 @@ class Upload extends Model
         } 
         
         if($this->errors_found) {
-            //interface=download could be via a link from anywhere
             if($this->upload['interface'] === 'download') {
                 return 'Error downloading file: '.implode(', ',$this->errors);
             } else {

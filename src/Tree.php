@@ -183,8 +183,7 @@ class Tree extends Model
         if($this->mode=='search') $html.=$this->search();
          
         if($this->mode=='custom') $html.=$this->processCustom($id);
-        if($this->mode=='download') $html.=$this->fileDownload($id);
-                        
+                                
         return $html;
     }
 
@@ -438,9 +437,7 @@ class Tree extends Model
         $html .= '<div id="list_div">'; 
 
         $html .= '<div id="tree_div">'.$this->viewTreeList().'</div>'; 
-        $html .= '<div id="node_div">';
-                  //empty for the list view, could use to show some help info
-        $html .= '</div>';
+        $html .= '<div id="node_div">'.$this->viewTreeInfo().'</div>';
         
         $html .= '</div>';
         
@@ -494,17 +491,21 @@ class Tree extends Model
             }
             
             $node_num = implode('.',$num).') ';
-            $html .= '<li>'.$node_num.$this->viewNode($node[$this->tree_cols['node']],$node[$this->tree_cols['title']]).'</li>';
+            $html .= '<li>'.$node_num.$this->viewNode($node).'</li>';
         }
         $html .= '</ul>';
         
         return $html;
     }
     
-    public function viewNode($id,$name) 
+    //public function viewNode($id,$name) 
+    public function viewNode($data) 
     {
         $html = '';
         
+        $id = $data[$this->tree_cols['node']];
+        $name = $data[$this->tree_cols['title']];
+
         if($this->access['edit']) {
             $href = '?mode=edit&id='.$id;
         } else {
@@ -515,8 +516,8 @@ class Tree extends Model
         
         $html .= '&nbsp;'.$this->viewActions($id,$name,'L');
         
-        if($this->image_upload) $html .= $this->viewImages($data);
-        if($this->file_upload) $html .= $this->viewFiles($id,$name,'NODE');
+        if($this->image_upload) $html .= $this->viewImages($data,'SUMMARY');
+        if($this->file_upload) $html .= $this->viewFiles($data,'SUMMARY');
         
         return $html;
     }
@@ -554,7 +555,7 @@ class Tree extends Model
 
         $this->checkAccess($edit_type,$id);
 
-        $data = $this->edit($id);
+        $data = $this->get($id);
         $this->data = $data;
 
         $class_label = 'class="'.$this->classes['col_label'].'"';
@@ -659,30 +660,26 @@ class Tree extends Model
             if($node['rank'] != $node['rank_end']) $html .= '->'.$node['rank_end'];
             $html .= ' (automatically set)</div></div>';
         } 
-        
-        
+        //end tree specific stuff
+
+        $html .= '<div class="row"><div '.$class_submit.'>'.
+                 '<input id="edit_submit" type="submit" name="submit" value="Submit" class="'.$this->classes['button'].'">'.
+                 '</div></div>';
+
+        $html .= '</form>';
+        $html .= '</div>';
+
         if($edit_type !== 'INSERT' and $this->file_upload) {
             $html.='<div class="row"><div '.$class_label.'><b>'.$this->row_name.' Files :</b></div>'.
-                   '<div '.$class_value.'>'.$this->viewFiles($id,$this->data[$this->tree_cols['title']],'EDIT').
+                   '<div '.$class_value.'>'.$this->viewFiles($data).
                    '</div></div>';
         }
 
         if($edit_type !== 'INSERT' and $this->image_upload) {
             $html.='<div class="row"><div '.$class_label.'><b>'.$this->row_name.' Images :</b></div>'.
-                   '<div '.$class_value.'>'.$this->viewImages($id,$this->data[$this->tree_cols['title']],'EDIT').
+                   '<div '.$class_value.'>'.$this->viewImages($data).
                    '</div></div>';
         }
-
-        //end tree specific stuff
-
-
-
-        $html .= '<div class="row"><div '.$class_submit.'>'.
-                 '<input id="edit_submit" type="submit" name="submit" value="Submit" class="'.$this->classes['button'].'">'.
-                 '</div></div>';
-        //$html .= '</div></form>';
-        $html .= '</form>';
-        $html .= '</div>';
         
         $html = $this->viewMessages().$html;
 
@@ -792,5 +789,6 @@ class Tree extends Model
     /*** PLACEHOLDERS ***/
     protected function beforeProcess($id = 0) {}
     protected function processCustom($id) {}
+    protected function viewTreeInfo() {}
 }
 ?>

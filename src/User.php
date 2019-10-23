@@ -829,7 +829,7 @@ class User extends Model
             
             $mailer = $this->getContainer('mail');
             if(!$mailer->sendEmail($from,$to,$subject,$body,$error_tmp)) {
-                $error .= 'FAILURE emailing user['.$user_id.'] login token to address['.$email.']'; 
+                $error .= 'FAILURE emailing user['.$user_id.'] login token to address['.$to.']'; 
                 if($this->debug) $error .= $error_tmp;
                 $this->addError($error);
             }

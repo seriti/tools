@@ -224,6 +224,8 @@ trait  ModelHelpers
         if(!isset($param['title'])) $param['title'] = 'Images';
         if(!isset($param['height'])) $param['height'] = '500';
         if(!isset($param['width'])) $param['width'] = '700';
+        if(!isset($param['icon'])) $param['icon'] = '';
+        if(!isset($param['name'])) $param['name'] = '';
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
         if(!isset($param['path_public'])) $param['path_public'] = false;
@@ -252,6 +254,7 @@ trait  ModelHelpers
         if(!isset($param['height'])) $param['height'] = '500';
         if(!isset($param['width'])) $param['width'] = '700';
         if(!isset($param['icon'])) $param['icon'] = '';
+        if(!isset($param['name'])) $param['name'] = '';
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
         if(!isset($param['path_public'])) $param['path_public'] = false;
