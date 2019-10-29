@@ -653,61 +653,11 @@ class Upload extends Model
         if($this->action_col_left) $html .= '<td valign="top">'.$this->viewActions($data,$row_no,'L').'</td>';
         foreach($this->cols as $col) {
             if($col['list']) {
-                $value = $data[$col['id']];
-                
-                switch($col['type']) {
-                    case 'DATE' : {
-                        $value = Date::formatDate($value,'MYSQL',$col['format']);
-                        break;
-                    } 
-                    case 'DATETIME' : {
-                        $value = Date::formatDateTime($value,'MYSQL',$col['format']);
-                        break;
-                    }
-                    case 'TIME' : {
-                        $value = Date::formatTime($value,'MYSQL',$col['format']);
-                        break;
-                    } 
-                    case 'EMAIL' : {
-                        $value = Secure::clean('email',$value);
-                        $value = '<a href="mailto:'.$value.'">'.$value.'</a>'; 
-                        break;
-                    }
-                    case 'URL' : {
-                        $value = Secure::clean('url',$value);
-                        if(strpos($value,'//') === false) $http = 'http://'; else $http = '';
-                        $value = '<a href="'.$http.$value.'" target="_blank">'.$value.'</a>';
-                        break;
-                    } 
-                    case 'BOOLEAN' : {
-                        if($value == 1) $value = $this->icons['true']; else $value = $this->icons['false'];
-                        break;
-                    } 
-                    case 'PASSWORD' : {
-                        $value = '****';
-                        break;
-                    } 
-                    case 'STRING' : {
-                        if($col['secure']) $value=Secure::clean('string',$value);
-                        break;
-                    } 
-                    case 'TEXT' : {
-                        if($col['secure']) {
-                            if($col['html']) {
-                                if($col['encode']) $value = Secure::clean('html',$value);
-                            } else {
-                                $value = Secure::clean('text',$value);
-                                $value = nl2br($value);
-                            }
-                        } else {
-                            if(!$col['html']) $value = nl2br($value);
-                        }   
-                        break;
-                    }  
-                      
-                    default : $value = Secure::clean('string',$value);
-                }
-                
+                $col_id = $col['id'];
+                $value = $data[$col_id];
+
+                $value = $this->viewColValue($col_id,$value);
+
                 if($col['link']) {
                     $xtra = '';
                     $info = Doc::fileNameParts($value);
@@ -718,12 +668,12 @@ class Upload extends Model
                              $this->icons['download'].$value.'</a>';
                 } 
                 
-                if($col['id'] == $this->file_cols['file_name_orig'] and $param['image'] != '') {
+                if($col_id == $this->file_cols['file_name_orig'] and $param['image'] != '') {
                     $value = '<a href="?mode=view_image&id='.$data[$this->key['id']].'">'.$param['image'].'</a>'.$value;
                 } 
 
                 //placeholder to allow any xtra mods to display value
-                $this->modifyRowValue($col['id'],$data,$value);
+                $this->modifyRowValue($col_id,$data,$value);
                 
                 if($col['type'] === 'DECIMAL') $style = 'style="text-align:right"'; else $style = '';
                 $html .= '<td '.$style.'>'.$value.'</td>';
@@ -827,19 +777,21 @@ class Upload extends Model
         //ONLY shows cols where upload=>true
         foreach($this->cols as $col) {
             if($col['upload']) {
+                $param = [];
+
                 $form_id = $col['id'];
                 if($col['required']) $title = $this->icons['required'].$col['title']; else $title = $col['title'];
                 $html .= '<tr><td align="right" class="edit_label" valign="top">'.$title.':</td><td>';
                 if(isset($form[$form_id])) $value = $form[$form_id]; else $value = '';
-                $html .= $this->viewEditValue($col['id'],$value,'INSERT');
+                $html .= $this->viewEditValue($col['id'],$value,'INSERT',$param);
                 $html .= '</td></tr>';
                 
                 if($col['repeat']) {
                     $form_id = $col['id'].'_repeat';
                     $html .= '<tr><td align="right" class="edit_label" valign="top">'.$col['title'].' repeat:</td><td>';
-                    $repeat = true;
+                    $param['repeat'] = true;
                     if(isset($form[$form_id])) $value = $form[$form_id]; else $value = '';
-                    $html .= $this->viewEditValue($col['id'],$value,'INSERT',$repeat);
+                    $html .= $this->viewEditValue($col['id'],$value,'INSERT',$param);
                     $html .= '</td></tr>';
                 } 
             } 
@@ -958,15 +910,17 @@ class Upload extends Model
 
         foreach($this->cols as $col) {
             if($col['update']) {
+                $param = [];
+
                 if($col['required']) $title = $this->icons['required'].$col['edit_title']; else $title = $col['edit_title'];
                 $html .= '<div id="tr_'.$col['id'].'" class="row"><div '.$class_label.'>'.$title.':</div>'.
                          '<div '.$class_value.'>';
                 if(isset($form[$col['id']])) {
                     $value = $form[$col['id']];
-                    $redisplay = true;
+                    $param['redisplay'] = true;
                 } else {
                     $value = $data[$col['id']];
-                    $redisplay = false;
+                    $param['redisplay'] = false;
                 } 
                 $repeat = false;        
                                 
@@ -975,7 +929,7 @@ class Upload extends Model
                 if($col['type'] === 'CUSTOM') {
                     $html .= $this->customEditValue($col['id'],$value,$edit_type,$form);
                 } else {
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                 }  
                 
                 if($col['hint'] != '' and $col['type']==='BOOLEAN') {
@@ -988,9 +942,9 @@ class Upload extends Model
                     $form_id = $col['id'].'_repeat';
                     $html .= '<div class="row"><div '.$class_label.'">'.$col['edit_title'].' repeat:</div>'.
                              '<div '.$class_value.'>';
-                    $repeat = true;
+                    $param['repeat'] = true;
                     if(isset($form[$form_id])) $value = $form[$form_id]; else $value = $data[$col['id']];
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                     $html .= '</div></div>';
                 } 
             } 

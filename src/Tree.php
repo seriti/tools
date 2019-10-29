@@ -601,15 +601,17 @@ class Tree extends Model
         
         foreach($this->cols as $col) {
             if($col['edit']) {
+                $param = [];
+
                 if($col['required']) $title = $this->icons['required'].$col['edit_title']; else $title = $col['edit_title'];
                 $html .= '<div id="tr_'.$col['id'].'" class="row"><div '.$class_label.'>'.$title.':</div>'.
                          '<div '.$class_value.'>';
                 if(isset($form[$col['id']])) {
                     $value = $form[$col['id']];
-                    $redisplay = true;
+                    $param['redisplay'] = true;
                 } else {
                     $value = $data[$col['id']];
-                    $redisplay = false;
+                    $param['redisplay'] = false;
                 } 
                 $repeat = false;        
                                 
@@ -618,7 +620,7 @@ class Tree extends Model
                 if($col['type'] === 'CUSTOM') {
                     $html .= $this->customEditValue($col['id'],$value,$edit_type,$form);
                 } else {
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                 }  
                 
                 if($col['hint'] != '' and $col['type']==='BOOLEAN') {
@@ -631,9 +633,9 @@ class Tree extends Model
                     $form_id = $col['id'].'_repeat';
                     $html .= '<div class="row"><div '.$class_label.'">'.$col['edit_title'].' repeat:</div>'.
                              '<div '.$class_value.'>';
-                    $repeat = true;
+                    $param['repeat'] = true;
                     if(isset($form[$form_id])) $value = $form[$form_id]; else $value = $data[$col['id']];
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                     $html .= '</div></div>';
                 } 
             } 

@@ -117,7 +117,7 @@ trait  ModelViews
                         $html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
                     } elseif($action['type'] === 'check_box'){
                         $param['class'] = 'checkbox_action';
-                        $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
+                        $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',$action['checked'],$param).$show;
                     } else {    
                         $onclick = '';
                         if($action['type'] == 'delete') {
@@ -226,63 +226,130 @@ trait  ModelViews
         return $html;
     } 
 
-    protected function viewEditValue($col_id,$value,$edit_type,$repeat=false,$redisplay=false,$form_id='')  
+    protected function viewColValue($col_id,$value)
+    {
+        $col = $this->cols[$col_id];
+
+        switch($col['type']) {
+            case 'DATE' : {
+                $value = Date::formatDate($value,'MYSQL',$col['format']);
+                break;
+            } 
+            case 'DATETIME' : {
+                $value = Date::formatDateTime($value,'MYSQL',$col['format']);
+                break;
+            }
+            case 'TIME' : {
+                $value = Date::formatTime($value,'MYSQL',$col['format']);
+                break;
+            } 
+            case 'EMAIL' : {
+                $value = Secure::clean('email',$value);
+                $value = '<a href="mailto:'.$value.'">'.$value.'</a>'; 
+                break;
+            }
+            case 'URL' : {
+                $value = Secure::clean('url',$value);
+                if(strpos($value,'//') === false) $http = 'http://'; else $http = '';
+                $value = '<a href="'.$http.$value.'" target="_blank">'.$value.'</a>';
+                break;
+            } 
+            case 'BOOLEAN' : {
+                if($value == 1) $value = $this->icons['true']; else $value = $this->icons['false'];
+                break;
+            } 
+            case 'PASSWORD' : {
+                $value = '****';
+                break;
+            } 
+            case 'STRING' : {
+                if($col['secure']) $value=Secure::clean('string',$value);
+                break;
+            } 
+            case 'TEXT' : {
+                if($col['secure']) {
+                    if($col['html']) {
+                        if($col['encode']) $value = Secure::clean('html',$value);
+                    } else {
+                        $value = Secure::clean('text',$value);
+                        $value = nl2br($value);
+                    }
+                } else {
+                    if(!$col['html']) $value = nl2br($value);
+                }   
+                break;
+            }  
+                                  
+            default : $value = Secure::clean('string',$value);
+        }
+
+        return $value;
+    }
+
+    protected function viewEditValue($col_id,$value,$edit_type,$param=[])  
     {
         $html = '';
-        $param = array();
+        $input_param = [];
         
-        if($form_id !== '') $param['form'] = $form_id;
-        
-        $html = $this->modifyEditValue($col_id,$value,$edit_type,$repeat,$redisplay);
+        $html = $this->modifyEditValue($col_id,$value,$edit_type,$param);
         if($html != '') return $html;
         
+        //get column details and setup form input parameters
         $col = $this->cols[$col_id];
-        if($col['class'] === '') $param['class'] = $this->classes['edit']; else $param['class'] = $col['class'];
+        if(isset($param['form_id']) and $param['form_id'] !== '') $input_param['form'] = $param['form_id'];
+        if($col['class'] === '') $input_param['class'] = $this->classes['edit']; else $input_param['class'] = $col['class'];
+        if(isset($col['onchange'])) $input_param['onchange'] = $col['onchange'];
+        if(isset($col['onkeyup'])) $input_param['onkeyup'] = $col['onkeyup'];
+        if(isset($col['onblur'])) $input_param['onblur'] = $col['onblur'];
         
-        if(isset($col['onchange'])) $param['onchange'] = $col['onchange'];
-        if(isset($col['onkeyup'])) $param['onkeyup'] = $col['onkeyup'];
-        if(isset($col['onblur'])) $param['onblur'] = $col['onblur'];
-                        
+        //setup form input name/id
+        if(isset($param['name'])) {
+            $name = $param['name'];
+        } else {
+            $name = $col_id;
+            if(isset($param['repeat']) and $param['repeat']) $name .= '_repeat';
+        }
+
+        //assign values for new record                
         if($edit_type === 'INSERT' and $value == '') {
             $value = $col['new'];
             if($col['type'] === 'PASSWORD' and $value == '') $value = Form::createPassword();
         }
-        
-        if($repeat) $name = $col_id.'_repeat'; else $name = $col_id;
+           
                     
         if(isset($this->select[$col_id]) and $this->select[$col_id]['edit'] == true) {
-            if(isset($this->select[$col_id]['onchange'])) $param['onchange'] = $this->select[$col_id]['onchange'];
-            if(isset($this->select[$col_id]['xtra'])) $param['xtra'] = $this->select[$col_id]['xtra'];
+            if(isset($this->select[$col_id]['onchange'])) $input_param['onchange'] = $this->select[$col_id]['onchange'];
+            if(isset($this->select[$col_id]['xtra'])) $input_param['xtra'] = $this->select[$col_id]['xtra'];
             
             if(isset($this->select[$col_id]['sql'])) {
-                $html .= Form::sqlList($this->select[$col_id]['sql'],$this->db,$col_id,$value,$param);
+                $html .= Form::sqlList($this->select[$col_id]['sql'],$this->db,$name,$value,$input_param);
             } elseif(isset($this->select[$col_id]['list'])) { 
-                $html .= Form::arrayList($this->select[$col_id]['list'],$col_id,$value,$this->select[$col_id]['list_assoc'],$param);
+                $html .= Form::arrayList($this->select[$col_id]['list'],$name,$value,$this->select[$col_id]['list_assoc'],$input_param);
             }
         } else {
             switch($col['type']) {
                 case 'STRING' : {
                     if($col['secure']) $value = Secure::clean('string',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 }
                 case 'PASSWORD' : {
                     $value = Secure::clean('string',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     
-                    $param['onclick'] = 'javascript:document.update_form.'.$name.'.value=\'\'';
-                    if($edit_type === 'UPDATE') $html .= Form::checkbox('change_password','YES',0,$param).
+                    $input_param['onclick'] = 'javascript:document.update_form.'.$name.'.value=\'\'';
+                    if($edit_type === 'UPDATE') $html .= Form::checkbox('change_password','YES',0,$input_param).
                                                          '<span class="edit_label">Create new?</span>';
                     break;  
                 }
                 case 'INTEGER' : {
                     $value = Secure::clean('integer',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 }
                 case 'DECIMAL' : {
                     $value = Secure::clean('float',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 }
                 case 'TEXT' : {
@@ -293,25 +360,25 @@ trait  ModelViews
                             $value = Secure::clean('text',$value);
                         }
                     } 
-                    if($param['class'] === 'HTMLeditor') $col['rows'] += 3; 
-                    $html .= Form::textAreaInput($name,$value,$col['cols'],$col['rows'],$param);
+                    if($input_param['class'] === 'HTMLeditor') $col['rows'] += 3; 
+                    $html .= Form::textAreaInput($name,$value,$col['cols'],$col['rows'],$input_param);
                     break;
                 }
                 case 'DATE' : {
                     if($value == '') $this->dates['new'];
                     if($value == '0000-00-00') $value = $this->dates['zero'];
                     $value=Secure::clean('date',$value);
-                    if($this->classes['date'] != '') $param['class'] .= ' '.$this->classes['date'];
-                    $html .= Form::textInput($name,$value,$param);
+                    if($this->classes['date'] != '') $input_param['class'] .= ' '.$this->classes['date'];
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 }
                 case 'DATETIME' : {
                     if($value == '') $value = date('Y-m-d H:i:s');
                     if($value == '0000-00-00 00:00:00') $value = $this->dates['zero'].' 00:00:00';
                     $value=Secure::clean('date',$value);
-                    if($this->classes['date'] != '') $param['class'] .= ' '.$this->classes['date'];
+                    if($this->classes['date'] != '') $input_param['class'] .= ' '.$this->classes['date'];
                     $html .= '<table cellpadding="0" cellspacing="0"><tr>'.
-                             '<td>'.Form::textInput($name,substr($value,0,10),$param).'</td>'.
+                             '<td>'.Form::textInput($name,substr($value,0,10),$input_param).'</td>'.
                              '<td>@ <input style="display:inline;" type="text" name="'.$name.'_time" value="'.substr($value,11,8).'" class="'.$this->classes['time'].'"></td>'.
                              '</tr></table>';
                     break;
@@ -320,27 +387,27 @@ trait  ModelViews
                     if($value == '') $value = date('H:i:s');
                     $value = Secure::clean('string',$value);
                     if($col['format'] == 'HH:MM') $value = substr($value,0,5);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 } 
                 case 'EMAIL' : {
                     $value = Secure::clean('email',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 }
                 case 'URL' : {
                     $value = Secure::clean('url',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                     break;
                 } 
                 case 'BOOLEAN' : {
-                    $html .= Form::checkBox($name,'1',$value,$param);
+                    $html .= Form::checkBox($name,'1',$value,$input_param);
                     break;   
                 }
                 
                 default : {
                     $value = Secure::clean('string',$value);
-                    $html .= Form::textInput($name,$value,$param);
+                    $html .= Form::textInput($name,$value,$input_param);
                 }   
             } 
         }
@@ -585,7 +652,7 @@ trait  ModelViews
     protected function modifyRecordValue($col_id,$data,&$value) {}
     protected function viewEditXtra($id,$form,$edit_type) {}
     protected function verifyRowAction($action,$data) {}
-    protected function modifyEditValue($col_id,$value,$edit_type,$repeat,$redisplay) {}
+    protected function modifyEditValue($col_id,$value,$edit_type,$param) {}
     protected function customEditValue($col_id,$value,$edit_type,$form) {}  
     protected function customSearchValue($col_id,$value) {}
      

@@ -34,7 +34,7 @@ class User extends Model
     
     //current active user data
     protected $user_id = 0;
-    protected $data = array();
+    protected $data = [];
 
     protected $container;
     protected $container_allow = ['system','config','mail'];
@@ -48,16 +48,17 @@ class User extends Model
     protected $cookie_expire_days = 30;
     protected $login_fail_max = 10;
         
-    protected $login_days = array(1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
-                                  14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year'); 
+    protected $login_days = [1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
+                             14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year']; 
 
-    protected $routes = array('login'=>'login','logout'=>'login','default'=>'admin/dashboard','default_public'=>'public/dashboard','error'=>'error');
+    protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/dashboard','default_public'=>'public/dashboard','error'=>'error'];
+    protected $routes_redirect_ignore = ['ajax','login'];
 
     //cache id's used to maintain state between requests using setCache()/getcache()
-    protected $cache = array('user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url');
+    protected $cache = ['user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url'];
     
     //all possible user access settings, NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW > PUBLIC
-    protected $access_levels = array('GOD','ADMIN','USER','VIEW');
+    protected $access_levels = ['GOD','ADMIN','USER','VIEW'];
     protected $access_level = 'NONE';
     protected $access_zone = 'NONE';
 
@@ -609,12 +610,24 @@ class User extends Model
     //store last location/page/uri user vists before a redirect 
     public function setLastPage()
     {
-        $this->setCache($this->cache['page'],$_SERVER['REQUEST_URI']);
+        $page_url = $_SERVER['REQUEST_URI'];
+        $page_valid = true;
+
+        foreach($this->routes_redirect_ignore as $ignore) {
+            if(stripos($page_url,$ignore) !== false) $page_valid = false;
+        }
+
+        if($page_valid) $this->setCache($this->cache['page'],$page_url );    
     }
 
     public function redirectLastPage()
     {
         $last_page = $this->getCache($this->cache['page']);
+
+        //do not want to redirect to some routes, like an ajax call
+        foreach($this->routes_redirect_ignore as $ignore) {
+            if(stripos($last_page,$ignore) !== false) $last_page = '';
+        }
 
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));

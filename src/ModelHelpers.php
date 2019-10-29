@@ -192,6 +192,7 @@ trait  ModelHelpers
                 $action_valid = false;
             } else {  
                 $this->table_action = true; 
+                if(!isset($action['checked'])) $action['checked'] = false;
             }  
         } 
                 

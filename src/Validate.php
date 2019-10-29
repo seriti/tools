@@ -18,12 +18,12 @@ class Validate
         //strip out any spaces in number
         $value=str_replace(' ','',$value);
         //only integer numeric values
-        if(preg_match('/[^0-9]/',$value)) $error.='Only numbers allowed in '.$name.'!<br/>';
+        if(preg_match('/[^0-9]/',$value)) $error.='Only numbers allowed in '.$name.'. ';
         
         if(substr($value,0,1)==='0') {
-            if(strlen($value)!==10) $error.=$name.' number with "0" prefix must be 10 digits!(Country code added automatically)<br/>'; 
+            if(strlen($value)!==10) $error.=$name.' number with "0" prefix must be 10 digits!(Country code added automatically). '; 
         } else {
-            if(strlen($value)!==11) $error.=$name.' international numbers must be 11 digits including country code!(local cell numbers must have "0" prefix)<br/>'; 
+            if(strlen($value)!==11) $error.=$name.' international numbers must be 11 digits including country code!(local cell numbers must have "0" prefix). '; 
         }    
         
         if($error=='')  return true; else return false;
@@ -34,9 +34,9 @@ class Validate
         $error='';
         $name='['.$name.']';
         if((!is_int(intval($value)))) {
-            $error.='Value for '.$name.' must be boolean(0 or 1)!<br/>';
+            $error.='Value for '.$name.' must be boolean(0 or 1). ';
         } else {
-            if($value!=0 and $value!=1) $error.='Value for '.$name.' must be boolean(0 or 1)!<br/>';
+            if($value!=0 and $value!=1) $error.='Value for '.$name.' must be boolean(0 or 1). ';
         }
         
         if($error=='')  return true; else return false;
@@ -53,14 +53,14 @@ class Validate
         
         if($num=='')
         {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if(!is_numeric($num))
             {
-                $error.='Value['.$num.'] for '.$name.' is not a valid number!<br/>';
+                $error.='Value['.$num.'] for '.$name.' is not a valid number. ';
             } else {
-                if($num<$min) $error.='Value for '.$name.' is less than minimum allowable value['.$min.']!<br/>';
-                if($num>$max) $error.='Value for '.$name.' is greater than maximum allowable value['.$max.']!<br/>';
+                if($num<$min) $error.='Value['.$num.'] for '.$name.' is less than minimum allowable value['.$min.']. ';
+                if($num>$max) $error.='Value['.$num.'] for '.$name.' is greater than maximum allowable value['.$max.']. ';
             }
         }
 
@@ -76,16 +76,16 @@ class Validate
         
         if($num=='')
         {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if(!is_numeric($num))
             {
-                $error.='Value for '.$name.' is not a valid integer!<br/>';
+                $error.='Value['.$num.'] for '.$name.' is not a valid integer. ';
             } elseif(!is_int(intval($num))) {
-                $error.='Value['.$num.'] for '.$name.' is not a valid integer!<br/>';
+                $error.='Value['.$num.'] for '.$name.' is not a valid integer. ';
             } else {  
-                if($num<$min) $error.='Value for '.$name.' is less than minimum allowable value['.$min.']!<br/>';
-                if($num>$max) $error.='Value for '.$name.' is greater than maximum allowable value['.$max.']!<br/>';
+                if($num<$min) $error.='Value['.$num.'] for '.$name.' is less than minimum allowable value['.$min.']. ';
+                if($num>$max) $error.='Value['.$num.'] for '.$name.' is greater than maximum allowable value['.$max.']. ';
             }
         }
 
@@ -102,18 +102,18 @@ class Validate
                 
         if($str_length==0 and $min!=0)
         {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($str_length<$min or $str_length>$max)
             {
-                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length!<br/>';
+                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length. ';
             } 
         }
         
         if($error==''){
             $options=array();
             if(!Secure::check('text',$str,$options,$error)) {
-                $error='Entry for '.$name.' failed security check: '.$error.'<br/>';
+                $error='Entry for '.$name.' failed security check: '.$error.'. ';
             } 
         }
         
@@ -128,12 +128,12 @@ class Validate
         if(!isset($rules['length'])) $rules['length']=8;
         if(!isset($rules['strong'])) $rules['strong']=true;
                 
-        if($rules['alpha'] and !ctype_alnum($password)) $error.='Password may only contain letters and numbers(no spaces)!<br/>'; 
-        if(strlen($password)<$rules['length'])  $error.='Password less than mimimum length of '.$rules['length'].'!<br/>';
+        if($rules['alpha'] and !ctype_alnum($password)) $error.='Password may only contain letters and numbers(no spaces). '; 
+        if(strlen($password)<$rules['length'])  $error.='Password less than mimimum length of '.$rules['length'].'. ';
         if($rules['strong']) {
-            if(!preg_match('`[A-Z]`',$password)) $error.='Password must contain at least ONE uppercase letter<br/>';
-            if(!preg_match('`[a-z]`',$password)) $error.='Password must contain at least ONE lowercase letter<br/>';
-            if(!preg_match('`[0-9]`',$password)) $error.='Password must contain at least ONE number<br/>';
+            if(!preg_match('`[A-Z]`',$password)) $error.='Password must contain at least ONE uppercase letter. ';
+            if(!preg_match('`[a-z]`',$password)) $error.='Password must contain at least ONE lowercase letter. ';
+            if(!preg_match('`[0-9]`',$password)) $error.='Password must contain at least ONE number. ';
         }
         
         if($error=='')  return true; else return false;  
@@ -147,17 +147,17 @@ class Validate
         $str_length=strlen($str);
                 
         if($str_length==0 and $required) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($str_length!=0 and $str_length!==$length) {
-                $error.='Entry for '.$name.' must be '.$length.' characters in length!<br/>';
+                $error.='Entry['.$str.'] for '.$name.' must be '.$length.' characters in length. ';
             } 
         }
         
         if($error=='' and $str_length>0 and $secure){
             $options=array();
             if(!Secure::check('string',$str,$options,$error)) {
-                 $error='Entry for '.$name.' failed security check: '.$error.'<br/>';
+                 $error='Entry['.$str.'] for '.$name.' failed security check: '.$error.'. ';
             } 
         }
         
@@ -173,18 +173,18 @@ class Validate
         $str_length=strlen($str);
                 
         if($str_length==0 and $min!=0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($str_length<$min or $str_length>$max)
             {
-                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length!<br/>';
+                $error.='Entry['.$str.'] for '.$name.' must be between '.$min.' and '.$max.' characters in length. ';
             } 
         }
         
         if($error=='' and $str_length>0 and $secure) {
             $options=array();
             if(!Secure::check('string',$str,$options,$error)) {
-                 $error='Entry for '.$name.' failed security check: '.$error.'<br/>';
+                 $error='Entry['.$str.'] for '.$name.' failed security check: '.$error.'. ';
             } 
         }
         
@@ -200,18 +200,18 @@ class Validate
         $str_length=strlen($str);
                 
         if($str_length==0 and $min!=0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($str_length<$min or $str_length>$max)
             {
-                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length!<br/>';
+                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length. ';
             } 
         }
         
         if($error=='' and $str!=='' and $secure){
             $options=array();
             if(!Secure::check('text',$str,$options,$error)) {
-                $error='Entry for '.$name.' failed security check: '.$error.'<br/>';
+                $error='Entry for '.$name.' failed security check: '.$error.'. ';
             } 
         }
         
@@ -227,18 +227,18 @@ class Validate
         $str_length=strlen($str);
                 
         if($str_length==0 and $min!=0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($str_length<$min or $str_length>$max)
             {
-                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length!<br/>';
+                $error.='Entry for '.$name.' must be between '.$min.' and '.$max.' characters in length. ';
             } 
         }
         
         if($error=='' and $str!=='' and $secure){
             $options=array();
             if(!Secure::check('html',$str,$options,$error)) {
-                $error='Entry for '.$name.' Security check: '.$error.'<br/>';
+                $error='Entry for '.$name.' Security check: '.$error.'. ';
             } 
         }
         
@@ -253,10 +253,10 @@ class Validate
         $str_length=strlen($email);
         
         if($str_length==0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if (!preg_match("/^[0-9a-z]+(([\.\-_])[0-9a-z]+)*@[0-9a-z]+(([\.\-])[0-9a-z-]+)*\.[a-z]{2,6}$/i",$email)) {
-                $error.='Entry for '.$name.' is not a valid email address!<br/>';
+                $error.='Entry['.$email.'] for '.$name.' is not a valid email address. ';
             } 
         }
         
@@ -278,13 +278,13 @@ class Validate
         $str_length=strlen($url);
         
         if($str_length==0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if(stripos($url,'//')===false) $url='http://'.$url;
             
             $options=array();
             if(!Secure::check('url',$url,$options,$error)) {
-                $error='Entry for '.$name.' is not a valid URL!<br/>'.$url;
+                $error='Entry['.$url.'] for '.$name.' is not a valid URL. '.$url;
             } 
         }
 
@@ -298,22 +298,22 @@ class Validate
         $str_length=strlen($date);
         
         if($str_length==0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($format=='YYYY-MM-DD') {
                 $year =intval(substr($date,0,4));
                 $month=intval(substr($date,5,2));
                 $day  =intval(substr($date,8,2));
-                if($year==0) $error.='Invalid year number! ';
-                if($month==0) $error.='Invalid month number! ';
+                if($year==0) $error.='Invalid year number. ';
+                if($month==0) $error.='Invalid month number. ';
                 if($error=='') {
-                    if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100! ';  
-                    if($month<1 or $month>12) $error.='Month must be between 1 and 12! '; 
-                    if($day<1 or $day>31) $error.='Day must be between 1 and 31! '; 
+                    if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100. ';  
+                    if($month<1 or $month>12) $error.='Month must be between 1 and 12. '; 
+                    if($day<1 or $day>31) $error.='Day must be between 1 and 31. '; 
                 }
-                if($error!='') $error='Entry for '.$name.' is invalid: '.$error.'<br/>';
+                if($error!='') $error='Entry['.$date.'] for '.$name.' is invalid: '.$error.'. ';
             } else {
-                $error.='Entry for '.$name.' is not a valid date format!<br/>';
+                $error.='Entry['.$date.'] for '.$name.' is not a valid date format. ';
             } 
         }
         
@@ -325,9 +325,9 @@ class Validate
         $error='';
         $name='['.$name.']';
         
-        if(!is_numeric($year)) $error.='Invalid year number! ';
-        if(!is_numeric($month)) $error.='Invalid month number! ';
-        if(!is_numeric($day)) $error.='Invalid day number! ';
+        if(!is_numeric($year)) $error.='Invalid year number. ';
+        if(!is_numeric($month)) $error.='Invalid month number. ';
+        if(!is_numeric($day)) $error.='Invalid day number. ';
         
         if($error=='') {
             $year =intval($year);
@@ -336,12 +336,12 @@ class Validate
             
             if(!checkdate($month,$day,$year)) $error.='INVALID date ';  
             //additional checks
-            if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100! ';  
-            if($month<1 or $month>12) $error.='Month must be between 1 and 12! '; 
-            if($day<1 or $day>31) $error.='Day must be between 1 and 31! '; 
+            if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100. ';  
+            if($month<1 or $month>12) $error.='Month must be between 1 and 12. '; 
+            if($day<1 or $day>31) $error.='Day must be between 1 and 31. '; 
         }
                 
-        if($error!='') $error.='Entry for '.$name.' is invalid: '.$error.'<br/>';
+        if($error!='') $error.='Entry for '.$name.' is invalid: '.$error.'. ';
             
         $date_str=sprintf('%04d-%02d-%02d',$year,$month,$day);     
         return $date_str;    
@@ -355,7 +355,7 @@ class Validate
         $str_length=strlen($datetime);
         
         if($str_length==0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($format=='YYYY-MM-DD HH:MM') {
                 $year =intval(substr($datetime,0,4));
@@ -365,25 +365,25 @@ class Validate
                 $min  =intval(substr($datetime,14,2));
                 $sec  =intval(substr($datetime,17,2));
                 
-                if($year==0) $error.='Invalid year number! ';
-                if($month==0) $error.='Invalid month number! ';
-                if($day==0) $error.='Invalid day number! ';
-                //if($hour==0) $error.='Invalid hours number! ';
-                //if($min==0) $error.='Invalid minutes number! ';
-                //if($sec==0) $error.='Invalid seconds number! ';
+                if($year==0) $error.='Invalid year number. ';
+                if($month==0) $error.='Invalid month number. ';
+                if($day==0) $error.='Invalid day number. ';
+                //if($hour==0) $error.='Invalid hours number. ';
+                //if($min==0) $error.='Invalid minutes number. ';
+                //if($sec==0) $error.='Invalid seconds number. ';
                 
                 if($error=='') {
-                    if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100! ';  
-                    if($month<1 or $month>12) $error.='Month must be between 1 and 12! '; 
-                    if($day<1 or $day>31) $error.='Day must be between 1 and 31! '; 
-                    if($hour<0 or $hour>23) $error.='Hour must be between 00 and 23! '; 
-                    if($min<0 or $min>59) $error.='Minutes must be between 00 and 59! ';  
-                    if($sec<0 or $sec>59) $error.='Seconds must be between 00 and 59! ';  
+                    if($year<1900 or $year>2100) $error.='Year must be between 1900 and 2100. ';  
+                    if($month<1 or $month>12) $error.='Month must be between 1 and 12. '; 
+                    if($day<1 or $day>31) $error.='Day must be between 1 and 31. '; 
+                    if($hour<0 or $hour>23) $error.='Hour must be between 00 and 23. '; 
+                    if($min<0 or $min>59) $error.='Minutes must be between 00 and 59. ';  
+                    if($sec<0 or $sec>59) $error.='Seconds must be between 00 and 59. ';  
                 }
                 
-                if($error!='') $error='Entry for '.$name.' is invalid: '.$error.'<br/>';
+                if($error!='') $error='Entry['.$datetime.'] for '.$name.' is invalid: '.$error.'. ';
             } else {
-                $error.='Entry for '.$name.' is not a valid datetime format!<br/>';
+                $error.='Entry['.$datetime.'] for '.$name.' is not a valid datetime format. ';
             } 
         }
         
@@ -398,7 +398,7 @@ class Validate
         $str_length=strlen($time);
                 
         if($str_length==0) {
-            $error.='Please enter a value for '.$name.'<br/>';
+            $error.='Please enter a value for '.$name.'. ';
         } else {
             if($format=='HH:MM:SS' or $format=='HH:MM') {
                 $hour_str=substr($time,0,2);
@@ -409,19 +409,19 @@ class Validate
                 $min=intval($min_str);
                 $sec=intval($sec_str);                
                                 
-                if($hour==0 and $hour_str!='00') $error.='Invalid hours number! ';
-                if($min==0 and $min_str!='00') $error.='Invalid minutes number! ';
-                if($sec==0 and $sec_str!='00') $error.='Invalid seconds number! ';
+                if($hour==0 and $hour_str!='00') $error.='Invalid hours number. ';
+                if($min==0 and $min_str!='00') $error.='Invalid minutes number. ';
+                if($sec==0 and $sec_str!='00') $error.='Invalid seconds number. ';
                 
                 if($error=='') {
-                    if($hour<0 or $hour>23) $error.='Hour must be between 00 and 23! '; 
-                    if($min<0 or $min>59) $error.='Minutes must be between 00 and 59! ';  
-                    if($sec<0 or $sec>59) $error.='Seconds must be between 00 and 59! ';  
+                    if($hour<0 or $hour>23) $error.='Hour must be between 00 and 23. '; 
+                    if($min<0 or $min>59) $error.='Minutes must be between 00 and 59. ';  
+                    if($sec<0 or $sec>59) $error.='Seconds must be between 00 and 59. ';  
                 }
                 
-                if($error!='') $error='Entry for '.$name.' is invalid: '.$error.'<br/>';
+                if($error!='') $error='Entry['.$time.'] for '.$name.' is invalid: '.$error.'. ';
             } else {
-                $error.='Entry for '.$name.' is not a valid time format!<br/>';
+                $error.='Entry['.$time.'] for '.$name.' is not a valid time format. ';
             } 
         }
         

@@ -55,7 +55,8 @@ class Table extends Model
     protected $add_href = '';//change add nav link to some external page or wizard
     protected $key_error = '';
                 
-    protected $table_action = false;//where multiple rows can be selected and modified
+    protected $table_action = false;//where multiple rows can be selected and modified as one
+    protected $table_edit_all = false; //where all rows are editable together 
     protected $excel_csv = true;
     protected $actions = array();
     protected $location = '';
@@ -106,8 +107,10 @@ class Table extends Model
             $this->row_name_plural = $param['row_name_plural'];
         } else {
             $this->row_name_plural = $this->row_name.'s';
-        }    
-        if(isset($param['max_rows'])) $this->max_rows = $param['max_rows'];
+        }
+
+        if(isset($param['max_rows'])) $this->max_rows = $param['max_rows'];    
+        if(isset($param['table_edit_all'])) $this->table_edit_all = $param['table_edit_all'];
         if(isset($param['nav_show'])) $this->nav_show = $param['nav_show'];
         if(isset($param['col_label'])) $this->col_label = $param['col_label'];
         if(isset($param['action_header'])) $this->action_header = $param['action_header'];
@@ -401,7 +404,12 @@ class Table extends Model
             $row_no = 0;
             foreach($table as $row) {
                 $row_no++;
-                $html .= $this->viewRow($row,$row_no);
+                if($this->table_edit_all) {
+                    $html .= $this->viewRowEdit($row,$row_no);
+                } else {
+                    $html .= $this->viewRow($row,$row_no);    
+                }
+                
                 //store as previous row
                 $this->data_prev = $row;
             }
@@ -424,8 +432,13 @@ class Table extends Model
         $actions = array();
         $actions['SELECT'] = 'Action for selected '.$this->row_name_plural;
         $action_email = '';
+        $action_id = '';
 
         if(!$this->access['read_only']) {
+            if($this->table_edit_all and $this->access['edit']) {
+                $actions['UPDATE']='Update selected '.$this->row_name_plural;
+                $action_id = 'UPDATE';
+            }   
             if($this->access['delete']) $actions['DELETE']='Delete selected '.$this->row_name_plural;
             if($this->access['email']) {
                 $actions['EMAIL'] = 'Email selected '.$this->row_name_plural;
@@ -441,7 +454,7 @@ class Table extends Model
             $param = array();
             $param['class'] = $this->classes['action'];
             $param['onchange'] = 'javascript:change_table_action()';
-            $action_id = '';
+            
             $html .= '<div id="action_div">';
           
             $html .= '<span style="padding:8px;"><input type="checkbox" id="checkbox_all"></span>'.
@@ -537,67 +550,17 @@ class Table extends Model
         if($this->file_upload) $html .= '<td valign="top">'.$this->viewFiles($data).'</td>';
         foreach($this->cols as $col) {
             if($col['list']) {
-                $value = $data[$col['id']];
-                
-                switch($col['type']) {
-                    case 'DATE' : {
-                        $value = Date::formatDate($value,'MYSQL',$col['format']);
-                        break;
-                    } 
-                    case 'DATETIME' : {
-                        $value = Date::formatDateTime($value,'MYSQL',$col['format']);
-                        break;
-                    }
-                    case 'TIME' : {
-                        $value = Date::formatTime($value,'MYSQL',$col['format']);
-                        break;
-                    } 
-                    case 'EMAIL' : {
-                        $value = Secure::clean('email',$value);
-                        $value = '<a href="mailto:'.$value.'">'.$value.'</a>'; 
-                        break;
-                    }
-                    case 'URL' : {
-                        $value = Secure::clean('url',$value);
-                        if(strpos($value,'//') === false) $http = 'http://'; else $http = '';
-                        $value = '<a href="'.$http.$value.'" target="_blank">'.$value.'</a>';
-                        break;
-                    } 
-                    case 'BOOLEAN' : {
-                        if($value == 1) $value = $this->icons['true']; else $value = $this->icons['false'];
-                        break;
-                    } 
-                    case 'PASSWORD' : {
-                        $value = '****';
-                        break;
-                    } 
-                    case 'STRING' : {
-                        if($col['secure']) $value=Secure::clean('string',$value);
-                        break;
-                    } 
-                    case 'TEXT' : {
-                        if($col['secure']) {
-                            if($col['html']) {
-                                if($col['encode']) $value = Secure::clean('html',$value);
-                            } else {
-                                $value = Secure::clean('text',$value);
-                                $value = nl2br($value);
-                            }
-                        } else {
-                            if(!$col['html']) $value = nl2br($value);
-                        }   
-                        break;
-                    }  
-                                          
-                    default : $value = Secure::clean('string',$value);
-                }
+                $col_id = $col['id'];
+                $value = $data[$col_id];
+
+                $value = $this->viewColValue($col_id,$value);
                 
                 //placeholder to allow any xtra mods to display value
-                $this->modifyRowValue($col['id'],$data,$value);
+                $this->modifyRowValue($col_id,$data,$value);
 
                 //add javascript to copy to clipboard
                 if($col['copylink'] !== false) {
-                    $span_id = $col['id'].$row_no;
+                    $span_id = $col_id.$row_no;
                     $value = Calc::viewTextCopyLink($col['copylink'],$span_id,$value);
                 }
                 
@@ -611,6 +574,51 @@ class Table extends Model
         $html .= '</tr>';
         return $html;
     } 
+
+    protected function viewRowEdit($data,$row_no)  
+    {
+        $html = '';
+
+        $record_id = $data[$this->key['id']];
+
+        if($this->row_tag) $html .= '<tr id="'.$row_no.'">'; else $html .= '<tr>';
+                
+        if($this->action_col_left) $html .= '<td valign="top">'.$this->viewActions($data,$row_no,'L').'</td>';
+        if($this->image_upload) $html .= '<td valign="top">'.$this->viewImages($data).'</td>';
+        if($this->file_upload) $html .= '<td valign="top">'.$this->viewFiles($data).'</td>';
+        foreach($this->cols as $col) {
+            if($col['list']) {
+                $col_id = $col['id'];
+                $value = $data[$col_id];
+                $param = [];
+
+                if($col['edit']) {
+                    //multiple rows need unique form names
+                    $param['name'] = $record_id.':'.$col_id;
+                    $value = $this->viewEditValue($col_id,$value,'UPDATE',$param);
+                } else {
+                    $value = $this->viewColValue($col_id,$value);
+                }
+                
+                //placeholder to allow any xtra mods to display value
+                $this->modifyRowValue($col['id'],$data,$value);
+
+                //add javascript to copy to clipboard
+                if($col['copylink'] !== false) {
+                    $span_id = $col_id.$row_no;
+                    $value = Calc::viewTextCopyLink($col['copylink'],$span_id,$value);
+                }
+                
+                if($col['type'] === 'DECIMAL') $style = 'style="text-align:right"'; else $style = '';
+                $html .= '<td '.$style.'>'.$value.'</td>';
+            } 
+        }
+        
+        if($this->action_col_right) $html .= '<td valign="top">'.$this->viewActions($data,$row_no,'R').'</td>';
+        
+        $html .= '</tr>';
+        return $html;
+    }
         
     protected function viewEdit($id,$form = [],$edit_type = 'UPDATE') 
     {
@@ -671,15 +679,17 @@ class Table extends Model
         
         foreach($this->cols as $col) {
             if($col['edit']) {
+                $param = [];
+
                 if($col['required']) $title = $this->icons['required'].$col['edit_title']; else $title = $col['edit_title'];
                 $html .= '<div id="tr_'.$col['id'].'" class="row"><div '.$class_label.'>'.$title.':</div>'.
                          '<div '.$class_value.'>';
                 if(isset($form[$col['id']])) {
                     $value = $form[$col['id']];
-                    $redisplay = true;
+                    $param['redisplay'] = true;
                 } else {
                     $value = $data[$col['id']];
-                    $redisplay = false;
+                    $param['redisplay'] = false;
                 } 
                 $repeat = false;        
                    
@@ -690,7 +700,7 @@ class Table extends Model
                 if($col['type'] === 'CUSTOM') {
                     $html .= $this->customEditValue($col['id'],$value,$edit_type,$form);
                 } else {
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                 }  
                 
                 if($col['hint'] != '' and $col['type']==='BOOLEAN') {
@@ -703,9 +713,9 @@ class Table extends Model
                     $form_id = $col['id'].'_repeat';
                     $html .= '<div class="row"><div '.$class_label.'">'.$col['edit_title'].' repeat:</div>'.
                              '<div '.$class_value.'>';
-                    $repeat = true;
+                    $param['repeat'] = true;
                     if(isset($form[$form_id])) $value = $form[$form_id]; else $value = $data[$col['id']];
-                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$repeat,$redisplay);
+                    $html .= $this->viewEditValue($col['id'],$value,$edit_type,$param);
                     $html .= '</div></div>';
                 } 
             } 
@@ -1094,6 +1104,10 @@ class Table extends Model
             }
             if($action === 'DELETE') {
                  $audit_str .= 'Delete '.$this->table.' '.$this->row_name_plural.' :';
+            } 
+
+            if($this->table_edit_all and $action === 'UPDATE') {
+                 $audit_str .= 'Update '.$this->table.' multiple '.$this->row_name_plural.' :';
             }  
         }
         
@@ -1108,7 +1122,7 @@ class Table extends Model
                     if($record == 0) {
                         $this->addError($this->row_name.' ID['.$key_id.'] no longer exists!');
                     } else {
-                        $label = $record[$this->col_label];
+                        $label = '<strong>'.$record[$this->col_label].'</strong>';
                         $audit_str .= $this->row_name.' ID['.$key_id.'] ';
                         
                         if($action === 'DELETE') {
@@ -1128,6 +1142,25 @@ class Table extends Model
                                 $this->addError('Could not MOVE '.$this->row_name.' ID['.$key_id.'] '.$label);
                             }  
                         }  
+
+                        if($this->table_edit_all and $action === 'UPDATE') {
+                            $input = [];
+                            foreach($this->cols as $col) {
+                                if($col['list'] and $col['edit']) {
+                                    $col_id = $col['id'];
+                                    $input_id = $key_id.':'.$col_id;
+                                    $input[$col_id] = $_POST[$input_id];
+                                }
+                            }
+                            
+                            $this->update($key_id,$input); 
+                            if($this->errors_found) {
+                                $this->addMessage($this->row_name.': '.$label.' NOT updated and reset to original value.<br/>'.implode('<br/>',$this->errors));
+                                $this->clearErrors();
+                            } else {
+                                $this->addMessage($this->row_name.': '.$label.' updated successfully.');
+                            }
+                        }   
 
                         if($action === 'STATUS_CHANGE') {
                             $sql = 'UPDATE '.$this->table.' SET status = "'.$this->db->escapeSql($status_change).'" '.

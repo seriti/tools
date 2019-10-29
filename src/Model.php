@@ -690,14 +690,21 @@ class Model
         
         $this->foreign_keys[] = $key;
     }   
-      
+    
+    //NB: htmlspecialchars() used as errors may include user input  
     protected function addError($error) 
     {
         if($error !== '') {
-          $this->errors[] = $error;
+          $this->errors[] = htmlspecialchars($error);
           $this->errors_found = true;
         }  
-    } 
+    }
+
+    protected function clearErrors() 
+    {
+        $this->errors_found = false;
+        $this->errors = [];
+    }  
       
     protected function addMessage($str) 
     {
