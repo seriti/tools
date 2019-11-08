@@ -42,7 +42,7 @@ class Audit
         }    
     }
     
-    public static function task($db,$user_id = 0,$task_id,$action,$description,$data=array(),$link_table='',$link_id='') 
+    public static function task($db,$user_id = 0,$task,$description,$data=array(),$link_table='',$link_id='') 
     {
         $obj = new static();
         $error = '';
@@ -52,7 +52,7 @@ class Audit
         $c = $obj->audit_cols;
         $rec[$c['user_id']] = $user_id;
         $rec[$c['date']] = date("Y-m-d H:i:s");
-        $rec[$c['action']] = $action;
+        $rec[$c['action']] = $task;
         $rec[$c['text']] = $description;
         $rec[$c['data']] = json_encode($data);
         $rec[$c['link']] = $link_table;

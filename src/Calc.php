@@ -8,7 +8,40 @@ use Seriti\Tools\Date;
 //class intended as a pseudo namespace for a group of generic helper functions to be referenced as "Calc::function_name()"
 class Calc 
 {
-    public static function checkTimeout($time_start,$time_max,$time_tolerance = 5){
+
+    public static function compareString($str1,$str2,$method = 'LEVENSHTEIN')
+    {
+        $match_pct = 0;
+
+        $str1 = strtolower($str1);
+        $str2 = strtolower($str2);
+
+        $base = max(strlen($str1), strlen($str2));
+        
+        if($method === 'LEVENSHTEIN') {
+            
+            if($base > 255) {
+                //levenshtein cannot operate on > 255 char
+                $str1 = substring($str1,0,255);
+                $str2 = substring($str2,0,255);
+                $base = 255;
+            }
+
+            $match_pct = 100 * (1 - (levenshtein($str1,$str2) / $base));
+        }
+
+        if($method === 'SIMILAR') {
+            $count = similar_text($str1,$str2);
+
+            $match_pct = 100 * ($count / $base);
+
+        }    
+        
+        return $match_pct;
+    }
+
+    public static function checkTimeout($time_start,$time_max,$time_tolerance = 5)
+    {
         if($time_start == 0 or $time_max == 0) return false;
         
         $time_passed = time()-$time_start;
