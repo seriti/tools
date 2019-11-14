@@ -44,6 +44,7 @@ class Tree extends Model
 
     protected $pop_up = false;
     protected $update_calling_page = false; //update calling page if changes made in pop_up
+    protected $add_repeat = false; //set to true to continue adding nodes after submit rather than show list view
     protected $data = array(); //use to store current edit/view data between public function calls 
     protected $data_xtra = array(); //use to store arbitrary xtra data between function calls 
     

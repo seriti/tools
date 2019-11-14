@@ -40,7 +40,7 @@ trait TableStructures
                              'text'=>'text',                    //TEXT
                              'data'=>'data',                    //TEXT
                              'link'=>'link_table',              //STRING
-                             'link_id'=>'link_id'               //STRING                     
+                             'link_id'=>'link_id'               //INTEGER                     
                             ];
 
     protected $user_cols =  ['id'=>'user_id',                               //INTEGER, auto increment, PRIMARY KEY

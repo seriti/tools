@@ -197,7 +197,8 @@ class Model
         }    
     } 
 
-    public function setupMaster($param) {
+    public function setupMaster($param) 
+    {
         $this->child = true;
         if(!isset($param['key'])) throw new Exception('MASTER_TABLE_ERROR: Master table must have "key" configured');
         if(!isset($param['table'])) throw new Exception('MASTER_TABLE_ERROR: Master table must have "table" configured');
@@ -213,6 +214,11 @@ class Model
         if(!isset($param['action_id'])) $param['action_id'] = '';
                  
         $this->master = $param;
+    }
+
+    public function getMaster() 
+    {
+        return $this->master;
     }
 
     protected function validateData($record_id,$context,$input)
@@ -248,9 +254,14 @@ class Model
 
                     $data[$id]=$value;
                 } else {
-                    if($context === 'INSERT' and $col['required'] and $col['type'] != 'BOOLEAN') {
+                    if($context === 'INSERT' and $col['required'] and $col['type'] !== 'BOOLEAN') {
                         $this->addError('['.$col['title'].'] is a required field!');
-                    }    
+                    } 
+                    //NB: $input is normally $_POST data and unchecked checkbox is absent from $_POST data
+                    if($col['type'] === 'BOOLEAN') {
+                        $value = '0';
+                        $data[$id] = $value;
+                    }       
                 }   
             } 
         }

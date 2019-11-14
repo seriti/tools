@@ -169,6 +169,9 @@ class Setup
                   `date` datetime NOT NULL,
                   `action` varchar(250) NOT NULL DEFAULT "",
                   `text` text NOT NULL,
+                  `data` text NOT NULL,
+                  `link_table` varchar(64) NOT NULL DEFAULT "",
+                  `link_id` int(10) NOT NULL,
                   PRIMARY KEY (`audit_id`)
                 ) ENGINE=MyISAM ';
 

@@ -6,6 +6,13 @@ use Seriti\Tools\BASE_URL;
 trait  IconsClassesLinks 
 {
         
+    protected function changeIcon($key,$value)
+    {
+        if(isset($this->icons[$key])) {
+            $this->icons[$key] = $value;
+        }
+    }
+
     protected $icons=array('true'=>'<img src="'.BASE_URL.'images/tick.png">',
                            'false'=>'<img src="'.BASE_URL.'images/cross.png">',
                            'edit'=>'<img src="'.BASE_URL.'images/edit.png" border="0" title="Edit">',
