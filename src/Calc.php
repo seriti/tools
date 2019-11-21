@@ -5,6 +5,8 @@ use Exception;
 use Seriti\Tools\DbInterface;
 use Seriti\Tools\Date;
 
+use Seriti\Tools\TABLE_SYSTEM;
+
 //class intended as a pseudo namespace for a group of generic helper functions to be referenced as "Calc::function_name()"
 class Calc 
 {

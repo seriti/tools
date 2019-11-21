@@ -51,7 +51,7 @@ class User extends Model
     protected $login_days = [1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
                              14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year']; 
 
-    protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/dashboard','default_public'=>'public/dashboard','error'=>'error'];
+    protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/dashboard','error'=>'error'];
     protected $routes_redirect_ignore = ['ajax','login'];
 
     //cache id's used to maintain state between requests using setCache()/getcache()
@@ -82,7 +82,6 @@ class User extends Model
         if(isset($param['route_login'])) $this->routes['login'] = $param['route_login'];
         if(isset($param['route_logout'])) $this->routes['logout'] = $param['route_logout'];
         if(isset($param['route_default'])) $this->routes['default'] = $param['route_default'];
-        if(isset($param['route_default_public'])) $this->routes['default_public'] = $param['route_default_public'];
         if(isset($param['bypass_security'])) $this->bypass_security = $param['bypass_security'];
 
         //add all standard user_cols which MUST exist, NB: required=>false as many partial field updates
@@ -607,10 +606,38 @@ class User extends Model
         return $user;
     }
 
+    //get route required depending on route definition and user zone
+    public function getRoute($type,$zone)
+    {   
+        $route = '';
+        if(isset($this->routes[$type])) {
+            if(is_array($this->routes[$type])) {
+                if(isset($this->routes[$type][$zone])) {
+                    $route = $this->routes[$type][$zone];   
+                } else {
+                    $error = 'NO default route exists for user access Zone.';
+                    if($this->debug) $error .= 'Zone['.$zone.'] not found in: '.var_export($this->routes[$type],true);
+                    throw new Exception('USER_ZONE_ERROR: '.$error); 
+                }
+            } else {
+                if(isset($this->routes[$type])) {
+                    $route = $this->routes[$type];    
+                } else {
+                    $error = 'NO default route exists.';
+                    if($this->debug) $error .= 'type['.$type.'] not found in: '.var_export($this->routes,true);
+                    throw new Exception('USER_ZONE_ERROR: '.$error); 
+                }
+            }
+        }
+
+        return $route;
+    }
+
     //store last location/page/uri user vists before a redirect 
     public function setLastPage()
     {
-        $page_url = $_SERVER['REQUEST_URI'];
+        //NB: strip leading / from url as BASE_URL includes trailing /
+        $page_url = substr($_SERVER['REQUEST_URI'],1);
         $page_valid = true;
 
         foreach($this->routes_redirect_ignore as $ignore) {
@@ -632,11 +659,7 @@ class User extends Model
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));
         } else {
-            if($this->access_zone === 'PUBLIC') {
-                $route = $this->routes['default_public'];
-            } else {
-                $route = $this->routes['default'];
-            } 
+            $route = $this->getRoute('default',$this->access_zone);
             header('location: '.BASE_URL.$route);
         } 
         exit;
@@ -746,9 +769,14 @@ class User extends Model
             $to = $user[$this->user_cols['email']];
             $from = MAIL_FROM;
             $subject = SITE_NAME.' - password RESET';
+
+            $zone = $user[$this->user_cols['zone']];
+            $route = $this->getRoute('login',$zone);
+            $reset_url = BASE_URL.$route.'?mode=reset_pwd&token='.urlencode($email_token);
+
             $body = 'You requested a password reset by email.'."\r\n".
                     'Please click on the link below to reset your password....'."\r\n".
-                    BASE_URL.$this->routes['login'].'?mode=reset_pwd&token='.urlencode($email_token);
+                    $reset_url;
 
             if(!$this->errors_found) {
                 $mailer = $this->getContainer('mail');
@@ -787,11 +815,15 @@ class User extends Model
                 $email = $user[$this->user_cols['email']];
                 $audit_str = 'User['.$user_id.'] Email['.$email.'] login password RESET';
                 Audit::action($this->db,$this->user_id,'USER_PASSWORD_RESET',$audit_str);
+
+                $zone = $user[$this->user_cols['zone']];
+                $route = $this->getRoute('login',$zone);
+                $login_url = BASE_URL.$route;
                 
                 $from = ''; //default config email from used
                 $subject = SITE_NAME.' user password reset';
                 $body = SITE_NAME.' Password reset for:  '.$user[$this->user_cols['name']]."\r\n\r\n".
-                        'url: '.BASE_URL.$this->routes['login']."\r\n".
+                        'url: '.$login_url."\r\n".
                         'email: '.$email."\r\n".
                         'password: '.$password."\r\n";
              
@@ -833,13 +865,17 @@ class User extends Model
                 throw new Exception($error);
             } 
             
+            $zone = $user[$this->user_cols['zone']];
+            $route = $this->getRoute('login',$zone);
+            $reset_url = BASE_URL.$route.'?mode=reset_login&token='.urlencode($email_token).'&days='.$days_expire;
+
             $to = $user[$this->user_cols['email']];
             $from = ''; //default config email from used
             $subject = SITE_NAME.' user login token';
             $body = 'Please click on the link below to login from this device....'."\r\n".
                     'This link will expire on: '.$date_expire.'.'."\r\n".
-                    BASE_URL.$this->routes['login'].'?mode=reset_login&token='.urlencode($email_token).'&days='.$days_expire;
-            
+                    $reset_url;
+                                
             $mailer = $this->getContainer('mail');
             if(!$mailer->sendEmail($from,$to,$subject,$body,$error_tmp)) {
                 $error .= 'FAILURE emailing user['.$user_id.'] login token to address['.$to.']'; 

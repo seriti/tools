@@ -386,7 +386,7 @@ class Record extends Model
             if($actions !== '') {
                 $action_html .= '<div class="row">'.
                                 '<div '.$class_label.'>'.$this->action_text.'</div>'.
-                                '<div '.$class_label.'>'.$actions.'</div>'.
+                                '<div '.$class_value.'>'.$actions.'</div>'.
                                 '</div>';    
             }
         }
