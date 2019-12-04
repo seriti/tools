@@ -580,4 +580,3 @@ class Html
         return $html;
     }   
 }
-?>

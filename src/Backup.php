@@ -8,6 +8,10 @@ use Seriti\Tools\Amazon;
 use Seriti\Tools\Date;
 use Seriti\Tools\Audit;
 
+use Seriti\Tools\BASE_UPLOAD;
+use Seriti\Tools\UPLOAD_DOCS;
+use Seriti\Tools\UPLOAD_TEMP;
+
 use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\ModelViews;
 use Seriti\Tools\ModelHelpers;
@@ -27,7 +31,7 @@ class Backup extends Model
     use TableStructures;
     
     protected $container;
-    protected $container_allow = ['config','mail','system'];
+    protected $container_allow = ['user','config','mail','system','s3'];
     
     //basic types for primary database and source code as defined by config, can be extended by add_database() and add_source()                            
     protected $types = array('DATA'=>'Primary database','SOURCE'=>'Primary source code');                                               
@@ -35,9 +39,9 @@ class Backup extends Model
     protected $mode = 'list';
     protected $time_out = 120; //default timeout in seconds
     protected $actions = array();
-    protected $exclude_table = array();
+    protected $exclude_table = array(); //table to exclude from database backups
     protected $path = array(); //local directories
-    protected $exclude_dir = array(); //local directories to ignore for source backups
+    protected $exclude_sub_dir = array(); //local source sub-directories to ignore for source code backups
     protected $backup = array(); //backup locations source=>LOCAL/AMAZON
     protected $add_param = array();
     protected $location = '';
@@ -75,37 +79,45 @@ class Backup extends Model
         }  
 
         if(isset($param['time_out'])) $this->time_out = $param['time_out'];
-                
-        //check all paths/locations starting with base
-        if(isset($param['path_base'])) {
-            $this->path['base'] = $param['path_base'];
-        } else {
-            $this->addError('No base file location specified!'); 
-        }
+        
 
         if(isset($param['path_files'])) {
             $this->path['files'] = $param['path_files'];
-        } else {
+        } elseif(defined('BASE_UPLOAD') and defined('UPLOAD_DOCS')) {
+            $this->path['files'] = BASE_UPLOAD.UPLOAD_DOCS;
+        } else {   
             $this->addError('No document file location specified!'); 
         }
 
         if(isset($param['path_temp'])) {
             $this->path['temp'] = $param['path_temp'];
-        } else {
+        } elseif(defined('BASE_UPLOAD') and defined('UPLOAD_TEMP')) {
+            $this->path['temp'] = BASE_UPLOAD.UPLOAD_TEMP;
+        } else { 
             $this->addError('No temporary file location specified!'); 
         }
 
         if(isset($param['path_backup'])) {
             $this->path['backup'] = $param['path_backup'];
-        } else {
+        } elseif(defined('BASE_UPLOAD') and defined('UPLOAD_BACKUP')) {
+            $this->path['backup'] = BASE_UPLOAD.UPLOAD_BACKUP;
+        } else { 
             $this->addError('No backup file location specified!'); 
+        }
+
+        if(isset($param['path_source'])) {
+            $this->path['source'] = $param['path_source'];
+        } elseif(defined('BASE_DIR')) {
+            $this->path['source'] = BASE_DIR;
+        } else { 
+            $this->addError('No temporary file location specified!'); 
         }
                 
         //setup default non--source directories to ignore(can overide!)
         $this->setupIgnore();
         
         $this->addCol(['id'=>$this->backup_cols['id'],'title'=>'Backup ID','type'=>'INTEGER','key'=>true,'key_auto'=>true,'list'=>true]);
-        $this->addCol(['id'=>$this->backup_cols['date'],'title'=>'Backup date','type'=>'DATE']);
+        $this->addCol(['id'=>$this->backup_cols['date'],'title'=>'Backup date','type'=>'DATETIME']);
         $this->addCol(['id'=>$this->backup_cols['type'],'title'=>'Type','type'=>'STRING']);
         $this->addCol(['id'=>$this->backup_cols['comment'],'title'=>'Comment','type'=>'TEXT','required'=>false]);
         $this->addCol(['id'=>$this->backup_cols['file_name'],'title'=>'File name','type'=>'STRING','required'=>false]);
@@ -122,18 +134,12 @@ class Backup extends Model
     public function setupIgnore($type = 'DEFAULT',$value = '') 
     {
         if($type === 'DEFAULT') {
-            //exclude standard non-source directories   
-            //NB: trailing / removed  
-            if(isset($this->path['files'])) $this->exclude_dir[] = substr($this->path['files'],0,-1);
-            if(isset($this->path['backup'])) $this->exclude_dir[] = substr($this->path['backup'],0,-1);
-            if(isset($this->path['temp'])) $this->exclude_dir[] = substr($this->path['temp'],0,-1);
-            
             //exclude backup table from dumps as restore
             $this->exclude_table[]=$this->table;
         }
-        
-        if($type === 'DIRECTORY' and $value !== '') {
-            if(!in_array($value,$this->exclude_dir)) $this->exclude_dir[] = $value;
+
+        if($type === 'SUB_DIRECTORY' and $value !== '') {
+            if(!in_array($value,$this->exclude_sub_dir)) $this->exclude_sub_dir[] = $value;
         }
         
         if($type === 'TABLE' and $value !== '') {
@@ -141,7 +147,7 @@ class Backup extends Model
         }
              
         if($type === 'RESET') {
-            $this->exclude_dir = [];
+            $this->exclude_sub_dir = [];
             $this->exclude_table = [];
         }
     } 
@@ -226,7 +232,10 @@ class Backup extends Model
         $data[$this->backup_cols['date']] = date('Y-m-d H:i:s');
         $data[$this->backup_cols['type']] = $type;
         $data[$this->backup_cols['comment']] = $comment;
-        $id = $this->db->create($data);
+        
+        $output = $this->create($data);
+        if($output['status'] === 'OK') $id = $output['id'];
+
         if($this->errors_found) {
             $this->addError('Could not create backup record!');
         } else {  
@@ -302,9 +311,9 @@ class Backup extends Model
         //get filesize and move backup file to external location if required
         if(!$this->errors_found) {
             if($this->backup['source'] === 'AMAZON') {
-                $s3 = $this->getContainer('s3');
+                $s3 = $this->setupAmazon();
 
-                $file_path = $this->path['base'].$this->path['temp'].$file_name;
+                $file_path = $this->path['temp'].$file_name;
                 $file_size = filesize($file_path);
 
                 $s3_files[] = ['name'=>$file_name,'path'=>$file_path];
@@ -314,7 +323,7 @@ class Backup extends Model
                 //remove file from temp upload processing directory
                 if(!unlink($file_path)) $this->addError('Could NOT remove backup file from temporary local directory!');
             } else {
-                $file_path = $this->path['base'].$this->path['backup'].$file_name;
+                $file_path = $this->path['backup'].$file_name;
                 $file_size = filesize($file_path); 
             }   
         }
@@ -349,13 +358,13 @@ class Backup extends Model
             if(substr($type,0,4) === 'DATA') {
                 $file_name = $data[$this->backup_cols['file_name']];
                 if($this->backup['source'] === 'LOCAL') {
-                    $file_path = $this->path['base'].$this->path['backup'].$file_name;
+                    $file_path = $this->path['backup'].$file_name;
                 }
                 
                 if($this->backup['source'] === 'AMAZON') {
-                    $s3 = $this->getContainer('s3');
+                    $s3 = $this->setupAmazon();
 
-                    $file_path = $this->path['base'].$this->path['temp'].$file_name;
+                    $file_path = $this->path['temp'].$file_name;
                     $s3->getFile($data[$this->backup_cols['file_name']],$file_path,$error);
                     if($error != '') $this->addError($error);
                 }
@@ -392,7 +401,7 @@ class Backup extends Model
             //remove any backup files first
             if($data[$this->backup_cols['file_name']] !== '') {
                 if($this->backup['source'] === 'LOCAL') {
-                    $file_path = $this->path['base'].$this->path['backup'].$data[$this->backup_cols['file_name']];
+                    $file_path = $this->path['backup'].$data[$this->backup_cols['file_name']];
                     if(file_exists($file_path)) {
                         if(!unlink($file_path)) $this->addError('Could NOT delete backup file');
                     } else {
@@ -401,7 +410,7 @@ class Backup extends Model
                 } 
                 
                 if($this->backup['source'] === 'AMAZON') {
-                    $s3 = $this->getContainer('s3');
+                    $s3 = $this->setupAmazon();
                     $s3->deleteFile($data[$this->backup_cols['file_name']],$error);
                     if($error_str=='') {
                         $this->addError('Could NOT remove backup file from Amazon S3 storage!');
@@ -433,11 +442,13 @@ class Backup extends Model
             $file_name = $data[$this->backup_cols['file_name']];
             
             if($this->backup['source'] === 'LOCAL') {
-                $file_path = $this->path['base'].$this->path['backup'].$file_name;
+                $file_path = $this->path['backup'].$file_name;
             }
             
             if($this->backup['source'] === 'AMAZON') {
-                $file_path = $this->path['base'].$this->path['temp'].$file_name;
+                $s3 = $this->setupAmazon();
+                
+                $file_path = $this->path['temp'].$file_name;
 
                 $s3->getFile($data[$this->backup_cols['file_name']],$file_path,$error);
                 if($error != '') $this->addError('Could not retrieve backup file['.$file_name.'] from Amazon S3');
@@ -461,6 +472,17 @@ class Backup extends Model
         } 
     } 
  
+    protected function setupAmazon()
+    {
+        $s3 = $this->getContainer('s3');
+
+        if(isset($this->backup['bucket']) and $this->backup['bucket'] !== '') {
+            $s3->setBucket($this->backup['bucket']);    
+        }
+
+        return $s3;        
+    }
+
     protected function viewNavigation() {
         $state_param = $this->linkState();
 
@@ -477,7 +499,7 @@ class Backup extends Model
         $html = '';
 
         //show latest backup first
-        $this->addSql('ORDER',$this->backup_cols('id').' DESC');
+        $this->addSql('ORDER',$this->backup_cols['id'].' DESC');
         
         $backups = $this->list($param);
 
@@ -552,7 +574,7 @@ class Backup extends Model
     {
         $file_name = 'backup-'.strtolower($type).'-'.$id.'_'.date('Y-m-d').'.sql.gz';
         if($this->backup['source'] === 'LOCAL') $dir = $this->path['backup']; else $dir = $this->path['temp'];
-        $file_path = $this->path['base'].$dir.$file_name;
+        $file_path = $dir.$file_name;
 
         //construct mysqldump system command using primary db or additional settings
         $param = array();
@@ -570,9 +592,6 @@ class Backup extends Model
             $param['file_path'] = $file_path;
         }    
         $command = $this->getCommand('MYSQLDUMP',$param);
-        
-        //echo $command;
-        //exit;
             
         //create mysqldump command to dump ALL data EXCEPT the "backup" table
         //$command= 'mysqldump --opt -h'.$this->db['host'].' -u'.$this->db['user'].' -p'.$this->db['password'].' '.$this->db['name'].' '.
@@ -624,14 +643,14 @@ class Backup extends Model
         $file_name = 'backup-'.strtolower($type).'-'.$id.'_'.date('Y-m-d').'.tar.gz';
         //$file_name='backup-src-'.$id.'_'.date('Y-m-d').'.tar.gz';
         if($this->backup['source'] === 'LOCAL') $dir = $this->path['backup']; else $dir = $this->path['temp'];
-        $file_path = $this->path['base'].$dir.$file_name;
+        $file_path = $dir.$file_name;
         
         //construct tar command excluding non-source directories    
         $param = array();
         if($type === 'SOURCE') {
             $param['root_path'] = '';
             $param['file_path'] = $file_path;
-            $param['exclude_dir'] = $this->exclude_dir;
+            $param['exclude_sub_dir'] = $this->exclude_sub_dir;
         } else {
             $param = $this->add_param[$type];
             $param['file_path'] = $file_path; 
@@ -684,7 +703,7 @@ class Backup extends Model
             
             $command = 'tar -czof '.$param['file_path'].' '.$tar_path.' ';
             
-            foreach($param['exclude_dir'] as $dir) {
+            foreach($param['exclude_sub_dir'] as $dir) {
                 //trailing "/" must be removed
                 if(substr($dir,-1) === '/') $dir = substr($dir,0,-1);
                 $command .= '--exclude "'.$dir.'" ';
@@ -733,7 +752,7 @@ class Backup extends Model
             $file_name = $param['file_name'].'.sql.gz';
         }
         
-        $param['file_path'] = $this->path['base'].$param['file_dir'].$file_name;
+        $param['file_path'] = $param['file_dir'].$file_name;
         
         $command = $this->getCommand('MYSQLDUMP',$param);
         system($command,$return_val);
@@ -743,9 +762,9 @@ class Backup extends Model
         
         //move file to amazon if required
         if($this->backup['source'] === 'AMAZON' and !$this->errors_found) {
-            $s3 = $this->getContainer('s3');
+            $s3 = $this->setupAmazon();
 
-            $file_path = $this->path['base'].$this->path['temp'].$file_name;
+            $file_path = $this->path['temp'].$file_name;
             $file_size = filesize($param['file_path']);
 
             $s3_files[] = ['name'=>$file_name,'path'=>$param['file_path']];
@@ -763,6 +782,7 @@ class Backup extends Model
         return $html;   
     }  
     
+
     //NB: this incrementally backs up documents in a given directory to external source (generally not called directly from UI)
     public function backupFiles($type,$batch_no = 100,$param = []) {
         $error = '';
@@ -770,7 +790,7 @@ class Backup extends Model
         $html = '';
         
         //unpack relevant parameters
-        if(!isset($param['dir_path'])) $param['dir_path'] = $this->path['base'].$this->path['files'];
+        if(!isset($param['dir_path'])) $param['dir_path'] = $this->path['files'];
 
         if($type === 'FILE_DATE') {
             if(!isset($param['system_id'])) $param['system_id'] = 'BACKUP_DOC';
@@ -784,7 +804,7 @@ class Backup extends Model
         //configure backup destination
         if($this->backup['source'] === 'AMAZON') {
             $param['backup_id'] = 'S3';
-            $s3 = $this->getContainer('s3');
+            $s3 = $this->setupAmazon();
         }
         
         //backup files in a directory based on last backup time and file time
@@ -854,7 +874,7 @@ class Backup extends Model
             $files = $this->db->readSqlArray($sql);
             if($files != 0) {
                 if($this->backup['source'] === 'AMAZON') {
-                    $s3 = $this->getContainer('s3');
+                    $s3 = $this->setupAmazon();
                     $batch_files = [];
                     foreach($files as $file) {
                         $file_count++;
@@ -895,12 +915,12 @@ class Backup extends Model
         $error = '';
         $html = '';
         
-        if(!isset($param['dir_path'])) $param['dir_path'] = $this->path['base'].$this->path['files'];
+        if(!isset($param['dir_path'])) $param['dir_path'] = $this->path['files'];
         if(!isset($param['table'])) $param['table'] = 'files';
         
         //configure backup destination
         if($this->backup['source'] === 'AMAZON') {
-            $s3 = $this->getContainer('s3');
+            $s3 = $this->setupAmazon();
             $batch_files = [];        
         }
         
@@ -951,5 +971,3 @@ class Backup extends Model
     } 
     
 }
-
-?>

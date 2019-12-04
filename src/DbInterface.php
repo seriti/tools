@@ -57,4 +57,3 @@ interface DbInterface
     //returns escaped $value
     function escapeSql($value);
 }
-?>

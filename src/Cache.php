@@ -283,5 +283,3 @@ class Cache
         $this->cache_ext = $ext;
     }
 }
-
-?>

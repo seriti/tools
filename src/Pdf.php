@@ -1469,4 +1469,3 @@ class Pdf extends FPDF
         return $no_lines;
     } 
 }
-?>

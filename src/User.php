@@ -168,28 +168,17 @@ class User extends Model
             if($this->user_id !== '') {
                 $this->addMessage('You are already logged in! You can login as another user or '.$this->js_links['back']);
 
+                $this->data = $this->getUser('ID',$this->user_id);
+                $this->access_zone = $this->data[$this->user_cols['zone']];
+
                 if($this->debug) {
-                    $user = $this->getUser('ID',$this->user_id);
-                    $name = $user[$this->user_cols['name']];
-                    $level = $user[$this->user_cols['access']];
-                    $zone = $user[$this->user_cols['zone']];
+                    $name = $this->data[$this->user_cols['name']];
+                    $level = $this->data[$this->user_cols['access']];
+                    $zone = $this->data[$this->user_cols['zone']];
                     $this->addMessage("Name[$name] level[$level] zone[$zone]");
                 }
 
-                /*
-                $error = 'USER_LOGIN_ERROR: you are already logged in.';
-                if($this->debug) $error .= ' User ID['.$this->user_id.']: accessed login route while logged in?';
-                throw new Exception($error);
-                */
-                /*
-                $this->data = $this->getUser('ID',$this->user_id);
-                $level = $this->data[$this->user_cols['access']];
-                $zone = $this->data[$this->user_cols['zone']];
-
-                if($zone === 'PUBLIC') $route = $this->routes['default_public']; else $route = $this->routes['default'];
-                header('location: '.BASE_URL.$route);
-                exit;
-                */
+                $this->redirectLastPage();
             }
         }  
 
@@ -284,7 +273,7 @@ class User extends Model
         //*** first check if password reset requested and verified via email token ***
         $reset = $this->getCache($this->cache['reset']);
         if(is_array($reset)) $reset_password = true; else $reset_password = false;
-
+        
         if($reset_password) {
             $email = $reset[$this->user_cols['email']];
             $user = $this->getUser('EMAIL',$email);

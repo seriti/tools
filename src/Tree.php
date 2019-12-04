@@ -794,4 +794,3 @@ class Tree extends Model
     protected function processCustom($id) {}
     protected function viewTreeInfo() {}
 }
-?>

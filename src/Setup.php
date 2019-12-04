@@ -281,6 +281,7 @@ class Setup
         $sql = 'CREATE TABLE `'.$table.'` (
                   `backup_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                   `type` varchar(64) NOT NULL,
+                  `date` datetime NOT NULL,
                   `comment`  text,
                   `file_name` varchar(250) NOT NULL,
                   `file_size` INT(11),
@@ -318,7 +319,3 @@ class Setup
   
 
 }
-
-
-  
-?>

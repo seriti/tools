@@ -483,6 +483,3 @@ class SafeHtmlChecker {
                 return $this->errors;
         }
 }
-
-
-?>

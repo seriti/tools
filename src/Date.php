@@ -597,4 +597,3 @@ class Date
         return $period;
     } 
 }
-?>

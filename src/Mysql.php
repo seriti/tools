@@ -519,4 +519,3 @@ class Mysql implements DbInterface
     }
 
 }
-?>

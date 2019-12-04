@@ -351,7 +351,3 @@ class SetupModule
 
 
 }
-
-
-  
-?>

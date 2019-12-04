@@ -252,7 +252,3 @@ class SetupModuleData
     
 
 }
-
-
-  
-?>

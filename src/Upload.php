@@ -63,7 +63,7 @@ class Upload extends Model
                                        'list_width'=>60,'list_height'=>0,'edit_width'=>0,'edit_height'=>0); //NB:0 value is not set                            
   
     protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,'url_ajax'=>BASE_URL.URL_CLEAN,
-                              'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>10000000,'prefix'=>'','location'=>'ALL',
+                              'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>200000000,'prefix'=>'','location'=>'ALL',
                               'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false);
   
     protected $show_info = false;
@@ -1914,4 +1914,3 @@ class Upload extends Model
     protected function afterUpdateTable($action) {}
     
 }
-?>

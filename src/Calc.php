@@ -280,6 +280,3 @@ class Calc
         return $text;
     } 
 }
-
-
-?>

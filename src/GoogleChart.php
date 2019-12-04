@@ -375,5 +375,3 @@ class GoogleChart
         return $js;    
     }    
 }    
-
-?>

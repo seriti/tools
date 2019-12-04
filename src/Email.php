@@ -35,6 +35,7 @@ class Email
     protected $attach = []; //for file attachements
     protected $embed = [];  //for embedded images
     protected $wrap_text = 0;
+    protected $add_error = '';
 
     public function __construct(PHPMailer $mailer,$param = [])
     {
@@ -80,7 +81,10 @@ class Email
             }    
         }
 
-        if(!$this->validEmail($address['address'])) throw new Exception('EMAIL_SETUP: '.$type.' address email invalid.');
+        if(!$this->validEmail($address['address'])) {
+            //throw new Exception('EMAIL_SETUP: '.$type.' address email invalid.');
+            $this->add_error .= 'Invalid '.$type.' address['.$address['address'].'] ';
+        }    
         
         if($address['name'] === '') {
             $parts = explode('@',$address['address']);
@@ -165,6 +169,8 @@ class Email
     public function sendEmail($from,$to,$subject,$body,&$error,$param = []) 
     {
         $error = '';
+        $this->add_error = '';
+
         //NB: set to false or other value with extreme caution!  
         if(!isset($param['reset'])) $param['reset'] = 'ALL';
         if(isset($param['format'])) {
@@ -188,11 +194,15 @@ class Email
 
         if(isset($param['attach'])) $this->addAttachment($param['attach']);
         if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
+        
+        if($this->add_error !== '') {
+            $error .= $this->add_error;
+        } else {
+            $this->subject = $subject;
+            $this->body = $body;
 
-        $this->subject = $subject;
-        $this->body = $body;
-
-        $this->prepareEmail();
+            $this->prepareEmail();
+        }    
 
         if($error === '') {  
             if(!$this->mailer->Send()) {
@@ -208,6 +218,8 @@ class Email
     public function setupBulkMail($from,$subject,$body,$param = [],&$error) 
     {
         $error = '';
+        $this->add_error = '';
+
         //NB: set to false or other value with extreme caution!  
         if(!isset($param['reset'])) $param['reset'] = 'ALL';
         if(isset($param['format'])) {
@@ -230,25 +242,34 @@ class Email
         if(isset($param['attach'])) $this->addAttachment($param['attach']);
         if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
 
-        $this->subject = $subject;
-        $this->body = $body;
+        if($this->add_error !== '') {
+            $error .= $this->add_error;
+        } else {
+            $this->subject = $subject;
+            $this->body = $body;
 
-        $this->prepareEmail();
+            $this->prepareEmail();
+        }    
     }
 
     public function sendBulkEmail($to_address,$to_name,$subject = '',$body = '',&$error) 
     {
         $error = '';
+        $this->add_error = '';
 
         $this->reset('TO');
         $this->mailer->addAddress($to_address,$to_name);
         if($subject !== '') $this->mailer->Subject = $subject;
         if($body !== '') $this->mailer->Body = $body;
 
-        if(!$this->mailer->Send()) {
-            $error = 'Error sending email! ';
-            if($this->debug) $error .= $this->mailer->ErrorInfo;
-        }  
+        if($this->add_error !== '') {
+            $error .= $this->add_error;
+        } else {
+            if(!$this->mailer->Send()) {
+                $error = 'Error sending email! ';
+                if($this->debug) $error .= $this->mailer->ErrorInfo;
+            }  
+        }    
 
         if($error === '') return true; else return false;
     }
@@ -428,4 +449,3 @@ class Email
     }  
     
 }   
-?>

@@ -212,4 +212,3 @@ class Doc
         throw new Exception($error);
     }
 }
-?>

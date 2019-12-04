@@ -19,7 +19,52 @@ class Error
         header('location: '.$location);
         exit;
     }
+
+    public static function renderExceptionOrError($exception,$format = 'log')
+    {
+        if (!$exception instanceof Exception && !$exception instanceof \Error) {
+            throw new RuntimeException("Unexpected type. Expected Exception or Error.");
+        }
+
+        $output = '';
+  
+        if($format === 'log') {
+            $output .= get_class($exception);
+            if(($code = $exception->getCode())) $output .= ', '.$code;
+            if(($message = $exception->getMessage())) $output .= ', '.$message;
+            if(($file = $exception->getFile())) $output .= ', '.$file;
+            if(($line = $exception->getLine())) $output .= ', ln'.$line;
+
+        } 
+
+        if($format === 'html') {
+            $output = sprintf('<div><strong>Type:</strong> %s</div>', get_class($exception));
+
+            if (($code = $exception->getCode())) {
+                $output .= sprintf('<div><strong>Code:</strong> %s</div>', $code);
+            }
+
+            if (($message = $exception->getMessage())) {
+                $output .= sprintf('<div><strong>Message:</strong> %s</div>', htmlentities($message));
+            }
+
+            if (($file = $exception->getFile())) {
+                $output .= sprintf('<div><strong>File:</strong> %s</div>', $file);
+            }
+
+            if (($line = $exception->getLine())) {
+                $output .= sprintf('<div><strong>Line:</strong> %s</div>', $line);
+            }
+
+            if (($trace = $exception->getTraceAsString())) {
+                $output .= '<h2>Trace</h2>';
+                $output .= sprintf('<pre>%s</pre>',htmlentities($trace));
+            }
+
+            $output = $output;
+        }    
+
+
+        return $output;
+    }
 }
-
-
-?>

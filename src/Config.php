@@ -156,7 +156,3 @@ class Config
     }
 
 }
-
-
-    
-?>
