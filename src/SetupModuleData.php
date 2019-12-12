@@ -150,6 +150,7 @@ class SetupModuleData
 
     protected function updateData()
     {
+        $error = '';
         $date = getdate();
         $time_now = $date[0];
 
@@ -159,9 +160,35 @@ class SetupModuleData
         foreach($this->updates as $timestamp => $update) {
             $update_date = Date::mysqlGetDate($timestamp);
             $update_time = $update_date[0];
+
+            if($this->debug) {
+                $this->addMessage('Update type['.$update['type'].'] Timestamp['.$timestamp.'] last update timestamp['.date('Y-m-d H:i',$last_update_time).']');    
+            }
+            
             
             if(!$this->errors_found and $update_time > $last_update_time) {
-                $this->processSql($update['sql'],'update['.$timestamp.'] '.$update['text']);
+                //single sql statement, TABLE_PREFIX already substituted
+                if($update['type'] === 'SQL') {
+                    $sql = $this->insertTablePrefix($update['sql']);
+                    $this->processSql($sql,'update['.$timestamp.'] '.$update['text']);    
+                }
+
+                //sql file with multiple statments, TABLE_PREFIX not substituted
+                if($update['type'] === 'SQL_FILE') {
+                    $sql_array = [];
+                    $this->db->parseSqlFile($update['file'],$sql_array,$error);
+                    if($error !== '' or count($sql_array) === 0 ) {
+                        $this->addError('Could not parse sql file['.$update['file'].'] '.$error);
+                    } else {
+                        $sql_no = 0;
+                        foreach($sql_array as $sql) {
+                            $sql_no++;
+                            $sql = $this->insertTablePrefix($sql); 
+                            $this->processSql($sql,'update['.$timestamp.'] '.$update['text'].', statement['.$sql_no.']');  
+                        }
+                    }
+                }
+                
                 //will not update if any errors in execution
                 $this->updateTimeStamp($update_time);
             }
@@ -186,11 +213,9 @@ class SetupModuleData
     protected function addCreateSql($table,$sql) 
     {
         if(!in_array($table,$this->tables)) $this->addError('Cannot add table'.$table.' create SQL. Table not in list!');
-        if(strpos($sql,'TABLE_NAME') == false) $this->addError('Table['.$table.'] SQL, no "TABLE_NAME" placeholder in SQL!');
+        if(strpos($sql,'TABLE_NAME') === false) $this->addError('Table['.$table.'] SQL, no "TABLE_NAME" placeholder in SQL!');
 
         if(!$this->errors_found) {
-            $sql = $this->insertTableName($table,$sql);
-            $sql = $this->insertTablePrefix($sql);
             $this->tables_sql[$table] = $sql;
         } 
     }
@@ -201,6 +226,8 @@ class SetupModuleData
             $this->addError('Cannot create table['.$table.'] as no SQL statement exists!');
         } else {
             $sql = $this->tables_sql[$table];
+            $sql = $this->insertTableName($table,$sql);
+            $sql = $this->insertTablePrefix($sql);
             $this->processSql($sql,'create table['.$this->table_prefix.$table.']');
         }  
     }
@@ -210,7 +237,6 @@ class SetupModuleData
         if(strpos($sql,'TABLE_NAME') !== false) $this->addError('"TABLE_NAME" place holder not valid in initial SQL, use "TABLE_PREFIX" instead.');
 
         if(!$this->errors_found) {
-            $sql = $this->insertTablePrefix($sql);
             $this->initialise[] = ['sql'=>$sql,'text'=>$description];
         }    
     }
@@ -218,7 +244,8 @@ class SetupModuleData
     protected function initialiseData() 
     {
         foreach($this->initialise as $data) {
-           $this->processSql($data['sql'],'Initialise data: '.$data['text']); 
+            $sql = $this->insertTablePrefix($data['sql']); 
+            $this->processSql($sql,'Initialise data: '.$data['text']); 
         }
     }
 
@@ -242,8 +269,32 @@ class SetupModuleData
         }    
      
         if(!$this->errors_found) {
-            $sql = $this->insertTablePrefix($sql);
-            $this->updates[$timestamp] = ['sql'=>$sql,'text'=>$description];
+            $this->updates[$timestamp] = ['type'=>'SQL','sql'=>$sql,'text'=>$description];
+        }
+    }
+
+    protected function addUpdateSqlFile($timestamp,$file_path,$description = '') 
+    {
+        $error = '';        
+        Validate::dateTime('Update timestamp',$timestamp,'YYYY-MM-DD HH:MM',$error);
+        if($error != '') $this->addError($error);
+
+        if(!file_exists($file_path)) $this->addError('Update SQL file['.$file_path.'] not found');
+
+        if(isset($this->updates[$timestamp])) $this->addError('Update SQL timestamp['.$timestamp.'] allready used modify hours or minutes accordingly.');
+
+        //check consecutive time sequence!
+        if(!$this->errors_found) {
+            end($this->updates);
+            $timestamp_prev = key($this->updates);
+            $date_prev = Date::mysqlGetDate($timestamp_prev);
+            $date = Date::mysqlGetDate($timestamp);
+
+            if($date[0] <= $date_prev[0]) $this->addError('Update timestamp['.$timestamp.'] is not after previous timestamp['.$timestamp_prev.']');
+        }    
+     
+        if(!$this->errors_found) {
+            $this->updates[$timestamp] = ['type'=>'SQL_FILE','file'=>$file_path,'text'=>$description];
         }
     }
 

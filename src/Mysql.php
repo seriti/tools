@@ -468,17 +468,12 @@ class Mysql implements DbInterface
         unset($file_str);
                 
         foreach($file_array as $line)  {    
-            if(trim($line) != '' and strpos($line,'--') === false) {       
+            $line = trim($line);
+            if($line != '' and substr($line, 0, 2) !== '--') {       
                 $sql .= $line.' ';
-                // Checking whether the line is a valid statement (any number of chracters ending in a ";")
-                //if(preg_match("/(.*);/",$sql))
-                $pos = strpos($line,';');
-                if($pos !== false) { 
-                    if(($pos+3) >= strlen($line)) //make sure delimter is at END of line, allowing for CR+LF
-                    {
-                        $sql_array[] = substr($sql, 0, strlen($sql)-1);              
-                        $sql = '';
-                    } 
+                if(substr($line, -1, 1) === ';') { 
+                    $sql_array[] = $sql;            
+                    $sql = '';
                 }  
             }
         }
