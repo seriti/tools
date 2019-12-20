@@ -63,42 +63,61 @@ class Email
         if(isset($param['debug_level'])) $this->debug_level = $param['debug_level'];
     }
     
-    //$email can be an array with name and address or just the address which can be "name <email>" format if no $name 
+    //$email can be an array with name and address, multiple of same, multiple addresses only, or just the address which can be "name <email>" format if no $name 
     public function addAddress($type,$email,$name = '')
     {
         $type = strtoupper($type);
         $address = [];
+        $address_list = [];
 
         if(is_array($email)) {
-            if(!isset($email['name'])) throw new Exception('EMAIL_SETUP: '.$type.' address array missing "name" key.');
-            if(!isset($email['address'])) throw new Exception('EMAIL_SETUP: '.$type.' address array missing "address" key.');
-            $address = $email;
+            //check for ['name'=>X,'address'=>Y] email format
+            if(!isset($email['name'])) {
+                //assume array of multiple email addresses
+                foreach($email as $address) {
+                    if(is_array($address)) {
+                        if(!isset($address['address'])) throw new Exception('EMAIL_SETUP: '.$type.' multiple email array missing "address" key.');
+                        if(!isset($address['name'])) $address['name'] = '';
+                        $address_list[] = $address;
+                    } else {
+                        $address_list[] = ['name'=>'','address'=>$address];
+                    }
+                }
+            } else {
+                if(!isset($email['address'])) throw new Exception('EMAIL_SETUP: '.$type.' email array missing "address" key.');
+                $address_list[] = $email;
+            }    
         } else {
             if($name === '') {
                 $address = $this->parseEmail($email);
             } else {
                 $address = ['name'=>$name,'address'=>$email];
+            } 
+            $address_list[] = $address;   
+        }
+
+        foreach($address_list as $address) {
+            if(!$this->validEmail($address['address'])) {
+                //throw new Exception('EMAIL_SETUP: '.$type.' address email invalid.');
+                $this->add_error .= 'Invalid '.$type.' address['.$address['address'].'] ';
+            }    
+            
+            if($address['name'] === '') {
+                $parts = explode('@',$address['address']);
+                $address['name'] = $parts[0];
+            }    
+
+            //from address is single, others can be multiple
+            switch($type) {
+                case 'FROM'  : $this->from    = $address; break; 
+                case 'TO'    : $this->to[]    = $address; break;
+                case 'REPLY' : $this->reply[] = $address; break;
+                case 'CC'    : $this->cc[]    = $address; break;
+                case 'BCC'   : $this->bcc[]   = $address; break;
             }    
         }
 
-        if(!$this->validEmail($address['address'])) {
-            //throw new Exception('EMAIL_SETUP: '.$type.' address email invalid.');
-            $this->add_error .= 'Invalid '.$type.' address['.$address['address'].'] ';
-        }    
         
-        if($address['name'] === '') {
-            $parts = explode('@',$address['address']);
-            $address['name'] = $parts[0];
-        }    
-
-        //from address is single, others can be multiple
-        switch($type) {
-            case 'FROM'  : $this->from    = $address; break; 
-            case 'TO'    : $this->to[]    = $address; break;
-            case 'REPLY' : $this->reply[] = $address; break;
-            case 'CC'    : $this->cc[]    = $address; break;
-            case 'BCC'   : $this->bcc[]   = $address; break;
-        }
     }
 
     //$attach can be single file path or an array of paths/names

@@ -109,7 +109,11 @@ class Dashboard {
                     if($item['param']['separator']) {
                         $item_html .= $item['title'].'<hr/>';
                     } else {
-                        if($item['param']['link'] !== false) $item_html .= '<a href="'.$item['param']['link'].'">';
+                        if($item['param']['link'] !== false) {
+                            $xtra = '';
+                            if(isset($item['param']['link_xtra'])) $xtra .= $item['param']['link_xtra'];
+                            $item_html .= '<a href="'.$item['param']['link'].'" '.$xtra.'>';
+                        }    
                         if($item['param']['icon']) $item_html .= $this->icons[$item['param']['icon']];
                         $item_html .= $item['title'];
                         if($item['param']['link'] !== false) $item_html .= '</a>';
