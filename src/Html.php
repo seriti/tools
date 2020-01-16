@@ -438,8 +438,6 @@ class Html
     //used by mysqlDrawTable() and arrayDrawTable()
     static function drawTableCell($cell_type,$value,$options = []) 
     {
-        if($value === '') return $value;
-        
         $number = false;
         $money = false;
         $decimals = 2;
