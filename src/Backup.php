@@ -716,12 +716,22 @@ class Backup extends Model
     //NB: backup a database independant of backup table to external source (generally not called directly from UI)
     public function backupAnyDatabase($param) {
         $html = '';
-        
-        if(!isset($param['db_host'])) $this->addError('No DB host specified');
-        if(!isset($param['db_name'])) $this->addError('No DB name specified');
-        if(!isset($param['db_user'])) $this->addError('No DB user specified');
-        if(!isset($param['db_password'])) $this->addError('No DB password specified');
-        if(!isset($param['exclude_table'])) $param['exclude_table'] = [];
+
+        if(isset($param['db_default']) and $param['db_default'] == true) {
+            $db = $this->getContainer('config')->get('db');
+            $param['db_host'] = $db['host'];
+            $param['db_user'] = $db['user'];
+            $param['db_password'] = $db['password'];
+            $param['db_name'] = $db['name'];
+            $param['exclude_table'] = $this->exclude_table;
+        } else {
+            if(!isset($param['db_host'])) $this->addError('No DB host specified');
+            if(!isset($param['db_name'])) $this->addError('No DB name specified');
+            if(!isset($param['db_user'])) $this->addError('No DB user specified');
+            if(!isset($param['db_password'])) $this->addError('No DB password specified');
+            if(!isset($param['exclude_table'])) $param['exclude_table'] = [];
+        }
+
         //NB: if directory specified must have trailing "/" included
         if(!isset($param['file_dir'])) {
             if($this->backup['source'] === 'LOCAL') {
