@@ -63,6 +63,11 @@ class Email
         if(isset($param['debug_level'])) $this->debug_level = $param['debug_level'];
     }
     
+    public function getSetting($name = '')
+    {
+        if(isset($this->$name)) return $this->$name;
+    }
+
     //$email can be an array with name and address, multiple of same, multiple addresses only, or just the address which can be "name <email>" format if no $name 
     public function addAddress($type,$email,$name = '')
     {
