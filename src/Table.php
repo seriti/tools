@@ -507,7 +507,7 @@ class Table extends Model
             $html .= '<span id="action_email_select" style="display:none"> to&raquo;'.
                      Form::textInput('action_email',$action_email,$param).
                      '</span>'.$html_xtra.'&nbsp;'.
-                     '<input type="submit" name="action_submit" value="Proceed" class="'.$this->classes['button'].'">';
+                     '<input type="submit" name="action_submit" value="'.$this->texts['btn_action'].'" class="'.$this->classes['button'].'">';
 
             $html .= '</div>';
         } 
@@ -722,9 +722,12 @@ class Table extends Model
         }
         
         $html .= $this->viewEditXtra($id,$form,$edit_type);
-        
+
+        if($edit_type === 'INSERT') $btn_text = $this->texts['btn_insert'];
+        if($edit_type === 'UPDATE') $btn_text = $this->texts['btn_update'];
+
         $html .= '<div class="row"><div '.$class_submit.'>'.
-                 '<input id="edit_submit" type="submit" name="submit" value="Submit" class="'.$this->classes['button'].'">'.
+                 '<input id="edit_submit" type="submit" name="submit" value="'.$btn_text.'" class="'.$this->classes['button'].'">'.
                  '</div></div>';
         $html .= '</form>';
         $html .= '</div>';
