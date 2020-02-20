@@ -51,7 +51,10 @@ class Html
     {
         $html = '';
         $col_type = [];
-            
+        
+        if(!isset($options['show_key'])) $options['show_key'] = false; 
+        if($options['show_key'] and !isset($options['key_name'])) $options['key_name'] = 'ID';
+
         if(!isset($options['col_type'])) $options['col_type'] = [];
         if(!isset($options['header_align'])) $options['header_align'] = 'left';
 
@@ -67,6 +70,8 @@ class Html
             //populate all row arrays with key used as header and setup col_types
             $row = reset($array);
             $html .= '<thead>';
+            //include row key value if required
+            if($options['show_key']) $html .= '<th style="text-align:'.$options['header_align'].'">'.$options['key_name'].'</th>';
             foreach($row as $key => $value) {
                 //if no col_type set then assume text and no formating applied
                 if(isset($options['col_type'][$key])) $col_type[$key] = $options['col_type'][$key]; else $col_type[$key] = '';
@@ -74,8 +79,9 @@ class Html
             }    
             $html .= '</thead>';
             
-            foreach($array as $row) {
+            foreach($array as $key_arr => $row) {
                 $html .= '<tr>';
+                if($options['show_key']) $html .= self::drawTableCell('',$key_arr);
                 foreach($row as $key => $value) {
                     $html .= self::drawTableCell($col_type[$key],$value);
                 }    

@@ -73,7 +73,7 @@ class Setup
         if($error_tmp == '') {
             $this->message[] = 'Succesfully created missing system table['.$table.']';
 
-            $sql = 'INSERT INTO `'.$table.'` VALUES("FILES",100,"") ';
+            $sql = 'INSERT INTO `'.$table.'` (system_id,sys_count,sys_text) VALUES("FILES",100,""),("INVOICE",100,"") ';
             $this->db->executeSql($sql,$error_tmp); 
             if($error_tmp == '') {
                 $this->message[] = 'Succesfully created initial system table values';
