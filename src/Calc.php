@@ -155,10 +155,10 @@ class Calc
                 
         $sql = 'UNLOCK TABLES';
         $db->executeSql($sql,$error_tmp);
-        if($error_tmp != '') $error .= 'Could NOT UNlock system table for INVOICE counter!';
+        if($error_tmp != '') $error .= 'Could NOT UNlock system table for FILE counter!';
             
         if($error !== '') {
-            throw new Exception('SYSTEM_INVOICE_ID_ERROR['.$error.']');
+            throw new Exception('SYSTEM_FILE_ID_ERROR['.$error.']');
         }      
         
         return $id;
