@@ -165,7 +165,7 @@ class Table extends Model
                 throw new Exception('MASTER_TABLE_ERROR: Linked '.$this->row_name.' id unknown!');
             }    
         } else {
-            $this->master['key_val']=0;
+            $this->master['key_val'] = 0;
         } 
     
         $this->beforeProcess($id);    
@@ -444,7 +444,7 @@ class Table extends Model
                 $actions['EMAIL'] = 'Email selected '.$this->row_name_plural;
                 if(isset($_POST['action_email'])) $action_email = Secure::clean('email',$_POST['action_email']);
             }
-            if($this->child and $this->access['edit']) {
+            if($this->child and $this->access['edit'] and $this->access['move']) {
                 $actions['MOVE'] = 'Move selected '.$this->row_name_plural;
             }   
         }  
@@ -1091,26 +1091,42 @@ class Table extends Model
            $this->addError('You have not selected any action to perform on '.$this->row_name_plural.'!');
         } else {
             if($this->child and $action === 'MOVE') {
-                $action_id = Secure::clean('basic',$_POST['master_action_id']);
-                $new_location_id = $this->db->escapeSql($this->upload['location'].$action_id);
-                //check that action_id is valid
-                $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
-                $move_id = $this->db->readSqlValue($sql,0);
-                if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
-                $audit_str .= 'Move '.$this->row_name_plural.' from '.$this->master['table'].' id['.$this->master['key_val'].'] to id['.$action_id.'] :';
+                if(!$this->access['edit'] or !$this->access['move']) {
+                    $this->addError('You do not have move access');
+                } else {
+                    $action_id = Secure::clean('basic',$_POST['master_action_id']);
+                    $new_location_id = $this->db->escapeSql($this->upload['location'].$action_id);
+                    //check that action_id is valid
+                    $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
+                    $move_id = $this->db->readSqlValue($sql,0);
+                    if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
+                    $audit_str .= 'Move '.$this->row_name_plural.' from '.$this->master['table'].' id['.$this->master['key_val'].'] to id['.$action_id.'] :';    
+                }    
             }
             if($action === 'EMAIL') {
-                $action_email = $_POST['action_email'];
-                Validate::email('Action email',$action_email,$error_tmp);
-                if($error_tmp != '') $this->addError('Invalid action email!');
-                $audit_str .= 'Email '.$this->table.' '.$this->row_name_plural.' to '.$action_email.' :';
+                if(!$this->access['email']) {
+                    $this->addError('You do not have email access');
+                } else {
+                    $action_email = $_POST['action_email'];
+                    Validate::email('Action email',$action_email,$error_tmp);
+                    if($error_tmp != '') $this->addError('Invalid action email!');
+                    $audit_str .= 'Email '.$this->table.' '.$this->row_name_plural.' to '.$action_email.' :';
+                }    
             }
             if($action === 'DELETE') {
-                 $audit_str .= 'Delete '.$this->table.' '.$this->row_name_plural.' :';
+                if(!$this->access['delete']){
+                    $this->addError('You do not have delete access');
+                } else {    
+                    $audit_str .= 'Delete '.$this->table.' '.$this->row_name_plural.' :';
+                }
             } 
 
             if($this->table_edit_all and $action === 'UPDATE') {
-                 $audit_str .= 'Update '.$this->table.' multiple '.$this->row_name_plural.' :';
+                if(!$this->access['edit']){
+                    $this->addError('You do not have edit access');
+                } else {
+                    $audit_str .= 'Update '.$this->table.' multiple '.$this->row_name_plural.' :';
+                }    
             }  
         }
         

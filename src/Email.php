@@ -22,7 +22,7 @@ class Email
     protected $user = '';
     protected $password = '';
     protected $port = 587;
-    protected $charset = 'UTF-8';
+    protected $charset = 'UTF-8'; //ISO-8859-1
     protected $secure = '';  //tls on port 587, ssl on port 465 
     protected $subject = '';
     protected $body = '';
@@ -305,6 +305,9 @@ class Email
 
     protected function prepareSMTP($param = [])
     {
+        //defaults to ISO-8859-1, so must set
+        $this->mailer->CharSet = $this->charset;
+
         //keep_alive for BULK sends only
         if(!isset($param['keep_alive'])) $param['keep_alive'] = false;
 

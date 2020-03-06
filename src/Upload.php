@@ -530,8 +530,8 @@ class Upload extends Model
         if($this->table_action) $html .= '</form>'; 
         $html .= '</div>';
         
-        if(strpos($this->nav_show,'BOTTOM' !== false and $this->row_count > 10)) $html .= $nav;
-        
+        if(strpos($this->nav_show,'BOTTOM') !== false and $this->row_count > 50) $html .= $nav;
+                
         $html = $this->viewMessages().$html;
 
         return $html;

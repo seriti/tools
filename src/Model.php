@@ -20,7 +20,7 @@ class Model
     protected $col_types = array('INTEGER','DECIMAL','STRING','TEXT','EMAIL','URL','DATE','BOOLEAN','PASSWORD',
                                  'DATETIME','TIME','CUSTOM','IGNORE');
     protected $access = array('edit'=>true,'view'=>true,'delete'=>true,'add'=>true,'link'=>true,'email'=>true,
-                              'read_only'=>false,'search'=>true,'copy'=>false,'import'=>false,'restore'=>false); 
+                              'read_only'=>false,'search'=>true,'copy'=>false,'move'=>false,'import'=>false,'restore'=>false); 
     protected $encrypt_key = false; 
     protected $sql_join = '';
     protected $sql_restrict = '';

@@ -104,7 +104,7 @@ trait  ModelHelpers
         $_SESSION[$cache_id] = $value;
     }
     
-    protected function getCache($id) 
+    public function getCache($id) 
     {
         $value = '';
         $cache_id = $this->table.'_'.$id;

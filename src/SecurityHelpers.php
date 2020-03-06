@@ -36,6 +36,7 @@ trait  SecurityHelpers
                 $this->access['search'] = true;
                 $this->access['read_only'] = false;
                 $this->access['edit'] = true;
+                $this->access['move'] = true;
                 $this->access['add'] = true;
                 $this->access['delete'] = true;
                 $this->access['email'] = true;
@@ -47,6 +48,7 @@ trait  SecurityHelpers
                 $this->access['search'] = true;
                 $this->access['read_only'] = false;
                 $this->access['edit'] = true;
+                $this->access['move'] = true;
                 $this->access['add'] = true;
                 $this->access['delete'] = true;
                 $this->access['email'] = true;
