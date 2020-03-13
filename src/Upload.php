@@ -1453,10 +1453,16 @@ class Upload extends Model
             $location_id = $this->upload['location'];
             if($this->child) $location_id = $this->master['key_val']; //NB: master key val already includes upload location
 
-            $sql = 'SELECT MAX('.$this->file_cols['location_rank'].') FROM '.$this->table.' '.
-                   'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '; 
-            $location_rank = intval($this->db->readSqlValue($sql,0))+1;
-
+            //if addFileCol(['id'=>'location_rank',upload'=>true])
+            if(isset($form[$this->file_cols['location_rank']])) {
+                $location_rank = intval($form[$this->file_cols['location_rank']]);
+            } else {
+                $sql = 'SELECT MAX('.$this->file_cols['location_rank'].') FROM '.$this->table.' '.
+                       'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '; 
+                $location_rank = intval($this->db->readSqlValue($sql,0))+1;
+    
+            }
+            
             foreach($file_data as $file) {
                 $location_rank++;
                 $create[$this->file_cols['file_id']]        = $file['id'];

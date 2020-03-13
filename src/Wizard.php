@@ -240,10 +240,13 @@ class Wizard {
             if($error !== '') $this->addError($error); 
         }
 
-        if(!$this->errors_found) {
+        //removed as csrf_token stored in an old form may become stale if left for more than session timeout
+        //Not sure why it was here in first place, always want cached data surely, probably a bug and not a feature???
+        //if(!$this->errors_found) {
             $this->getData('form');
             $this->getData('data');
-        }    
+        //}    
+        
         
         //only process form variables if form has been submitted
         if($this->form_input) {

@@ -5,7 +5,7 @@ use Exception;
 use Seriti\Tools\Date;
 use Seriti\Tools\TABLE_CACHE;
 
-//class intended as a pseudo namespace for a group of functions to be referenced as "Doc::function_name()"
+//class intended as a pseudo namespace for a group of functions to be referenced as "Csv::function_name()"
 class Csv 
 {
     //this is for a 2 dimensional array [col][row] configured similar to an excel spreadsheet

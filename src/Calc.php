@@ -10,6 +10,32 @@ use Seriti\Tools\TABLE_SYSTEM;
 //class intended as a pseudo namespace for a group of generic helper functions to be referenced as "Calc::function_name()"
 class Calc 
 {
+    //$zero_base assumes 0 = A
+    public static function excelColConvert($type,$col,$zero_base = true)
+    {
+        $convert = '';
+
+        //col number to letter 
+        if($type === 'N2L') {
+            if(!$zero_base) $col = $col - 1;
+            for($letter = ""; $col >= 0; $col = intval($col / 26) - 1) {
+                $letter = chr($col%26 + 0x41) . $letter;    
+            }
+            $convert = $letter;
+        }
+
+        //letter to col number
+        if($type === 'L2N') {
+            $n = 0;
+            for($i = 0; $i < strlen($col); $i++) {
+                $n = $n*26 + ord($col[$i]) - 0x40;
+            }
+            if($zero_base) $convert = $n-1; else $convert = $n;
+        }      
+        
+        return $convert;
+    }
+
 
     public static function compareString($str1,$str2,$method = 'LEVENSHTEIN')
     {

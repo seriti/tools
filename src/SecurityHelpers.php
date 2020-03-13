@@ -20,7 +20,7 @@ trait  SecurityHelpers
             if($this->debug) $error .= 'Form or Link CSRF token NOT set.';
         } else {    
             if($this->user_csrf_token !== $this->csrf_token) {
-                $error .= 'CSRF token error! ';
+                $error .= 'CSRF token error! If page has been inactive for some time then resubmit and issue will resolve.';
                 if($this->debug) $error .= 'CSRF request token['.$this->csrf_token.'] does not match user Token['.$this->user_csrf_token.']';
             }
         }
