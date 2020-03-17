@@ -61,8 +61,9 @@ class ImportCsv {
     //to select which table col matches which csv col
     protected $test = false;
     protected $col_select = [];
+    protected $col_convert = [];
     //'MERGE-LN' will append string value to previous value
-    protected $col_types = ['IGNORE','STRING','TEXT','INTEGER','DECIMAL','DATE-YYYY-MM-DD','DATE-YYYY-MM-DD HH:MM','TIME-HH:MM:SS','BOOLEAN','CURRENCY','MERGE-LN'];
+    protected $col_types = ['AUTO','STRING','TEXT','INTEGER','DECIMAL','DATE','DATETIME','TIME','BOOLEAN','CURRENCY'];
      
     protected $errors = array();
     protected $errors_found = false; 
@@ -107,8 +108,8 @@ class ImportCsv {
         }
 
         //get all table cols and info from database
-        $this->col_select = $this->setupAllTableCols($param);
-        $this->modifySelectTableCols($param);
+        $this->setupTableCols($param);
+        $this->modifyTableCols($param);
 
         //assume total table fields matchable to csv cols is base max va;ue   
         $this->max_cols = count($this->col_select);
@@ -152,19 +153,41 @@ class ImportCsv {
     }
 
     //Placeholder function to modify $this->col_select
-    public function modifySelectTableCols($param) {}
+    public function modifyTableCols($param) {}
 
-    public function setupAllTableCols($param) 
+    private function setupTableCols($param) 
     {
-        $select = [];
+        $this->col_select = [];
+        $this->col_convert = [];
+
+        $this->col_select['IGNORE'] = 'IGNORE column';
+        $this->col_select['MERGE-LN'] = 'MERGE text with previous column';
 
         $sql = 'SHOW COLUMNS FROM '.$this->table;
         $cols = $this->db->readSqlArray($sql); 
         foreach($cols as $col_id => $col) {
-            $select[$col_id] = $col_id.':'.$col['Type'].$col['Key'];
+            $this->col_select[$col_id] = $col_id;
+            //$col['Type'].$col['Key']
+            $this->col_convert[$col_id] = $this->getConvertType($col['Type']);
         }
+    }
 
-        return $select; 
+    //get conversion/validation type
+    private function getConvertType($mysql_type)
+    {
+        $convert_type = 'STRING';
+        $mysql_type = strtolower($mysql_type);
+        
+        if(stripos($mysql_type,'int') !== false) $convert_type = 'INTEGER';
+        //maybe best to leave as integer
+        //if(stripos($mysql_type,'tinyint') !== false) $convert_type = 'BOOLEAN';
+        if(stripos($mysql_type,'char') !== false) $convert_type = 'STRING';
+        if(stripos($mysql_type,'date') !== false) $convert_type = 'DATE';
+        if(stripos($mysql_type,'datetime') !== false) $convert_type = 'DATETINE';
+        if(stripos($mysql_type,'decimal') !== false) $convert_type = 'DECIMAL';
+        if(stripos($mysql_type,'text') !== false) $convert_type = 'TEXT';
+
+        return $convert_type;
     }
     
     public function getLinkForm($form = [],$param = []) 
@@ -182,7 +205,7 @@ class ImportCsv {
         if($param['form'] !== '') $html .= $param['form'];
         if($param['button'] !== '') $html .= $param['button'];
         $html .= '<table class="'.$this->classes['table'].'"">';
-        $html .= '<tr><th>Column</th><th>Header</th><th>Convert type</th><th>Database field</th></tr>';
+        $html .= '<tr><th>Column</th><th>Header</th><th>Link to database field</th><th>Conversion</th></tr>';
         
         $c = 0;
         foreach($csv_header as $col_no => $name) { 
@@ -201,29 +224,22 @@ class ImportCsv {
                     $use_col_id = $form[$form_col_id];
                 } else {
                     //try and guess best match of table col to csv header name
-                    $max_score = 0;
+                    $max_score = 60;
                     $use_col_id = '';
                     $percent = 0;
                     foreach($this->col_select as $col_id => $value) {
-                        similar_text($col_id,$name_lcase,$percent);
-                        if($percent >= $max_score){
-                            $max_score = $percent;
-                            $use_col_id = $col_id;
-                        }  
+                        if($col_id !== 'IGNORE' and $col_id !== 'MERGE-LN') {
+                            similar_text($col_id,$name_lcase,$percent);
+                            if($percent >= $max_score){
+                                $max_score = $percent;
+                                $use_col_id = $col_id;
+                            }    
+                        }
                     } 
+                    if($use_col_id === '') $use_col_id = 'IGNORE';
 
-                    //now guess type
-                    $use_col_type = 'IGNORE';
-                    if($use_col_id !== ''){
-                        $col_type = $this->col_select[$use_col_id];
-                        if(stripos($col_type,'int') !== false) $use_col_type = 'INTEGER';
-                        if(stripos($col_type,'char') !== false) $use_col_type = 'STRING';
-                        if(stripos($col_type,'date') !== false) $use_col_type = 'DATE-YYYY-MM-DD';
-                        if(stripos($col_type,'decimal') !== false) $use_col_type = 'DECIMAL';
-                        if(stripos($col_type,'tinyint') !== false) $use_col_type = 'BOOLEAN';
-                        if(stripos($col_type,'text') !== false) $use_col_type = 'TEXT';
-                    }
-
+                    //automatic unless selected otherwise
+                    $use_col_type = 'AUTO';
                 }
                 
                     
@@ -231,8 +247,9 @@ class ImportCsv {
                 $html .= '<tr>';
                 $html .= '<td>'.Calc::excelColConvert('N2L',$col_no).'</td>';
                 $html .= '<td>'.$name.'</td>';
-                $html .= '<td>'.Form::arrayList($this->col_types,$form_type_id,$use_col_type,false).'</td>';
                 $html .= '<td>'.Form::arrayList($this->col_select,$form_col_id,$use_col_id,true).'</td>';
+                $html .= '<td>'.Form::arrayList($this->col_types,$form_type_id,$use_col_type,false).'</td>';
+                
                 $html .= '</tr>';
             }  
         }  
@@ -242,6 +259,8 @@ class ImportCsv {
         
         return $html;
     }
+
+    
 
     public function processLinkForm($param = []) 
     {
@@ -263,29 +282,34 @@ class ImportCsv {
             $form_col_id = 'col_'.$col_no;
 
             if($c <= $this->max_cols) {
+                if(isset($_POST[$form_col_id])) {
+                    $this->form[$form_col_id] = $_POST[$form_col_id];
+                } else {
+                    $this->addError('No valid database COL setting for CSV column['.$name.']');
+                }   
+
                 if(isset($_POST[$form_type_id])) {
                     $this->form[$form_type_id] = $_POST[$form_type_id];
                 } else {
                     $this->addError('No valid database TYPE setting for CSV column['.$name.']');
                 }  
+                
 
-                if(isset($_POST[$form_col_id])) {
-                    $this->form[$form_col_id] = $_POST[$form_col_id];
-                } else {
-                    $this->addError('No valid database COL setting for CSV column['.$name.']');
-                }    
-
-                //validate data type
-                $col['type'] = $this->form[$form_type_id];
                 //database field name
                 $col['id'] = $this->form[$form_col_id];
+                //conversion/validation data type
+                if($this->form[$form_type_id] !== 'AUTO') {
+                    $col['type'] = $this->form[$form_type_id];    
+                } else {
+                    $col['type'] = $this->col_convert[$col['id']];
+                }
                 $col['name'] = $name;
                 
                 //check that col_id not used before
                 foreach($this->cols as $no=>$data) {
-                    if($data['type'] !== 'IGNORE' and $col['type'] !== 'IGNORE' and $data['id'] === $col['id']) {
+                    if($data['id'] !== 'IGNORE' and $col['id'] !== 'IGNORE' and $data['id'] === $col['id']) {
                         //$this->addError('WTF');
-                        $this->addError('You have assigned CSV headers ['.$data['name'].'] & ['.$name.'] to Single database field['.$col['id'].']. Set Convert type to IGNORE or link to different field.');
+                        $this->addError('You have assigned CSV headers ['.$data['name'].'] & ['.$name.'] to Single database field['.$col['id'].']. Set Link database field to IGNORE or link to different field.');
                     }
                 }
 
@@ -325,7 +349,9 @@ class ImportCsv {
         if($this->test) {
             $html .= '<table class="'.$this->classes['table'].'"><tr>';
             foreach($this->cols as $col_no => $col) {
-                if($col['type'] !== 'IGNORE' and $col['type'] !== 'MERGE-LN') $html .= '<th>'.$col['name'].'<br/>field:'.$col['id'].'</th>';
+                if($col['id'] !== 'IGNORE' and $col['id'] !== 'MERGE-LN') {
+                    $html .= '<th>'.$col['name'].'<br/>field:'.$col['id'].'</th>';
+                }    
             }    
             $html .= '</tr>';  
         }    
@@ -362,13 +388,13 @@ class ImportCsv {
                     $data = [];
                     $col_id_merge = 0;
                     foreach($this->cols as $col_no => $col) {
-                        if($col['type'] !== 'IGNORE' and $col['type'] !== 'MERGE-LN' ) {
+                        if($col['id'] !== 'IGNORE' and $col['id'] !== 'MERGE-LN' ) {
                             $data[$col['id']] = $this->processValue($line[$col_no],$col['name'],$col['type'],$error_tmp);
                             if($error_tmp !== '') $error_line .= $error_tmp;
                             //set merge col for any subsequent MERGE-LN cols
                             $col_id_merge = $col['id'];
                         } else {
-                            if($col['type']==='MERGE-LN') {
+                            if($col['id']==='MERGE-LN') {
                                 $merge_str = $this->processValue($line[$col_no],$col['name'],'STRING',$error_tmp);
                                 if($error_tmp !== '') $error_line .= $error_tmp;
                                 if($merge_str !== '') $data[$col_id_merge] .= "\r\n".$merge_str;
@@ -461,9 +487,9 @@ class ImportCsv {
             case 'DECIMAL' : Validate::number($name,0,1000000000,$value,$error);  break;  
             case 'EMAIL'   : Validate::email($name,$value,$error);  break;  
             case 'URL'     : Validate::url($name,$value,$error);  break;  
-            case 'DATE-YYYY-MM-DD'  : Validate::date($name,$value,'YYYY-MM-DD',$error);  break;  
-            case 'DATE-YYYY-MM-DD HH:MM': Validate::dateTime($name,$value,'YYYY-MM-DD HH:MM',$error);  break;  
-            case 'TIME-HH:MM:SS'    : Validate::time($name,$value,'HH:MM:SS',$error);  break;  
+            case 'DATE'    : Validate::date($name,$value,'YYYY-MM-DD',$error);  break;  
+            case 'DATETIME': Validate::dateTime($name,$value,'YYYY-MM-DD HH:MM',$error);  break;  
+            case 'TIME'    : Validate::time($name,$value,'HH:MM:SS',$error);  break;  
             case 'BOOLEAN' : {
                 //test for true/false or yes/no
                 if(strcasecmp($value[1],'y') === 0 or strcasecmp($value[1],'t') === 0 ) {
