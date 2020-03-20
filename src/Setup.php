@@ -52,7 +52,7 @@ class Setup
             if(!in_array(TABLE_USER,$tables)) $this->setupUserTable(TABLE_USER); else $this->message[]='User table['.TABLE_USER.'] exists';
             if(!in_array(TABLE_TOKEN,$tables)) $this->setupUserTokenTable(TABLE_TOKEN); else $this->message[]='User token table['.TABLE_TOKEN.'] exists';
             if(!in_array(TABLE_QUEUE,$tables)) $this->setupQueueTable(TABLE_QUEUE); else $this->message[]='Queue table['.TABLE_QUEUE.'] exists';
-            if(!in_array(TABLE_BACKUP,$tables)) $this->setupBackupTable(TABLE_BACKUP); else $this->message[]='Queue table['.TABLE_BACKUP.'] exists';
+            if(!in_array(TABLE_BACKUP,$tables)) $this->setupBackupTable(TABLE_BACKUP); else $this->message[]='Backuo table['.TABLE_BACKUP.'] exists';
             if(!in_array(TABLE_CACHE,$tables)) $this->setupCacheTable(TABLE_CACHE); else $this->message[]='Cache table['.TABLE_CACHE.'] exists';
          
         }
@@ -252,7 +252,6 @@ class Setup
 
     protected function setupQueueTable($table)
     {
-        
         $sql = 'CREATE TABLE `'.$table.'` (
                   `queue_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                   `process_id` varchar(64) NOT NULL,
@@ -263,7 +262,8 @@ class Setup
                   `process_status` varchar(64) NOT NULL,
                   `process_result` text,
                   `process_complete` tinyint(1) NOT NULL DEFAULT "0",
-                  PRIMARY KEY (`queue_id`)
+                  PRIMARY KEY (`queue_id`),
+                  KEY `idx_queue1` (`process_id`,`process_key`)
                 ) ENGINE=MyISAM ';
 
         $this->db->executeSql($sql,$error_tmp); 
