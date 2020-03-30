@@ -51,7 +51,7 @@ class User extends Model
     protected $login_days = [1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
                              14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year']; 
 
-    protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/dashboard','error'=>'error'];
+    protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/user/dashboard','error'=>'error'];
     protected $routes_redirect_ignore = ['ajax','login'];
 
     //cache id's used to maintain state between requests using setCache()/getcache()
@@ -436,6 +436,11 @@ class User extends Model
 
             if($action === 'LOGIN_REGISTER') {
                 $description = 'Email['.$user[$this->user_cols['email']].'] login SUCCESS after registration';
+                Audit::action($this->db,$this->user_id,$action,$description);
+            } 
+
+            if($action === 'LOGIN_AUTO') {
+                $description = 'Email['.$user[$this->user_cols['email']].'] auto login SUCCESS';
                 Audit::action($this->db,$this->user_id,$action,$description);
             } 
         }

@@ -33,7 +33,7 @@ class System extends Model
     //KEY_SALT no longer used but kept for possible future use
     protected $protect_defaults = ['FILES','IMAGES','BACKUP_DOC','KEY_ENCODED','KEY_HASH','KEY_SALT'];
 
-    protected $routes = ['encrypt'=>'encrypt'];
+    protected $routes = ['encrypt'=>'/admin/data/encrypt'];
 
     public function __construct(DbInterface $db, ContainerInterface $container, $table)
     {

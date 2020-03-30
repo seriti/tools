@@ -20,6 +20,7 @@ class Plupload {
     use FileExtensions;
     use MessageHelpers;
     
+    protected $mode = 'upload';
     protected $file_name = 'file';
     protected $file_name_plural = 'files';
     
@@ -33,7 +34,7 @@ class Plupload {
     protected $messages = array();
             
     //these cols MUST be specified in file table, but names can be different as specified in =>value
-    protected $param = array('upload_url'=>'upload.php','upload_dir'=>'','max_file_size'=>'',
+    protected $param = array('upload_url'=>'/admin/upload','upload_dir'=>'','max_file_size'=>'',
                              'container_id'=>'file_container','list_id'=>'file_list',
                              'browse_id'=>'browse_upload','browse_txt'=>'Select files','browse_attr'=>'',
                              'start_id'=>'start_upload','start_txt'=>'Upload files','start_attr'=>'class="btn btn-primary"',

@@ -47,8 +47,11 @@ class Config
         define(__NAMESPACE__.'\BASE_UPLOAD',BASE_UPLOAD);
         define(__NAMESPACE__.'\UPLOAD_DOCS',UPLOAD_DOCS);
         define(__NAMESPACE__.'\UPLOAD_TEMP',UPLOAD_TEMP);
+        define(__NAMESPACE__.'\UPLOAD_ROUTE',UPLOAD_ROUTE);
         define(__NAMESPACE__.'\BASE_UPLOAD_WWW',BASE_UPLOAD_WWW);
         define(__NAMESPACE__.'\BASE_TEMPLATE',BASE_TEMPLATE);
+        define(__NAMESPACE__.'\AJAX_ROUTE',AJAX_ROUTE);
+        define(__NAMESPACE__.'\ENCRYPT_ROUTE',ENCRYPT_ROUTE);
 
         //no query parameters included just the path/route _LAST is trailing component of path.
         define(__NAMESPACE__.'\URL_CLEAN',URL_CLEAN);
@@ -88,7 +91,7 @@ class Config
         $this->config['user']['status'] = ['OK','HIDE'];
 
         //$this->config['user']['routes'] = ['login'=>'login','logout'=>'login?mode=logout','default'=>'dashboard'];
-        //$this->config['user']['default_route'] = ['GOD'=>'admin/user','ADMIN'=>'admin/dashboard','USER'=>'admin/dashboard','VIEW'=>'admin/dashboard'];
+        //$this->config['user']['default_route'] = ['GOD'=>'admin/user/user','ADMIN'=>'admin/user/dashboard','USER'=>'admin/user/dashboard','VIEW'=>'admin/user/dashboard'];
 
         
         //Audit setting *** used ***
