@@ -303,13 +303,17 @@ class Setup
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8"/>'.
                   '<title>SERITI SETUP</title></head><body>';
 
-        $html .= '<h1>Errors:</h1><ul>';
-        foreach($this->error as $txt) $html .= '<li>'.$txt.'</li>';
-        $html .= '</ul>';
-          
-        $html .= '<h1>Messages:</h1><ul>';
-        foreach($this->message as $txt) $html .= '<li>'.$txt.'</li>';
-        $html .= '</ul>';
+        if(count($this->error)) {
+            $html .= '<h1>Errors:</h1><ul>';
+            foreach($this->error as $txt) $html .= '<li>'.$txt.'</li>';
+            $html .= '</ul>';
+        }
+        
+        if(count($this->message)) {  
+            $html .= '<h1>Messages:</h1><ul>';
+            foreach($this->message as $txt) $html .= '<li>'.$txt.'</li>';
+            $html .= '</ul>';
+        }    
 
         $html .= '</body></html>';
 
