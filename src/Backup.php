@@ -501,7 +501,7 @@ class Backup extends Model
         //show latest backup first
         $this->addSql('ORDER',$this->backup_cols['id'].' DESC');
         
-        $backups = $this->list($param);
+        $backups = $this->list();
 
         //redirect to create a backup if none found
         if($backups==0) {

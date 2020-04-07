@@ -129,8 +129,9 @@ class Task {
     protected function viewBlockTasks($block_id) 
     {
         $html = '';
+        $block_tasks = [];
 
-        $block_tasks = $this->block_tasks[$block_id];
+        if(isset($this->block_tasks[$block_id])) $block_tasks = $this->block_tasks[$block_id];
         
         if(count($block_tasks) != 0) {
             $html .= '<ul class="'.$this->classes['list'].'">';
@@ -158,6 +159,7 @@ class Task {
         if(!isset($param['ajax'])) $param['ajax'] = false;
         if(!isset($param['wizard'])) $param['wizard'] = false;
         if(!isset($param['separator'])) $param['separator'] = false;
+        if(!isset($param['icon'])) $param['icon'] = false;
         
         $this->tasks[$id] = array('id'=>$id,'title'=>$title,'param'=>$param);
 

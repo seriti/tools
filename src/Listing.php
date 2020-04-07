@@ -883,25 +883,29 @@ class Listing extends Model
         }  
 
         if($this->format === 'MERGE_COLS') {
-            $merged = '';
+            $merged_html = '';
             $merge_count = 0;
 
             if($this->image_upload) {
                 $merge_count++;
-                $merged .= $images; 
+                $merged_html = '<div class = "row">';
+                $merged_html .= '<div class="col-sm-3">'.$images.'</div>'; 
+                $merged_html .= '<div class="col-sm-9">';
             }
-
+            
             foreach($items as $item) {
                 if($item['list']) {
                     $merge_count++;
-                    $merged .= $item['formatted'].'<br/>';
+                    $merged_html .= $item['formatted'].'<br/>';
                 }    
             } 
-
+            
             if($this->file_upload) {
                 $merge_count++;
-                $merged .= $files; 
-            }  
+                $merged_html .= $files; 
+            }
+
+            if($this->image_upload) $merged_html .= '</div></div>';  
 
             $col_count = $this->col_count - $merge_count + 1;
 
@@ -912,7 +916,7 @@ class Listing extends Model
 
             if($this->action_col_left) $html .= '<div '.$col_class.'>'.$actions_left.'</div>';
 
-            $html .= '<div '.$col_class.'>'.$merged.'</div>'; 
+            $html .= '<div '.$col_class.'>'.$merged_html.'</div>'; 
             
             if($this->action_col_right) $html .= '<div '.$col_class.'>'.$actions_right.'</div>';              
                              

@@ -333,7 +333,7 @@ class ImportCsv {
         $error_tmp = '';
 
         if(!isset($param['header_rows'])) $param['header_rows'] = 1;
-        if(!isset($param['min_cols'])) $param['min_cols'] = 3;
+        if(!isset($param['min_cols'])) $param['min_cols'] = 1;
         if(!isset($param['test_rows'])) $param['test_rows'] = 10;
 
 
@@ -371,8 +371,10 @@ class ImportCsv {
                 $html .= 'Processed '.$i.' lines of csv file.<br/>';
             } 
             
+            //$html.='WTF:'.print_r($line).'</br>';
+
                         
-            if($i > $param['header_rows'] and $value_num > $param['min_cols']) {
+            if($i > $param['header_rows'] and $value_num >= $param['min_cols']) {
                 $data = array();
                 $line_valid = true;
                 $update = false;

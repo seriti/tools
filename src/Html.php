@@ -395,7 +395,7 @@ class Html
                     
                     $cell_options = [];
                     if($set_width) $cell_options['width']=$col_w[$i];  
-                    $data .= self::drawTableCell($col_type[$i],$value,$cell_options); 
+                    $html .= self::drawTableCell($col_type[$i],$value,$cell_options); 
                                     
                     if($csv) $csv_row .= Csv::csvPrep($value).',';
                 }
