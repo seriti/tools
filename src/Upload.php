@@ -64,7 +64,7 @@ class Upload extends Model
   
     protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,'url_ajax'=>BASE_URL.URL_CLEAN,
                               'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>200000000,'prefix'=>'','location'=>'ALL',
-                              'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false);
+                              'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false,'rank_interval'=>10);
   
     protected $show_info = false;
     protected $info = array();
@@ -150,6 +150,7 @@ class Upload extends Model
         if(isset($param['upload_location'])) $this->upload['location'] = $param['upload_location'];
         if(isset($param['upload_path_base'])) $this->upload['path_base'] = $param['upload_path_base'];
         if(isset($param['upload_path'])) $this->upload['path'] = $param['upload_path'];
+        if(isset($param['upload_rank_interval'])) $this->upload['rank_interval'] = $param['upload_rank_interval'];
 
         if(isset($param['storage'])) $this->storage = $param['storage'];
         if(isset($param['storage_backup'])) $this->storage_backup = $param['storage_backup'];
@@ -1459,12 +1460,13 @@ class Upload extends Model
             } else {
                 $sql = 'SELECT MAX('.$this->file_cols['location_rank'].') FROM '.$this->table.' '.
                        'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '; 
-                $location_rank = intval($this->db->readSqlValue($sql,0))+1;
+                $location_rank = intval($this->db->readSqlValue($sql,0)) + $this->upload['rank_interval'];
     
             }
             
             foreach($file_data as $file) {
-                $location_rank++;
+                //allows editing of one file rank without modifying others.
+                $location_rank = $location_rank + $this->upload['rank_interval'];
                 $create[$this->file_cols['file_id']]        = $file['id'];
                 $create[$this->file_cols['file_name']]      = $file['name'];
                 $create[$this->file_cols['file_name_tn']]   = $file['name_tn'];
