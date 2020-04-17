@@ -6,6 +6,26 @@ use Exception;
 //class intended as a pseudo namespace for a group of functions to be referenced as "Html::function_name()"
 class Html 
 {
+    public static function arrayToList($array = [],$options=array()) 
+    {
+        $html = '';
+
+        if(!isset($options['ordered'])) $options['ordered'] = false;
+        if(!isset($options['list_style'])) $options['list_style'] = '';
+        if(!isset($options['item_style'])) $options['item_style'] = '';
+
+        if(count($array) === 0) return $html;
+
+        if($options['ordered']) $html .= '<ol '; else $html .= '<ul ';
+        $html .= $options['list_style'].'>';
+
+        foreach($array as $value) $html .= '<li '.$options['item_style'].'>'.$value.'</li>';
+
+        if($options['ordered']) $html .= '</ol>'; else $html .= '</ul>';
+    
+        return $html;
+    }
+
     public static function mysqlDumpHtml($data_set,$options=array()) 
     {
         $html = '';

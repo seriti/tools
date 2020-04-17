@@ -93,6 +93,7 @@ class Listing extends Model
     protected $no_image_src = BASE_URL.'images/no_image.png';
     protected $action_mode = 'AJAX';
     protected $action_route = '';
+    protected $action_callback = '';
     protected $action_button_text = 'Add to cart';
     protected $col_options = '';
 
@@ -156,6 +157,7 @@ class Listing extends Model
         if(isset($param['no_image_src'])) $this->no_image_src = $param['no_image_src'];
         if(isset($param['action_mode'])) $this->action_mode = $param['action_mode'];
         if(isset($param['action_route'])) $this->action_route = $param['action_route'];
+        if(isset($param['action_callback'])) $this->action_callback = $param['action_callback'];
         if(isset($param['action_button_text'])) $this->action_button_text = $param['action_button_text'];
     }
            
@@ -554,6 +556,7 @@ class Listing extends Model
 
             $js .= "function list_action_callback(response,response_id) {
                         alert(response);
+                        ".$this->action_callback.";
                     }";        
         }        
 

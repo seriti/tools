@@ -85,6 +85,10 @@ class Menu extends Tree
         
         //set to empty array[] to ignore, route=>menutext
         if(!isset($options['append'])) $options['append'] = ['/login?mode=logout'=>'logout'];
+
+        //icons and search setting are an array see formsat below 
+        if(!isset($options['icons'])) $options['icons'] = false;
+        if(!isset($options['search'])) $options['search'] = false;
         
         if(!isset($options['merge_system'])) $options['merge_system'] = true;
         if(defined('SYSTEM_MENU') and $options['merge_system']) $system = array_merge($system,SYSTEM_MENU);
@@ -98,6 +102,25 @@ class Menu extends Tree
             $god_access = false;
         }    
 
+
+        $icon_html = '';
+        if($options['icons'] !== false) {
+            foreach($options['icons'] as $icon) {
+                $icon_html .= '<span id="'.$icon['id'].'" class="'.$icon['class'].'"><a href="'.$icon['url'].'">'.$icon['value'].'</a></span>';
+            }
+        }
+
+        $search_html = '';
+        if($options['search'] !== false) {
+            $search_html = '<form id="menu_search" class="pull-left" role="search" action="'.$options['search']['action'].'">
+                                <div class="input-group">
+                                   <input type="text" class="form-control" placeholder="'.$options['search']['placeholder'].'">
+                                   <div class="input-group-btn">
+                                      <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button>
+                                   </div>
+                                </div>
+                             </form>';
+        }    
                     
         $html = '';
         $html = '<nav class="'.$options['style'].'">'.
@@ -110,9 +133,11 @@ class Menu extends Tree
                                 '<span class="icon-bar"></span>'.
                             '</button>'.
                             '<a class="navbar-brand" href="'.$options['logo_link'].'">'.$options['logo'].'</a>'.
+                            $icon_html.
+                            $search_html.
                         '</div>'.    
-                    '<div id="navbar" class="navbar-collapse collapse">'.
-                    '<ul class="nav navbar-nav">';
+                        '<div id="navbar" class="navbar-collapse collapse">'.
+                        '<ul class="nav navbar-nav">';
         
         //NB:Static menu items must be correctly specified inside navbar html
         $html .= $options['menu_static'];
@@ -211,7 +236,8 @@ class Menu extends Tree
         } 
              
         //finally add footer html
-        $html .= '</ul></div></div></nav>';
+        $html .= '</ul></div>'.
+                 '</div></nav>';
                      
                      
         return $html;       

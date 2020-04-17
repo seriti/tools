@@ -78,6 +78,7 @@ class Table extends Model
     protected $calc_aggregate = false;
     protected $search_aggregate = array();
     
+    protected $verify_csrf = true;
     protected $user_access_level;
     protected $user_id;
     protected $user_csrf_token;
@@ -120,6 +121,9 @@ class Table extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
+
+        //use to turn off user csrf verification
+        if(isset($param['verify_csrf'])) $this->verify_csrf = $param['verify_csrf']; 
 
         $this->user_access_level = $this->getContainer('user')->getAccessLevel();
         $this->user_id = $this->getContainer('user')->getId();
@@ -995,7 +999,7 @@ class Table extends Model
         $html = '';
         $error = '';
         
-        if(!$this->verifyCsrfToken($error)) $this->addError($error);
+        if($this->verify_csrf and !$this->verifyCsrfToken($error)) $this->addError($error);
         
         $edit_type = $form['edit_type'];
         if($edit_type !== 'UPDATE' and $edit_type !== 'INSERT') {
@@ -1048,7 +1052,7 @@ class Table extends Model
         $data = '';
         $error = '';
         
-        if(!$this->verifyCsrfToken($error)) $this->addError($error);
+        if($this->verify_csrf and !$this->verifyCsrfToken($error)) $this->addError($error);
 
         if(!$this->errors_found) $this->delete($id);
                 
