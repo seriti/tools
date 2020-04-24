@@ -52,7 +52,8 @@ class User extends Model
                              14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year']; 
 
     protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/user/dashboard','error'=>'error'];
-    protected $routes_redirect_ignore = ['ajax','login'];
+    //'ANY' value will ignore any occurrence of route key; 'EXACT' value will only ignore exact match of route key
+    protected $routes_redirect_ignore = ['ajax'=>'ANY','login'=>'EXACT'];
 
     //cache id's used to maintain state between requests using setCache()/getcache()
     protected $cache = ['user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url'];
@@ -630,24 +631,33 @@ class User extends Model
     //store last location/page/uri user vists before a redirect 
     public function setLastPage()
     {
-        //NB: strip leading / from url as BASE_URL includes trailing /
+        //NB: strip leading / from url 
         $page_url = substr($_SERVER['REQUEST_URI'],1);
         $page_valid = true;
 
-        foreach($this->routes_redirect_ignore as $ignore) {
-            if(stripos($page_url,$ignore) !== false) $page_valid = false;
+        foreach($this->routes_redirect_ignore as $ignore=>$match) {
+            if($match === 'EXACT') {
+                if($page_url === $ignore) $page_valid = false; 
+            } else {
+                if(stripos($page_url,$ignore) !== false) $page_valid = false;    
+            }
+            
         }
 
-        if($page_valid) $this->setCache($this->cache['page'],$page_url );    
+        if($page_valid) $this->setCache($this->cache['page'],$page_url);    
     }
 
     public function redirectLastPage()
     {
         $last_page = $this->getCache($this->cache['page']);
 
-        //do not want to redirect to some routes, like an ajax call
-        foreach($this->routes_redirect_ignore as $ignore) {
-            if(stripos($last_page,$ignore) !== false) $last_page = '';
+        //do not want to redirect to some routes, like an ajax call or login page
+        foreach($this->routes_redirect_ignore as $ignore=>$match) {
+            if($match === 'EXACT') {
+                if($last_page === $ignore) $last_page = '';
+            } else {
+                if(stripos($last_page,$ignore) !== false) $last_page = '';    
+            }
         }
 
         if($last_page !== ''){
