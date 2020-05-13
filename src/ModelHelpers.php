@@ -259,6 +259,14 @@ trait  ModelHelpers
         if(!isset($param['storage'])) $param['storage'] = STORAGE;
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
         if(!isset($param['path_public'])) $param['path_public'] = false;
+        if(!isset($param['search'])) $param['search'] = false;
+
+        //these only applied in Table class
+        if($param['search']) {
+            $this->addSearchXtra('linked_file_count',$param['title'].' count',['type'=>'INTEGER']);
+            $this->addSearchXtra('linked_file_name',$param['title'].' name',['type'=>'STRING']);
+        }    
+
         
         $this->file_upload = true;
         $this->files = $param;

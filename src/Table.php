@@ -296,15 +296,13 @@ class Table extends Model
         if($this->access['search']) { 
             //NB: col_id must have join table alias... ie TX.col_id 
             //*** "." is not allowed in variable names or array keys by PHP ***
-            $xtra_id=str_replace('.','_',$col_id);
-            $arr['id']=$col_id;
-            $arr['title']=$col_title;
-            if(isset($param['type'])) $arr['type']=$param['type']; else $arr['type']='STRING';
+            $xtra_id = str_replace('.','_',$col_id);
+            $arr['id'] = $col_id;
+            $arr['title'] = $col_title;
+            if(isset($param['type'])) $arr['type'] = $param['type']; else $arr['type'] = 'STRING';
+            if(isset($param['class'])) $arr['class'] = $param['class']; else $arr['class'] = '';
             
-            if(isset($param['class'])) $arr['class']=$param['class']; else $arr['class']='';
-            //if(isset($param['class'])) $arr['class_search']=$param['class']; else $arr['class_search']='';
-            
-            $this->search_xtra[$xtra_id]=$arr;
+            $this->search_xtra[$xtra_id] = $arr;
            // if(isset($param['join'])) $this->add_sql('JOIN',$param['join']);
         } 
     }
@@ -856,7 +854,7 @@ class Table extends Model
     {
         $error = '';
         $where = '';
-        
+                
         $form['order_by'] = Secure::clean('basic',$_POST['order_by']);
         if(isset($_POST['order_by_desc']) and substr($form['order_by'],-4) != 'DESC') {
             $form['order_by_desc'] = true; 
@@ -919,7 +917,14 @@ class Table extends Model
 
             $form[$col_id] = $value;  
         }         
-        
+
+        $xtra_system = [];
+        //add attached file fields for searching
+        if(isset($this->files) and $this->files['search']) {
+            $xtra_system['linked_file_count'] = '(SELECT COUNT(*) FROM '.$this->files['table'].' WHERE location_id = CONCAT("'.$this->files['location'].'",T.'.$this->key['id'].'))' ;
+            $xtra_system['linked_file_name'] = '(SELECT GROUP_CONCAT(file_name_orig) FROM '.$this->files['table'].' WHERE location_id = CONCAT("'.$this->files['location'].'",T.'.$this->key['id'].'))' ;
+        }
+
         //xtra search fields...NB: $col['id'] INCLUDES table join alias like T2.col_id
         //NB: *** $xtra_id is col['id'] with "." replaced by "_" ***
         foreach($this->search_xtra as $xtra_id => $col) {
@@ -929,13 +934,17 @@ class Table extends Model
                 $where .= $this->customSearchValue($col['id'],$value);
             } else {  
                 if($value != '') {
+                    $col_id = $col['id'];
+                    //check for xtra system search fields 
+                    if(isset($xtra_system[$col_id])) $col_id = $xtra_system[$col_id];
+                    
                     if(isset($this->select[$xtra_id])) {
-                        if($value != 'ALL') $where .= $col['id'].' = "'.$this->db->escapeSql($value).'" AND ';
+                        if($value != 'ALL') $where .= $col_id.' = "'.$this->db->escapeSql($value).'" AND ';
                     } else {
                         $value_mod = $value;
                         $this->db->parseSearchTerm($value_mod,$sql_parse);
-                        
-                        $where .= $col['id'].' '.$sql_parse['operator'].' "'.
+                                                
+                        $where .= $col_id.' '.$sql_parse['operator'].' "'.
                                   $sql_parse['prefix'].$this->db->escapeSql($value_mod).$sql_parse['suffix'].'" AND ';
                     }   
                 } 
@@ -945,7 +954,8 @@ class Table extends Model
         if($where != '') {
             $where = substr($where,0,-4).' '; //strip off trailing AND/OR
             $this->addSql('SEARCH',$where);
-        }    
+        } 
+ 
         
         if($this->calc_aggregate) {
             $sql_agg = '';
@@ -963,7 +973,7 @@ class Table extends Model
         $count = $this->count();
 
         $sql = $this->sqlConstruct('SELECT_LIST');
-        
+
         $param = [];
         $param['sql'] = $sql;
         $param['sql_count'] = $count['row_count'];

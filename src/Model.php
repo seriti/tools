@@ -552,7 +552,7 @@ class Model
 
         if($type === 'SELECT_LIST' or $type === 'SELECT_VIEW') {
             $sql = 'SELECT ';
-            if($this->distinct) $sql.='DISTINCT ';
+            if($this->distinct) $sql .= 'DISTINCT ';
 
             foreach($this->cols as $col) {
                 if(isset($col['join'])) { //for nested select statement to get related field from id
@@ -568,7 +568,7 @@ class Model
                     $sql .= 'T.'.$col['id'].',';
                 }  
             }
-
+            
             $sql = substr($sql,0,-1).' FROM '.$this->table.' AS T '.$this->sql_join;
             if($type === 'SELECT_VIEW') {
                 $sql .= 'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
