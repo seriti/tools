@@ -514,7 +514,7 @@ class Listing extends Model
                         
         $html .= '</div>';
         
-        if(strpos($this->nav_show,'BOTTOM' !== false and $this->row_count > 10)) $html .= $nav;
+        if(strpos($this->nav_show,'BOTTOM') !== false and $this->row_count > 10) $html .= $nav;
         
         $html = $this->viewMessages().$html;
 
@@ -899,7 +899,8 @@ class Listing extends Model
             foreach($items as $item) {
                 if($item['list']) {
                     $merge_count++;
-                    $merged_html .= $item['formatted'].'<br/>';
+                    //only include item description if value is not empty
+                    if($item['value'] !== '') $merged_html .= $item['formatted'].'<br/>';
                 }    
             } 
             
