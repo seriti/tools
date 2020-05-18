@@ -231,6 +231,7 @@ trait  ModelHelpers
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
         if(!isset($param['path_public'])) $param['path_public'] = false;
         if(!isset($param['https'])) $param['https'] = true;
+        if(!isset($param['access'])) $param['access'] = 'PRIVATE';
          
         $this->image_upload = true;
         $this->images = $param;
@@ -260,6 +261,7 @@ trait  ModelHelpers
         if(!isset($param['path'])) $param['path'] = BASE_UPLOAD.UPLOAD_DOCS;
         if(!isset($param['path_public'])) $param['path_public'] = false;
         if(!isset($param['search'])) $param['search'] = false;
+        if(!isset($param['access'])) $param['access'] = 'PRIVATE';
 
         //these only applied in Table class
         if($param['search']) {

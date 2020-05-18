@@ -563,7 +563,7 @@ trait  ModelViews
                     
                     if($this->images['list_thumbnail']) {
                         if($this->images['storage'] === 'amazon') {
-                            $url = $this->images['s3']->getS3Url($image['thumbnail']);
+                            $url = $this->images['s3']->getS3Url($image['thumbnail'],['access'=>$this->images['access']]);
                             if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
                         } else {
                             if($this->images['path_public']) {

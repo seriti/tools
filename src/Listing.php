@@ -955,7 +955,7 @@ class Listing extends Model
                     if($this->images['list_thumbnail']) $file_name = $image['file_name_tn']; else $file_name = $image['file_name'];
 
                     if($this->images['storage'] === 'amazon') {
-                        $url = $this->images['s3']->getS3Url($file_name);
+                        $url = $this->images['s3']->getS3Url($file_name,['access'=>$this->images['access']]);
                         if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
                     } else {
                         if($this->images['path_public']) {

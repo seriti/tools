@@ -64,7 +64,7 @@ class Upload extends Model
   
     protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,'url_ajax'=>BASE_URL.URL_CLEAN,
                               'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>200000000,'prefix'=>'','location'=>'ALL',
-                              'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false,'rank_interval'=>10);
+                              'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false,'rank_interval'=>10,'access'=>'');
   
     protected $show_info = false;
     protected $info = array();
@@ -151,6 +151,8 @@ class Upload extends Model
         if(isset($param['upload_path_base'])) $this->upload['path_base'] = $param['upload_path_base'];
         if(isset($param['upload_path'])) $this->upload['path'] = $param['upload_path'];
         if(isset($param['upload_rank_interval'])) $this->upload['rank_interval'] = $param['upload_rank_interval'];
+        //only used by Amazon S3 storage if file access is different from bucket access. valid values PUBLIC or PRIVATE
+        if(isset($param['upload_access'])) $this->upload['access'] = $param['upload_access'];
 
         if(isset($param['storage'])) $this->storage = $param['storage'];
         if(isset($param['storage_backup'])) $this->storage_backup = $param['storage_backup'];
@@ -511,7 +513,8 @@ class Upload extends Model
                 $image_str = '';
                 if($this->image_thumbnail['list_view'] and $row[$this->file_cols['file_name_tn']] != '') {
                     if($this->storage === 'amazon') {
-                        $url = $s3->getS3Url($row[$this->file_cols['file_name_tn']]);
+                        $url = $this->getFileUrl($row[$this->file_cols['file_name_tn']],$s3);
+                        //$url = $s3->getS3Url($row[$this->file_cols['file_name_tn']]);
                     }  
                     if($this->storage === 'local') {
                         $path=$this->getPath('UPLOAD',$row[$this->file_cols['file_name_tn']]);
@@ -896,7 +899,8 @@ class Upload extends Model
                 if($this->image_thumbnail['edit_height'] != 0) $attr_str .= 'height="'.$this->image_thumbnail['edit_height'].'" ';
                 if($this->storage === 'amazon') {
                     $s3 = $this->getContainer('s3');
-                    $url = $s3->getS3Url($data[$this->file_cols['file_name_tn']]);
+                    $url = $this->getFileUrl($data[$this->file_cols['file_name_tn']],$s3);
+                    //$url = $s3->getS3Url($data[$this->file_cols['file_name_tn']]);
                 } 
                 if($this->storage === 'local') {
                     $path=$this->getPath('UPLOAD',$data[$this->file_cols['file_name_tn']]);
@@ -988,7 +992,8 @@ class Upload extends Model
             } else {  
                 if($this->storage === 'amazon') {
                     $s3 = $this->getContainer('s3');
-                    $url = $s3->getS3Url($image[$this->file_cols['file_name']]);
+                    $url = $this->getFileUrl($image[$this->file_cols['file_name']],$s3);
+                    //$url = $s3->getS3Url($image[$this->file_cols['file_name']]);
                 }  
                 if($this->storage === 'local') {
                     $path=$this->getPath('UPLOAD',$image[$this->file_cols['file_name']]);
@@ -1429,8 +1434,14 @@ class Upload extends Model
                 
             $s3_files = [];
             foreach($file_data as $file) {
+                if($this->upload['access'] !== '') $file['access'] = $this->upload['access'];
                 $s3_files[] = $file;
-                if(isset($file['path_tn'])) $s3_files[] = ['name'=>$file['name_tn'],'path'=>$file['path_tn']];
+                
+                if(isset($file['path_tn'])) {
+                    $file_tn = ['name'=>$file['name_tn'],'path'=>$file['path_tn']];
+                    if($this->upload['access'] !== '') $file_tn['access'] = $this->upload['access'];
+                    $s3_files[] = $file_tn;
+                }    
             }
 
             $s3->putFiles($s3_files,$error);
@@ -1909,7 +1920,18 @@ class Upload extends Model
         return $html;
     }
 
+    protected function getFileUrl($file_name,$s3) 
+    {
+        $url = '';
+        $param = [];
 
+        if($this->storage === 'amazon') {
+            $param['access'] = $this->upload['access'];
+            $url = $s3->getS3Url($file_name,$param);
+        } 
+
+        return $url;
+    }
 
     /*** PLACEHOLDERS ***/
     
