@@ -111,7 +111,10 @@ class Amazon
             
         if($error == '') {  
             foreach($files as $file) {
-                $this->putFile($file['name'],$file['path'],$error_tmp);
+                $param = [];
+                if(isset($file['access'])) $param['access'] = $file['access'];
+
+                $this->putFile($file['name'],$file['path'],$error_tmp,$param);
                 if($error_tmp != '') $error .= $error_tmp;
             }  
         }  
@@ -119,7 +122,7 @@ class Amazon
         if($error === '') return true; else return false;
     }
 
-    //experimental, might be no faster than put files
+    //EXPERIMENTAL: might be no faster than putFiles
     public function putFilesBulk($files = array(),&$error) 
     {
         $error = '';
@@ -142,14 +145,37 @@ class Amazon
         if($error === '') return true; else return false;
     }
 
-    public function putFile($file_name,$file_path,&$error) 
+    //Use to get S3 "Canned ACL" for objects in buckets where object access differs from bucket
+    private function getAcl($access = '')
+    {
+        $acl = '';
+
+        switch($access) {
+            case 'PUBLIC'   : $acl = 'public-read'; break;
+            case 'PRIVATE'  : $acl = 'private'; break;
+        }
+
+        if($acl === '') throw new Exception('AWS_S3_ACL: Invalid object access parameter['.$access.']');
+
+        return $acl; 
+    }
+
+    public function putFile($file_name,$file_path,&$error,$param = []) 
     {
         $error = '';
+
+        if(!isset($param['access'])) $param['access'] = '';
         
         if($file_name == '') $error .= 'NO file specified for upload to amazon S3!';
-            
+
+        $object = [];
+        $object['Bucket'] = $this->bucket;
+        $object['Key'] = $file_name;
+        $object['SourceFile'] = $file_path;
+        if($param['access'] !== '') $object['ACL'] = $this->getAcl($param['access']);
+
         try {
-            $result = $this->s3->putObject(['Bucket'=>$this->bucket,'Key'=>$file_name,'SourceFile'=>$file_path]);
+            $result = $this->s3->putObject($object);
         } catch (S3Exception $e) {
             $error .= 'Error uploading file['.$file_name.'] '.$e->getMessage().'<br/>';
         }  
@@ -255,21 +281,27 @@ class Amazon
         return $files; 
     }
     
-    public function getS3Url($file_name,$expiry = '5 minutes',$param = array()) 
+    public function getS3Url($file_name,$param = array()) 
     {
         $url = '';
 
-        $cmd_param['Bucket'] = $this->bucket;
-        $cmd_param['Key'] = $file_name;
-        if(isset($param['file_name_change'])) {
-           $cmd_param['ContentDisposition'] = 'attachment; filename="'.$param['file_name_change'].'"';
+        //normally need to create a private pre-signed url. If set to PUBLIC then object must have been uploaded with correct ACL
+        if(!isset($param['access'])) $param['access'] = 'PRIVATE';
+        if(!isset($param['expire'])) $param['expire'] = '5 minutes';
+
+        if($param['access'] === 'PUBLIC') {
+            $url = $this->s3->getObjectUrl($this->bucket,$file_name);
+        } else {
+            $cmd_param['Bucket'] = $this->bucket;
+            $cmd_param['Key'] = $file_name;
+            if(isset($param['file_name_change'])) {
+               $cmd_param['ContentDisposition'] = 'attachment; filename="'.$param['file_name_change'].'"';
+            }
+            $cmd = $this->s3->getCommand('GetObject',$cmd_param);
+            
+            $request = $this->s3->createPresignedRequest($cmd,$param['expire']);
+            $url = (string)$request->getUri();
         }
-
-        $cmd = $this->s3->getCommand('GetObject',$cmd_param);
-
-        $request = $this->s3->createPresignedRequest($cmd,$expiry);
-
-        $url = (string)$request->getUri();
 
         return $url;
     }  

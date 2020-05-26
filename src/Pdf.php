@@ -722,6 +722,7 @@ class Pdf extends FPDF
         $calc_totals = false;
         if(!isset($options['resize_cols'])) $options['resize_cols'] = false;
         if(!isset($options['header_align'])) $options['header_align'] = 'C';
+        if(!isset($options['header_show'])) $options['header_show'] = true;
         
         //formating options
         $format_header = array('fill'=>$this->table['th_fill'],'font'=>'TH','line_width'=>0.1,'line_color'=>'#CCCCCC');
@@ -787,26 +788,29 @@ class Pdf extends FPDF
             $this->AddPage();
             $y_start = $this->GetY();
         } 
-         
-        //finally draw border around each header cell in row and fill
-        $x_temp = $x_start;
-        for($i = 0; $i < $col_count; $i++) {
-            $this->Rect($x_temp,$y_start,$col_w[$i],$header_inc,'DF');
-            $x_temp = $x_temp+$col_w[$i];
-        }
         
-        //and lastly write header text
-        if($align != 0) $this->Cell($align);
-        for($i = 0; $i < $col_count; $i++) {
-            $txt_align = $options['header_align'];
-            $x_temp = $this->GetX();
-            $y_temp = $this->GetY();
-            $this->MultiCell($col_w[$i],$row_h,$array[$i][0],0,$txt_align,0);
-            $this->SetXY($x_temp+$col_w[$i],$y_temp);
-        }
+        if($options['header_show']) {
+            //finally draw border around each header cell in row and fill
+            $x_temp = $x_start;
+            for($i = 0; $i < $col_count; $i++) {
+                $this->Rect($x_temp,$y_start,$col_w[$i],$header_inc,'DF');
+                $x_temp = $x_temp+$col_w[$i];
+            }
+            
+            //and lastly write header text
+            if($align != 0) $this->Cell($align);
+            for($i = 0; $i < $col_count; $i++) {
+                $txt_align = $options['header_align'];
+                $x_temp = $this->GetX();
+                $y_temp = $this->GetY();
+                $this->MultiCell($col_w[$i],$row_h,$array[$i][0],0,$txt_align,0);
+                $this->SetXY($x_temp+$col_w[$i],$y_temp);
+            }
+            
+            //start first row
+            $this->ln($header_inc);
+        } 
         
-        //start first row
-        $this->ln($header_inc);
             
         //draw table row contents with word wrap to fit column width
         $this->formatCell($format_text);

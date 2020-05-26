@@ -166,7 +166,7 @@ class Upload extends Model
         $this->addFileCol(['id'=>$this->file_cols['file_id'],'title'=>'File','type'=>'INTEGER','key'=>true,'key_auto'=>false,'list'=>false,'update'=>false]);
         $this->addFileCol(['id'=>$this->file_cols['file_name'],'title'=>'System file name','type'=>'STRING','list'=>false,'update'=>false]);
         $this->addFileCol(['id'=>$this->file_cols['file_name_tn'],'title'=>'System thumbnail name','type'=>'STRING','required'=>false,'list'=>false,'update'=>false]);
-        $this->addFileCol(['id'=>$this->file_cols['file_name_orig'],'title'=>'File name','type'=>'STRING','update'=>true,'link'=>true]);
+        $this->addFileCol(['id'=>$this->file_cols['file_name_orig'],'title'=>'File name','type'=>'STRING','max'=>250,'update'=>true,'link'=>true]);
         $this->addFileCol(['id'=>$this->file_cols['file_text'],'title'=>'File text','type'=>'STRING','required'=>false,'list'=>false,'update'=>false]);
         $this->addFileCol(['id'=>$this->file_cols['file_date'],'title'=>'File date','type'=>'DATE','update'=>true]);
         $this->addFileCol(['id'=>$this->file_cols['file_size'],'title'=>'File size','type'=>'INTEGER','update'=>false]);
