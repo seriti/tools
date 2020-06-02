@@ -255,11 +255,12 @@ class Wizard {
             foreach($_POST as $key => $value) {
                 if(isset($this->variables[$key])) {
                     $var = $this->variables[$key];
-                    
+
+                    $value = trim($value);
                     //if empty check if value required before validating
                     if($value == '') {
                         if($var['required'] and $var['type'] != 'BOOLEAN') {
-                            $this->addError('<b>'.$var['title'].'</b> is a required field! Please enter a value.'); 
+                            $this->addError('<b>'.$var['title'].'</b> is a required field! Please enter a value.',false); 
                         }  
                     } else {
                         $this->validate($var['id'],$value,$error);

@@ -29,11 +29,12 @@ trait  MessageHelpers
     }
 
     //NB: htmlspecialchars() used as errors may include user input  
-    protected function addError($error) 
+    protected function addError($error,$clean=true) 
     {
         if($error !== '') {
-          $this->errors[] = htmlspecialchars($error);
-          $this->errors_found = true;
+            if($clean) $error = htmlspecialchars($error);
+            $this->errors[] = $error;  
+            $this->errors_found = true;
         }  
     } 
       

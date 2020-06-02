@@ -665,6 +665,7 @@ class Upload extends Model
                 if($col['link']) {
                     $xtra = '';
                     $info = Doc::fileNameParts($value);
+                    $info['extension'] = strtolower($info['extension']);
                     if(in_array($info['extension'],$this->inline_ext)) $xtra .= 'target="_blank" ';
                     
                     $value = '<a id="file'.$data[$this->key['id']].'" href="?mode=download&id='.$data[$this->key['id']].'" '.
