@@ -276,6 +276,8 @@ class Tree extends Model
     protected function beforeUpdate($id,$edit_type,&$form,&$error) 
     {
         if($edit_type === 'UPDATE' ) $this->node_original = $this->getNode($id);
+
+        $this->beforeNodeUpdate($id,$edit_type,$form,$error);
     }
 
     //called from Model class
@@ -505,7 +507,7 @@ class Tree extends Model
         $html = '';
         
         $id = $data[$this->tree_cols['node']];
-        $name = $data[$this->tree_cols['title']];
+        $name = $this->viewNodeName($data); //$data[$this->tree_cols['title']];
 
         if($this->access['edit']) {
             $href = '?mode=edit&id='.$id;
@@ -515,12 +517,19 @@ class Tree extends Model
 
         $html .= '<a href="'.$href.'">'.$name.'</a>';
         
-        $html .= '&nbsp;'.$this->viewActions($id,$name,'L');
+        $html .= '&nbsp;'.$this->viewActions($data,0,'L');
         
         if($this->image_upload) $html .= $this->viewImages($data,'SUMMARY');
         if($this->file_upload) $html .= $this->viewFiles($data,'SUMMARY');
         
         return $html;
+    }
+
+    protected function viewNodeName($data) 
+    {
+        $name = $data[$this->tree_cols['title']];
+
+        return $name;
     }
 
     protected function viewEdit($id,$form=array(),$edit_type='UPDATE') 
@@ -790,6 +799,7 @@ class Tree extends Model
 
 
     /*** PLACEHOLDERS ***/
+    protected function beforeNodeUpdate($id,$edit_type,&$form,&$error) {}
     protected function beforeProcess($id = 0) {}
     protected function processCustom($id) {}
     protected function viewTreeInfo() {}

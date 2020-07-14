@@ -63,7 +63,7 @@ class ImportCsv {
     protected $col_select = [];
     protected $col_convert = [];
     //'MERGE-LN' will append string value to previous value
-    protected $col_types = ['AUTO','STRING','TEXT','INTEGER','DECIMAL','DATE','DATETIME','TIME','BOOLEAN','CURRENCY'];
+    protected $col_types = ['AUTO','STRING','TEXT','INTEGER','DECIMAL','DATE','DATE:YYYYMMDD','DATETIME','TIME','BOOLEAN','CURRENCY'];
      
     protected $errors = array();
     protected $errors_found = false; 
@@ -147,6 +147,12 @@ class ImportCsv {
         return $this->errors;
     }
 
+    public function getMessages() 
+    {
+        return $this->messages;
+    }
+
+
     public function getForm() 
     {
         return $this->form;
@@ -164,8 +170,11 @@ class ImportCsv {
         $this->col_select['MERGE-LN'] = 'MERGE text with previous column';
 
         $sql = 'SHOW COLUMNS FROM '.$this->table;
-        $cols = $this->db->readSqlArray($sql); 
-        foreach($cols as $col_id => $col) {
+        $cols = $this->db->readSqlArray($sql,false);
+        //sort by column name  
+        Calc::sortArray($cols,'Field');
+        foreach($cols as $col) {
+            $col_id = $col['Field'];
             $this->col_select[$col_id] = $col_id;
             //$col['Type'].$col['Key']
             $this->col_convert[$col_id] = $this->getConvertType($col['Type']);
@@ -411,6 +420,7 @@ class ImportCsv {
                         if($rec !== 0) {
                             $line_valid = false;
                             $exist_i++;
+                            $this->addMessage('Existing record in line['.$i.'] using '.$this->unique_field.' ['.$data[$this->unique_field].']');
                         }
                     } 
                 }  
@@ -475,6 +485,18 @@ class ImportCsv {
     protected function processValue($value,$name,$type,&$error)  {
         $error = '';
         $secure = true;
+
+        if($type === 'DATE:YYYYMMDD') {
+            $value_mod = Date::convertDate($value,'YYYYMMDD','YYYY-MM-DD',$error);
+            if($error !== '') {
+                $error = 'Counld not convert '.$name.' to YYYY-MM-DD: '.$error;
+            } else {
+                $value = $value_mod;
+                $type = 'DATE';
+            }
+        }
+
+        if($error !== '') return false;
                 
         switch($type) {
             case 'CUSTOM'  : break; //custom validation must be handled by before_update() placeholder function
@@ -485,8 +507,8 @@ class ImportCsv {
             case 'PASSWORD': Validate::password($name,1,255,$value,$error);  break;
             case 'TEXT'    : Validate::text($name,0,64000,$value,$error,$secure); break;
             case 'HTML'    : Validate::html($name,0,64000,$value,$error,$secure); break;
-            case 'INTEGER' : Validate::integer($name,0,1000000000,$value,$error);  break;
-            case 'DECIMAL' : Validate::number($name,0,1000000000,$value,$error);  break;  
+            case 'INTEGER' : Validate::integer($name,-1000000000,1000000000,$value,$error);  break;
+            case 'DECIMAL' : Validate::number($name,-1000000000,1000000000,$value,$error);  break;  
             case 'EMAIL'   : Validate::email($name,$value,$error);  break;  
             case 'URL'     : Validate::url($name,$value,$error);  break;  
             case 'DATE'    : Validate::date($name,$value,'YYYY-MM-DD',$error);  break;  
