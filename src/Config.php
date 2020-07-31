@@ -34,6 +34,7 @@ class Config
         define(__NAMESPACE__.'\TABLE_AUDIT',TABLE_AUDIT);
         define(__NAMESPACE__.'\TABLE_FILE',TABLE_FILE);
         define(__NAMESPACE__.'\TABLE_USER',TABLE_USER);
+        define(__NAMESPACE__.'\TABLE_ROUTE',TABLE_ROUTE);
         define(__NAMESPACE__.'\TABLE_TOKEN',TABLE_TOKEN);
         define(__NAMESPACE__.'\TABLE_CACHE',TABLE_CACHE);
         define(__NAMESPACE__.'\TABLE_BACKUP',TABLE_BACKUP);
@@ -89,11 +90,8 @@ class Config
         $this->config['user']['access'] = ['GOD','ADMIN','USER','VIEW']; //NB sequence is IMPORTANT, GOD > ADMIN > USER > VIEW
         $this->config['user']['zone'] = ['ALL','PUBLIC'];
         $this->config['user']['status'] = ['OK','HIDE'];
+        $this->config['user']['route_access'] = false;
 
-        //$this->config['user']['routes'] = ['login'=>'login','logout'=>'login?mode=logout','default'=>'dashboard'];
-        //$this->config['user']['default_route'] = ['GOD'=>'admin/user/user','ADMIN'=>'admin/user/dashboard','USER'=>'admin/user/dashboard','VIEW'=>'admin/user/dashboard'];
-
-        
         //Audit setting *** used ***
         $this->config['audit']['enabled'] = AUDIT;
         $this->config['audit']['table'] = TABLE_AUDIT;
@@ -153,6 +151,17 @@ class Config
                 die($msg);
                 exit;
            }  
+        }
+
+        if($section === 'module') {
+            if($key === 'system') {
+                die('Config [module:system] reserved for internal use!');
+                exit;    
+            }
+            if($value['table_prefix'] === 'sys') {
+                die('Config module table prefix[sys] reserved for internal use!');
+                exit; 
+            }
         }
 
         $this->config[$section][$key] = $value;

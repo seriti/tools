@@ -18,8 +18,10 @@ use Seriti\Tools\ContainerHelpers;
 use Seriti\Tools\TableStructures;
 
 use Seriti\Tools\BASE_URL;
+use Seriti\Tools\URL_CLEAN;
 use Seriti\Tools\BASE_UPLOAD_WWW;
 use Seriti\Tools\TABLE_TOKEN;
+use Seriti\Tools\TABLE_ROUTE;
 
 use Psr\Container\ContainerInterface;
 
@@ -51,6 +53,8 @@ class User extends Model
     protected $login_days = [1=>'for 1 day',2=>'for 2 days',3=>'for 3 days',7=>'for 1 week',
                              14=>'for 2 weeks',30=>'for 1 month',182=>'for 6 months',365=>'for 1 Year']; 
 
+    //if true will check USER_ROUTE table for route whitelist access 
+    protected $route_access = false;
     protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/user/dashboard','error'=>'error'];
     //'ANY' value will ignore any occurrence of route key; 'EXACT' value will only ignore exact match of route key
     protected $routes_redirect_ignore = ['ajax'=>'ANY','login'=>'EXACT'];
@@ -83,6 +87,7 @@ class User extends Model
         if(isset($param['route_login'])) $this->routes['login'] = $param['route_login'];
         if(isset($param['route_logout'])) $this->routes['logout'] = $param['route_logout'];
         if(isset($param['route_default'])) $this->routes['default'] = $param['route_default'];
+        if(isset($param['route_access'])) $this->route_access = $param['route_access'];
         if(isset($param['bypass_security'])) $this->bypass_security = $param['bypass_security'];
 
         //add all standard user_cols which MUST exist, NB: required=>false as many partial field updates
@@ -226,6 +231,16 @@ class User extends Model
     public function getAccessLevels()
     {
         return $this->access_levels;
+    }
+
+    public function getRouteAccess()
+    {
+        return $this->route_access; 
+    }
+
+    public function getRouteWhitelist()
+    {
+        return $this->routes['whitelist']; 
     }
 
     public function viewLogin($email = '') 
@@ -628,6 +643,31 @@ class User extends Model
         return $route;
     }
 
+    //where user specific route whitelist defined
+    protected function setupRouteWhitelist()
+    {
+        //array key will be route from url root
+        $sql = 'SELECT '.$this->route_cols['route'].','.$this->route_cols['access'].','.$this->route_cols['title'].','.$this->route_cols['config'].' '.
+               'FROM '.TABLE_ROUTE.' '.
+               'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($this->user_id).'" '.
+               'ORDER BY '.$this->route_cols['sort'];
+        $list = $this->db->readSqlArray($sql);
+
+        //set user default page
+        if($list == 0) {
+            $error = 'NO user allowed pages configured.';
+            if($this->debug) $error .= 'User ID['.$this->user_id.']';
+            throw new Exception('USER_ROUTE_ERROR: '.$error); 
+        } else {   
+            $this->route_access = true; 
+            $default = Calc::getArrayFirst($list);
+            $this->routes['default'] = $default['key'];    
+            $this->routes['whitelist'] = $list;
+        }
+
+        return $list;
+    }
+
     //store last location/page/uri user vists before a redirect 
     public function setLastPage()
     {
@@ -660,6 +700,13 @@ class User extends Model
             }
         }
 
+        //check if user is limited to route whitelist
+        if($this->data[$this->user_cols['route_access']]) {
+            //NB: also sets default page for user 
+            $routes_allow = $this->setupRouteWhitelist();
+            if(!isset($routes_allow[$last_page])) $last_page = ''; 
+        }
+
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));
         } else {
@@ -677,6 +724,9 @@ class User extends Model
         $zone = 'NONE';
         $level_valid = false;
         $zone_valid = false;
+        //route access must be activated, off by default
+        $route_check = false;
+        $route_valid = true;
     
         $this->user_id = $this->getCache($this->cache['user']); 
         if($this->user_id !== '') {
@@ -685,6 +735,7 @@ class User extends Model
             if($this->data) {
                 $level = $this->data[$this->user_cols['access']];
                 $zone = $this->data[$this->user_cols['zone']];
+                $route_check = $this->data[$this->user_cols['route_access']];
             } else {
                 $this->user_id = 0;
             } 
@@ -696,6 +747,7 @@ class User extends Model
                 if($user != 0) {
                     $level = $user[$this->user_cols['access']];
                     $zone = $user[$this->user_cols['zone']];
+                    $route_check = $user[$this->user_cols['route_access']];
 
                     $remember_me = true;
                     $days_expire = 30; //ignored as login token expiry already set. 
@@ -703,6 +755,19 @@ class User extends Model
                 } 
             } 
         }
+
+        //check route access assuming primary access level valid
+        if($level !== 'NONE' and $route_check) {
+            $routes_allow = $this->setupRouteWhitelist();
+            if(!isset($routes_allow[URL_CLEAN])) {
+                $route_valid = false;
+            } else {
+                $route = $routes_allow[URL_CLEAN];
+                //set route specific access level
+                $level = $route[$this->route_cols['access']];
+            }    
+        }
+
 
         //check user level is valid
         if($level === 'NONE') {
@@ -724,7 +789,7 @@ class User extends Model
             $zone_valid = true;
         } 
 
-        if($level_valid and $zone_valid) return true; else return false;     
+        if($level_valid and $zone_valid and $route_valid) return true; else return false;     
     }
     
     //NB: ASSUMES $this->access_levels sequence is from highest to lowest access

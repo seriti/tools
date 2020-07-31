@@ -46,6 +46,7 @@ trait TableStructures
     protected $user_cols =  ['id'=>'user_id',                               //INTEGER, auto increment, PRIMARY KEY
                              'name'=>'name',                                //STRING
                              'access'=>'access',                            //STRING "GOD,ADMIN,USER,VIEW"
+                             'route_access'=>'route_access',                //BOOLEAN or TINYINT
                              'zone'=>'zone',                                //STRING "ALL,PUBLIC..."
                              'password'=>'password',                        //STRING
                              'email'=>'email',                              //STRING
@@ -66,6 +67,15 @@ trait TableStructures
     protected $token_cols = ['token'=>'token',                  //STRING, PRIMARY KEY
                              'user_id'=>'user_id',              //INTEGER
                              'date_expire'=>'date_expire'       //DATETIME
+                             ];
+
+    protected $route_cols = ['id'=>'route_id',                  //INTEGER, auto increment, PRIMARY KEY
+                             'user_id'=>'user_id',              //INTEGER
+                             'route'=>'route',                  //STRING
+                             'title'=>'title',                  //STRING
+                             'access'=>'access',                //STRING "GOD,ADMIN,USER,VIEW"
+                             'sort'=>'sort',                    //INTEGER
+                             'config'=>'config'                 //TEXT
                              ];
 
 

@@ -98,8 +98,12 @@ class Menu extends Tree
             //first defined access level is assumed to be highest access level
             $god_level = $access_levels[0];
             $god_access = $this->user->checkUserAccess($god_level);
+
+            //will be true if user has route whitelist configured
+            $route_whitelist = $this->user->getRouteAccess();
         } else {
             $god_access = false;
+            $route_whitelist = false;
         }    
 
 
@@ -142,89 +146,107 @@ class Menu extends Tree
         //NB:Static menu items must be correctly specified inside navbar html
         $html .= $options['menu_static'];
         
-        //get all top level menu items
-        $this->addSql('ORDER',$this->order_by);
-        $this->addSql('WHERE',$this->tree_cols['level'].' = 1 ');
-        $menu = $this->list();
-
-        if($menu != 0) {
-            foreach($menu AS $id => $item) {
-                $item_class = '';
-                $item_valid = true;
-                if($options['active_link'] == $item[$this->menu_cols['route']]) $item_class = 'active';
-
-                $href = '#';
-                $user_access = $this->getItemAccess($item);
-                if($user_access === false) {
-                    $item_class .= ' disabled';
-                    if($options['show_disabled'] === false) $item_valid = false;
-                }    
-                
-                if($item_valid) {         
-                    if($item[$this->tree_cols['rank_end']] === $item[$this->tree_cols['rank']]) {
-                        if($user_access) $href = $this->getItemHref($item,$options);
-                        $html .= '<li class="'.$item_class.'"><a href="'.$href.'">'.$item[$this->tree_cols['title']].'</a></li>';
-                    } else {
-                        $sub_html = '';
-                        if($user_access) {
-                            //construct sub menu, single layer with indents for lower levels
-                            $this->resetSql();
-                            $this->addSql('ORDER',$this->order_by);
-                            $this->addSql('RESTRICT',$this->tree_cols['rank'].' > '.$item[$this->tree_cols['rank']].' AND '.
-                                                  $this->tree_cols['rank'].' <= '.$item[$this->tree_cols['rank_end']]);
-                           
-                            $sub_menu = $this->list();
-                            if($sub_menu != 0) {
-                                foreach($sub_menu as $sub_item) {
-                                    if($options['active_link'] == $sub_item[$this->menu_cols['route']]) $item_class = 'active';
-
-                                    if($sub_item['level'] == 2) {
-                                        $prefix = '';
-                                    } else {  
-                                        $prefix = str_repeat('&nbsp;',($sub_item[$this->tree_cols['level']]-$item[$this->tree_cols['level']]-1)*3).'-';
-                                    }
-                                    
-                                    if($sub_item[$this->menu_cols['type']] === 'DIVIDER') {
-                                        $sub_html .= '<li role="separator" class="divider"></li>';
-                                    } elseif($sub_item[$this->menu_cols['type']]==='TEXT') {
-                                        $sub_html .= '<li class="disabled"><a href="">'.$prefix.$sub_item[$this->tree_cols['title']].'</a></li>';
-                                    } else {  
-                                        if($user_access) $href = $this->getItemHref($sub_item,$options);
-                                        $sub_html .= '<li><a href="'.$href.'">'.$prefix.$sub_item[$this->tree_cols['title']].'</a></li>';
-                                    }  
-                                }  
-                            }
-                        }    
-                        
-                        $html .= '<li class="dropdown '.$item_class.'">'.
-                                    '<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">'.
-                                    $item[$this->tree_cols['title']].'<span class="caret"></span></a>'.
-                                    '<ul class="dropdown-menu">'.
-                                    $sub_html;
-
-                        $html .= '</ul></li>';
-                    }
-                }
-                //end item_valid        
-        
-            } 
-        }  
-                
-        //now add system menu for GOD access only!
-        if($god_access and count($system)) {
-            $system_html = '';
-            $item_class = '';
-
-            foreach($system as $route => $title) {
+        //menu is user whitelist if specified. Cannot have separate menu per user, so help me god.
+        if($route_whitelist) {
+            $whitelist = $this->user->getRouteWhitelist();
+            $list_html = '';
+            foreach($whitelist as $route => $info) {
                 if($options['active_link'] == $route) $item_class = 'active';
-                $system_html.='<li><a href="'.$options['http_root'].$route.'">'.$title.'</a></li>';
+                if($info['title'] !== 'NONE') {
+                    $list_html.='<li><a href="'.$options['http_root'].$route.'">'.$info['title'].'</a></li>';    
+                }
             }    
             
             $html .= '<li class="dropdown '.$item_class.'">'.
                      '<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">'.
-                     'System<span class="caret"></span></a>'.
-                     '<ul class="dropdown-menu">'.$system_html.'</ul></li>';
-        }  
+                     'Your pages<span class="caret"></span></a>'.
+                     '<ul class="dropdown-menu">'.$list_html.'</ul></li>';
+
+        } else {
+            //get all top level menu items
+            $this->addSql('ORDER',$this->order_by);
+            $this->addSql('WHERE',$this->tree_cols['level'].' = 1 ');
+            $menu = $this->list();
+
+            if($menu != 0) {
+                foreach($menu AS $id => $item) {
+                    $item_class = '';
+                    $item_valid = true;
+                    if($options['active_link'] == $item[$this->menu_cols['route']]) $item_class = 'active';
+
+                    $href = '#';
+                    $user_access = $this->getItemAccess($item);
+                    if($user_access === false) {
+                        $item_class .= ' disabled';
+                        if($options['show_disabled'] === false) $item_valid = false;
+                    }    
+                    
+                    if($item_valid) {         
+                        if($item[$this->tree_cols['rank_end']] === $item[$this->tree_cols['rank']]) {
+                            if($user_access) $href = $this->getItemHref($item,$options);
+                            $html .= '<li class="'.$item_class.'"><a href="'.$href.'">'.$item[$this->tree_cols['title']].'</a></li>';
+                        } else {
+                            $sub_html = '';
+                            if($user_access) {
+                                //construct sub menu, single layer with indents for lower levels
+                                $this->resetSql();
+                                $this->addSql('ORDER',$this->order_by);
+                                $this->addSql('RESTRICT',$this->tree_cols['rank'].' > '.$item[$this->tree_cols['rank']].' AND '.
+                                                      $this->tree_cols['rank'].' <= '.$item[$this->tree_cols['rank_end']]);
+                               
+                                $sub_menu = $this->list();
+                                if($sub_menu != 0) {
+                                    foreach($sub_menu as $sub_item) {
+                                        if($options['active_link'] == $sub_item[$this->menu_cols['route']]) $item_class = 'active';
+
+                                        if($sub_item['level'] == 2) {
+                                            $prefix = '';
+                                        } else {  
+                                            $prefix = str_repeat('&nbsp;',($sub_item[$this->tree_cols['level']]-$item[$this->tree_cols['level']]-1)*3).'-';
+                                        }
+                                        
+                                        if($sub_item[$this->menu_cols['type']] === 'DIVIDER') {
+                                            $sub_html .= '<li role="separator" class="divider"></li>';
+                                        } elseif($sub_item[$this->menu_cols['type']]==='TEXT') {
+                                            $sub_html .= '<li class="disabled"><a href="">'.$prefix.$sub_item[$this->tree_cols['title']].'</a></li>';
+                                        } else {  
+                                            if($user_access) $href = $this->getItemHref($sub_item,$options);
+                                            $sub_html .= '<li><a href="'.$href.'">'.$prefix.$sub_item[$this->tree_cols['title']].'</a></li>';
+                                        }  
+                                    }  
+                                }
+                            }    
+                            
+                            $html .= '<li class="dropdown '.$item_class.'">'.
+                                        '<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">'.
+                                        $item[$this->tree_cols['title']].'<span class="caret"></span></a>'.
+                                        '<ul class="dropdown-menu">'.
+                                        $sub_html;
+
+                            $html .= '</ul></li>';
+                        }
+                    }
+                    //end item_valid        
+            
+                } 
+            }  
+                    
+            //now add system menu for GOD access only!
+            if($god_access and count($system)) {
+                $system_html = '';
+                $item_class = '';
+
+                foreach($system as $route => $title) {
+                    if($options['active_link'] == $route) $item_class = 'active';
+                    $system_html.='<li><a href="'.$options['http_root'].$route.'">'.$title.'</a></li>';
+                }    
+                
+                $html .= '<li class="dropdown '.$item_class.'">'.
+                         '<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">'.
+                         'System<span class="caret"></span></a>'.
+                         '<ul class="dropdown-menu">'.$system_html.'</ul></li>';
+            }
+        }      
         
         //append any additional menu items without 
         if(is_array($options['append']) and count($options['append'])) {

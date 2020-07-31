@@ -50,6 +50,7 @@ class Setup
             if(!in_array(TABLE_AUDIT,$tables)) $this->setupAuditTable(TABLE_AUDIT); else $this->message[]='Audit table['.TABLE_AUDIT.'] exists';
             if(!in_array(TABLE_FILE,$tables)) $this->setupFileTable(TABLE_FILE); else $this->message[]='File table['.TABLE_FILE.'] exists';
             if(!in_array(TABLE_USER,$tables)) $this->setupUserTable(TABLE_USER); else $this->message[]='User table['.TABLE_USER.'] exists';
+            if(!in_array(TABLE_ROUTE,$tables)) $this->setupUserRouteTable(TABLE_ROUTE); else $this->message[]='User Route table['.TABLE_ROUTE.'] exists';
             if(!in_array(TABLE_TOKEN,$tables)) $this->setupUserTokenTable(TABLE_TOKEN); else $this->message[]='User token table['.TABLE_TOKEN.'] exists';
             if(!in_array(TABLE_QUEUE,$tables)) $this->setupQueueTable(TABLE_QUEUE); else $this->message[]='Queue table['.TABLE_QUEUE.'] exists';
             if(!in_array(TABLE_BACKUP,$tables)) $this->setupBackupTable(TABLE_BACKUP); else $this->message[]='Backup table['.TABLE_BACKUP.'] exists';
@@ -73,7 +74,11 @@ class Setup
         if($error_tmp == '') {
             $this->message[] = 'Succesfully created missing system table['.$table.']';
 
-            $sql = 'INSERT INTO `'.$table.'` (system_id,sys_count,sys_text) VALUES("FILES",100,""),("INVOICE",100,"") ';
+            //need to set system setup time so can check for subsequent updates. 
+            $date = getdate();
+            $time_now = $date[0];
+
+            $sql = 'INSERT INTO `'.$table.'` (system_id,sys_count,sys_text) VALUES("FILES",100,""),("INVOICE",100,""),("MOD_SYSTEM",'.$time_now.',"") ';
             $this->db->executeSql($sql,$error_tmp); 
             if($error_tmp == '') {
                 $this->message[] = 'Succesfully created initial system table values';
@@ -127,6 +132,7 @@ class Setup
                   `user_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
                   `name` varchar(64) NOT NULL,
                   `access` varchar(64) NOT NULL,
+                  `route_access` tinyint(1) NOT NULL DEFAULT 0,
                   `zone` varchar(64) NOT NULL,
                   `password` varchar(250) NOT NULL,
                   `email` varchar(250) NOT NULL,
@@ -198,6 +204,29 @@ class Setup
             $this->message[] = 'Succesfully created missing user token table['.$table.']';
         } else {
             $this->error[] = 'Could NOT create user token table['.$table.'] : '.$error_tmp;
+        } 
+    }
+
+    protected function setupUserRouteTable($table)
+    {
+      
+        $sql = 'CREATE TABLE `'.$table.'` (
+                  `route_id` int(11) NOT NULL AUTO_INCREMENT,
+                  `user_id` int(11) NOT NULL,
+                  `route` varchar(255) NOT NULL,
+                  `title` varchar(255) NOT NULL,
+                  `access` varchar(64) NOT NULL,
+                  `sort` int(11) NOT NULL,
+                  `config` text NOT NULL,
+                  PRIMARY KEY (`route_id`),
+                  UNIQUE KEY `idx_user_route1` (`user_id`,`route`)
+                ) ENGINE=MyISAM DEFAULT CHARSET=utf8';
+
+        $this->db->executeSql($sql,$error_tmp); 
+        if($error_tmp == '') {
+            $this->message[] = 'Succesfully created missing user route table['.$table.']';
+        } else {
+            $this->error[] = 'Could NOT create user route table['.$table.'] : '.$error_tmp;
         } 
     }
 
