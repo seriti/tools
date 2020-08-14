@@ -83,9 +83,12 @@ class Report {
         } 
 
         if($this->mode === 'create') {
-            $html .= '<h1>'.$report['title'].': (<a href="?mode=list">'.
-                     '<span class="glyphicon glyphicon-backward small"></span>back</a> to report list)</h1>'.
-                     $report_html;
+            if($this->always_list_reports) {
+                $link = '';
+            } else {
+                $link = '(<a href="?mode=list"><span class="glyphicon glyphicon-backward small"></span>back</a> to report list)';
+            }    
+            $html .= '<h1>'.$report['title'].': '.$link.'</h1>'.$report_html;
         }  
         
         $html = $this->viewMessages().$html;

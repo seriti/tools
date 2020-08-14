@@ -593,6 +593,10 @@ class Listing extends Model
         $state_param = $this->linkState();
         $hidden = [];
 
+        //ignore all below if any html returned.
+        $html = $this->customListAction($data,$row_no,$pos);
+        if($html != '') return $html;
+
         if(count($this->actions) != 0) {
             $form_id = 'action_'.$data[$this->key['id']];
             $hidden[$this->key['id']] = $data[$this->key['id']];
@@ -1156,6 +1160,6 @@ class Listing extends Model
     protected function beforeProcess($id = 0) {}
     protected function processCustom($id) {}
     protected function afterUpdateTable($action) {}
-
+    protected function customListAction($data,$row_no,$pos = 'L') {}  
     
 }

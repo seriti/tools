@@ -77,6 +77,7 @@ class Import extends Model {
                                                 
         $this->user_id = $this->getContainer('user')->getId();
         $this->user_csrf_token = $this->getContainer('user')->getCsrfToken();
+        $this->user_access_level = $this->getContainer('user')->getAccessLevel();
         $this->setupAccess($this->user_access_level);
     }
     
