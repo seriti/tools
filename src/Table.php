@@ -121,6 +121,7 @@ class Table extends Model
             if(isset($param['update_calling_page'])) $this->update_calling_page = $param['update_calling_page'];
         }  
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
+        if(isset($param['add_repeat'])) $this->add_repeat = $param['add_repeat'];
 
         //use to turn off user csrf verification
         if(isset($param['verify_csrf'])) $this->verify_csrf = $param['verify_csrf']; 

@@ -67,6 +67,8 @@ trait  ModelViews
             }    
         }  
         
+        $html .= $this->addCustomNavigation($context);
+
         if($this->mode === 'add' or $this->mode === 'edit' or $this->mode === 'view' or $this->mode === 'view_image' or $this->mode === 'update') {
             $html.=' '.$this->js_links['back'];
         }
@@ -648,6 +650,7 @@ trait  ModelViews
     }
 
     /*** PLACEHOLDERS ***/
+    protected function addCustomNavigation($context) {}
     protected function modifyRowValue($col_id,$data,&$value) {} 
     protected function modifyRecordValue($col_id,$data,&$value) {}
     protected function viewEditXtra($id,$form,$edit_type) {}

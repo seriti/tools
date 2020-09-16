@@ -919,9 +919,10 @@ class Pdf extends FPDF
         
         if(!isset($options['page_split'])) $options['page_split']=2;
         $options['split_gap'] = 2;
+
+        //if more than one col then resize col widths
         if($options['page_split'] > 1) $options['resize_cols']=true;
-        
-        
+                
         //formating options
         $format_header = array('fill'=>$this->table['th_fill'],'font' => 'TH','line_width' => 0.1,'line_color' => '#CCCCCC');
         $format_text = array('fill' => '#CCCCCC','font' => 'TEXT','line_width' => 0.1);
@@ -935,8 +936,8 @@ class Pdf extends FPDF
         $table_w = array_sum($col_w);
         $page_w = $this->w-($this->lMargin+$this->rMargin);
         
-        if($options['page_split'] > 1) $page_w = $page_w/$options['page_split'];
-        
+        if($options['page_split'] > 1) $page_w = $page_w/$options['page_split'] - $options['split_gap'];
+
         //column wdths need to be adjusted to fit page
         if($table_w > $page_w or $options['resize_cols']) {
             $calc = $page_w/$table_w;

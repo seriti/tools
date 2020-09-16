@@ -616,11 +616,12 @@ class Listing extends Model
 
             foreach($this->actions as $action_id => $action) {
                 $valid = true;
+                $action_html = '';
                 if($action['verify']) $valid = $this->verifyRowAction($action,$data);
                 
                 if($valid and ($action['pos'] === $pos or $pos === 'ALL')) {
             
-                    if($action['class'] != '') $html .= '<span class="'.$action['class'].'">';
+                    if($action['class'] != '') $action_html .= '<span class="'.$action['class'].'">';
                     
                     $show = '';
                     if($action['icon'] !== false) $show .= $action['icon'];
@@ -630,26 +631,26 @@ class Listing extends Model
                     if($action['type'] === 'popup') {
                         if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod = '&';
                         $url = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
-                        $html .= '<a class="action" href="Javascript:open_popup(\''.$url.'\','.
+                        $action_html .= '<a class="action" href="Javascript:open_popup(\''.$url.'\','.
                                      $action['width'].','.$action['height'].')">'.$show.'</a>';     
                     } elseif($action['type'] === 'link') {
                         if(isset($action['target'])) $target = 'target="'.$action['target'].'"'; else $target='';
                         if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod='&';
                         $href = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
                         if($action['mode'] != '') $href .= '&mode='.$action['mode'];
-                        $html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
+                        $action_html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
                     } elseif($action['type'] === 'check_box'){
                         $param['class'] = 'checkbox_action';
-                        $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
+                        $action_html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',0,$param).$show;
                     } elseif($action['type'] === 'text'){
-                        $html .= $show;
+                        $action_html .= $show;
                     } elseif($action['type'] === 'select'){
                         $select_param = $action['param'];
 
                         if(!isset($select_param['class'])) $select_param['class'] = $this->list_classes['select'];
                         
                         if(isset($action['sql'])) {
-                            $html .= $show.Form::sqlList($action['sql'],$this->db,$action_id,$action['value'],$select_param);
+                            $action_html .= $show.Form::sqlList($action['sql'],$this->db,$action_id,$action['value'],$select_param);
                         } elseif(isset($action['list'])) { 
                             //check for custom item options
                             if($item_options and isset($options[$action_id])) {
@@ -658,7 +659,7 @@ class Listing extends Model
                             }
 
                             if(count($action['list'])) {
-                                $html .= $show.Form::arrayList($action['list'],$action_id,$action['value'],$action['list_assoc'],$select_param);
+                                $action_html .= $show.Form::arrayList($action['list'],$action_id,$action['value'],$action['list_assoc'],$select_param);
                             }    
                         } 
                     } else {    
@@ -668,12 +669,16 @@ class Listing extends Model
                             $onclick = 'onclick="javascript:return confirm(\'Are you sure you want to DELETE '.$item.'?\')" '; 
                         }
                         $href = '?mode='.$action['mode'].'&page='.$this->page_no.'&row='.$row_no.'&id='.$data[$this->key['id']].$state_param;  
-                        $html .= '<a class="action" href="'.$href.'" '.$onclick.'>'.$show.'</a>';  
+                        $action_html .= '<a class="action" href="'.$href.'" '.$onclick.'>'.$show.'</a>';  
                     } 
                     
-                    if($action['class'] != '') $html .= '</span>';
-                    //space between actions, if &nbsp; then no auto breaks
-                    $html .= $action['spacer'];       
+                    if($action['class'] != '') $action_html .= '</span>';
+                    
+                    if($action_html != '') {
+                        //space between actions, if &nbsp; then no auto breaks
+                        $html .= $action_html.$action['spacer'];           
+                    }
+                    
                 } 
             }
 
