@@ -12,7 +12,7 @@ class Mysql implements DbInterface
 
     protected $db;
     protected $audit = false;
-    protected $audit_user_id = '';
+    protected $audit_user_id = 0;
     protected $audit_table = '';
     protected $audit_table_exclude = [];
     protected $debug = false;

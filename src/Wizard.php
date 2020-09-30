@@ -214,7 +214,7 @@ class Wizard {
         //if($error_page) return $this->viewMessages(); else return $html;  
     }
     
-    //check what page active and if form variables to process
+    //NB: If you use saveData() then be careful that not overwritten on first page 
     public function process($param = array()) 
     {
         $this->form_input = false;
@@ -246,8 +246,7 @@ class Wizard {
             $this->getData('form');
             $this->getData('data');
         //}    
-        
-        
+
         //only process form variables if form has been submitted
         if($this->form_input) {
             //NB1: $this->form variables persist over pages and are only set when found in $_POST

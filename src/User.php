@@ -168,6 +168,7 @@ class User extends Model
         $form = $_POST;
 
         //redirect to default page if user accidentally went to login page
+        //NB: if user tries to access a route that thay do not have access to then this can become an infinite loop
         if($this->mode === '') {
                        
             $this->user_id = $this->getCache($this->cache['user']);    
@@ -184,7 +185,12 @@ class User extends Model
                     $this->addMessage("Name[$name] level[$level] zone[$zone]");
                 }
 
-                $this->redirectLastPage();
+                $_SESSION['login_redirect'] = $_SESSION['login_redirect'] + 1 ;
+                if($_SESSION['login_redirect'] > 5) {
+                    $this->addError('Something is wrong with your access credentials. Please contact support.');
+                } else {
+                    $this->redirectLastPage();
+                }
             }
         }  
 
@@ -462,7 +468,7 @@ class User extends Model
         }
         
         if($action === 'LOGOUT') {
-            //erase all cache values
+            //erase all session values
             $_SESSION = [];
 
             //remove server version of login cookie if exists

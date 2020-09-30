@@ -205,7 +205,7 @@ class Amazon
         $error = '';
         
         try {
-            $result = $this->$s3->createBucket([
+            $result = $this->s3->createBucket([
                 'Bucket' => $bucket_name,
             ]);
         } catch (AwsException $e) {
