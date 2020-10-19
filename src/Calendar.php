@@ -42,7 +42,6 @@ class Calendar
     //default is to start with Sunday first;
     private $offset = 0;
     
-    //can create single chart with construct or call individual setupXXXChart() for multiple charts on same page
     public function __construct($type = '',$div_id = '',$title = '',$data = [],$param = []) 
     {
         $this->today = new \DateTime();

@@ -1110,7 +1110,6 @@ class Table extends Model
                     $this->addError('You do not have move access');
                 } else {
                     $action_id = Secure::clean('basic',$_POST['master_action_id']);
-                    $new_location_id = $this->db->escapeSql($this->upload['location'].$action_id);
                     //check that action_id is valid
                     $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
                     $move_id = $this->db->readSqlValue($sql,0);
