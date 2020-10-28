@@ -122,6 +122,7 @@ class Table extends Model
         }  
         if(isset($param['excel_csv'])) $this->excel_csv = $param['excel_csv'];
         if(isset($param['add_repeat'])) $this->add_repeat = $param['add_repeat'];
+        if(isset($param['add_href'])) $this->add_href = $param['add_href'];
 
         //use to turn off user csrf verification
         if(isset($param['verify_csrf'])) $this->verify_csrf = $param['verify_csrf']; 
