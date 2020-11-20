@@ -165,8 +165,8 @@ class User extends Model
         //get mode that needs to be processed   
         if(isset($_GET['mode'])) $this->mode = Secure::clean('basic',$_GET['mode']);
         
-        $form = $_POST;
-
+        $form = array_map('trim',$_POST);
+        
         //redirect to default page if user accidentally went to login page
         //NB: if user tries to access a route that thay do not have access to then this can become an infinite loop
         if($this->mode === '') {
@@ -572,9 +572,15 @@ class User extends Model
             } else {  
                 $this->setCache($this->cache['reset'],$user);
                 $this->email = $user[$this->user_cols['email']];
-                $this->addMessage('Your reset token is valid! Please reset your password below...<br/>'.
-                                  'NB: password must be at least 8 alphanumeric characters with '.
-                                  'at least one lowercase, uppercase, numeric character');
+
+                if(defined('PASSWORD_MESSAGE')) {
+                    $pwd_msg = PASSWORD_MESSAGE; 
+                } else {
+                    $pwd_msg = 'NB: password must be at least 8 alphanumeric characters with at least one lowercase, uppercase, numeric character';    
+                }
+                
+                
+                $this->addMessage('Your reset token is valid! Please reset your password below...<br/>'.$pwd_msg);
             } 
         }
     }

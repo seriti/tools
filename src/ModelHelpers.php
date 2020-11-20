@@ -158,6 +158,14 @@ trait  ModelHelpers
         return $html;
     } 
 
+    public function addInfo($mode,$info)  
+    {
+        //ADD,EDIT,LIST,IMPORT,VIEW
+        $mode = strtoupper($mode);
+        $this->info[$mode] = $info;
+
+    }    
+
     public function addAction($action) 
     {
         if(!is_array($action)) {

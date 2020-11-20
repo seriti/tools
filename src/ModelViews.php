@@ -204,7 +204,7 @@ trait  ModelViews
                         'Click <b>delete</b> link to remove '.$this->row_name.' (you will be asked for confirmation). '.
                         'Click <b>Search</b> link to view '.$this->row_name.' search options.'.
                         'Finally click [Search] button to view matching '.$this->row_name_plural;
-        }  
+            }  
             if($mode === 'IMPORT') {
                 $info = 'You can import '.$this->row_name.' data in CSV(Comma Separated Values) format. '.
                         'NB: the first line of the file must have column headers exactly as displayed, '.

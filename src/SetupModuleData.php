@@ -212,7 +212,7 @@ class SetupModuleData
 
     protected function addCreateSql($table,$sql) 
     {
-        if(!in_array($table,$this->tables)) $this->addError('Cannot add table'.$table.' create SQL. Table not in list!');
+        if(!in_array($table,$this->tables)) $this->addError('Cannot add table['.$table.'] create SQL. Table not in list!');
         if(strpos($sql,'TABLE_NAME') === false) $this->addError('Table['.$table.'] SQL, no "TABLE_NAME" placeholder in SQL!');
 
         if(!$this->errors_found) {

@@ -595,5 +595,39 @@ class Date
         $period['year']=$date['year'];
         
         return $period;
+    }
+
+    //assumes $time HH:MM format and returns same
+    public static function incrementTime($time,$minutes) 
+    {
+        $start = self::mysqlGetTimeArray($time);
+
+        $calc = ($start['hours'] * 60) + $start['minutes'] + $minutes;
+
+        if($calc < 0) {
+            $hours = 0;
+            $minutes = 0;
+        } else {
+            $hours = intdiv($calc,60);
+            $minutes = $calc % 60; 
+        }
+
+        return sprintf("%02d:%02d",$hours,$minutes);
     } 
+
+    public static function calcMinutes($time_from,$time_to,$format = 'HH:MM') 
+    {
+        $calc = 0;
+
+        if($format === 'HH:MM') {
+            $from = self::mysqlGetTimeArray($time_from);
+            $to = self::mysqlGetTimeArray($time_to);
+
+            $calc = ($to['hours'] * 60 + $to['minutes']) - ($from['hours'] * 60 + $from['minutes']);
+        }
+
+        return $calc;
+    } 
+
+
 }

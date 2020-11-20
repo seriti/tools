@@ -11,8 +11,6 @@ use Seriti\Tools\Date;
 use Seriti\Tools\IconsClassesLinks;
 use Seriti\Tools\MessageHelpers;
 
-//NB: this is a minmalist implementation of google visualisation charts for simple dashboard type charts. 
-//It does not implement anywhere near the full functionality available and is not intended to
 class Calendar 
 {
     use IconsClassesLinks;
@@ -27,6 +25,13 @@ class Calendar
     protected $units = [];
     //to identify same event over multiple days, and allows for multiple events on one day
     protected $event_no = 0;
+
+    //for time based daily appointments
+    protected $appointments = [];
+    protected $appointment_no = 0;
+    protected $appointment_interval = 15;
+    protected $appointment_layout = 'LN';
+
     protected $start_date;
     protected $end_date;
     protected $today = 0;
@@ -98,6 +103,37 @@ class Calendar
         }    
     }
 
+    //NB: time must be in MySql HH:MM:SS format, SS are ignored
+    public function addAppointment($date,$from_time,$to_time,$html,$options = [])
+    {
+        $error = '';
+        $appointment = [];
+
+        //set event_id if trequired for view processing
+        if(!isset($options['event_id'])) $options['event_id'] = 0;
+        //attach appointment to a specific unit
+        if(!isset($options['unit_id'])) $options['unit_id'] = 0;
+
+        $temp = $this->parseDate($date);
+        $date_key = date('Y-m-d',$temp->getTimestamp());
+
+        $appointment['start'] = Date::calcMinutes('00:00',$from_time);
+        if(!$appointment['start']) $error .= 'Invalid appointment start time['.$from_time.']';
+            
+        $appointment['end'] = Date::calcMinutes('00:00',$to_time);
+        if(!$appointment['end']) $error .= 'Invalid appointment end time['.$to_time.']';
+       
+        if($error !== '') {
+            $this->addError($error);
+        } else {    
+            $this->appointment_no ++;
+            $appointment['html'] = $html;
+            $appointment['options'] = $options;
+            
+            $this->appointments[$date_key][$this->appointment_no] = $appointment;
+        } 
+    }
+
     public function clearEvents()
     {
         $this->events = [];
@@ -137,6 +173,8 @@ class Calendar
             if($format === 'DATE_UNIT') $html = $this->showDateUnits($this->start_date,$this->end_date,$options);
             if($format === 'UNIT_DATE') $html = $this->showUnitDates($this->start_date,$this->end_date,$options);
 
+            //show time slots within a date
+            if($format === 'TIME_DATE') $html = $this->showTimeDates($this->start_date,$this->end_date,$options);
         }
 
         return $html;
@@ -217,6 +255,63 @@ class Calendar
                 $html .= $this->viewDay($date['object'],$unit_id,$day_options);
             }    
             $html .= '<tr>';
+        }    
+
+        return $html;
+    }
+
+    //time in rows, dates in columns
+    protected function showTimeDates($start_date,$end_date,$options = [])
+    {
+        $html = '';
+
+        $time_options = [];
+        $time_options['show_time'] = false;
+
+        //time interval in minutes
+        if(isset($options['interval'])) $this->appointment_interval = $options['interval'];
+        if(!isset($options['start'])) $options['start'] = 360; //'06:00';
+        if(!isset($options['end'])) $options['end'] = 1200; //'20:00';
+
+        $dates = [];
+        $temp = (new \DateTime())->setTimestamp($start_date->getTimestamp());
+        while($temp->getTimestamp() < ($end_date->getTimestamp() + 1) ) {
+            
+            $time = $temp->getTimestamp();
+            $date_key = date('Y-m-d',$time);
+            
+            $date = [];
+            $date['object'] = (new \DateTimeImmutable())->setTimestamp($time);
+            $date['header'] = substr($temp->format('l'),0,3).'<br/>'.$temp->format('M').'<br/>'.$temp->format('d');
+
+            $dates[$date_key] = $date;
+            
+            $temp->add(new \DateInterval('P1D'));
+        }
+
+
+        $html .= '<table class="'.$this->calendar_class['calendar'].'"><thead><tr>';
+
+        //header row
+        $html .= '<th>Time</th>';
+        foreach($dates as $key=>$date) $html .= '<th>'.$date['header'].'</th>';
+        $html .= '</tr></thead><tbody><tr>';
+       
+        $time = $options['start'];
+        while($time < $options['end']) {
+            $time_str = Date::incrementTime('00:00',$time);
+
+            $html .= '<tr><td>'.$time_str.'</td>';
+            foreach($dates as $date_key=>$date) {
+                $html .= '<td>'.$this->viewAppointments($date_key,$time,$time_options).'</td>';
+            }    
+            $html .= '<tr>';
+
+            $time = $time + $this->appointment_interval;
+        }
+
+        foreach($this->units as $unit_id => $unit) {
+            
         }    
 
         return $html;
@@ -319,6 +414,41 @@ class Calendar
 
         if($this->event_layout === 'LIST') $html .= '</ul>';
 
+        return $html;
+    }
+
+    protected function viewAppointments($date_key,$time,$options = [])
+    {
+        $html = '';
+
+        if($this->appointment_layout === 'LIST') $html .= '<ul>';
+
+        if(isset($this->appointments[$date_key])) {
+            foreach($this->appointments[$date_key] as $no => $app) {
+                $show = false;
+                $time_start = $time - $this->appointment_interval;
+                $time_end = $time + $this->appointment_interval;
+                if($time_end > $app['start'] and $time_start < $app['end']) {
+                    if($app['start'] >= $time and $app['start'] <= $time_end) {
+                        $show_html = $no.': '.$app['html'];
+                    } else {
+                        $show_html = $no.'...';
+                    }
+                    $show = true;
+                }    
+
+                //if($app['start'] - $time < $this->appointment_interval) $show = true;
+                //if($time + $this->appointment_interval <= $app['end'] ) $show = true;
+
+                if($show) {
+                    if($this->appointment_layout === 'LIST') $html .= '<li>'.$app['html'].'</li>';  
+                    if($this->appointment_layout === 'LN') $html .= $show_html.'</br>'; 
+                }
+            }
+            
+        } 
+
+        if($this->appointment_layout === 'LIST') $html .= '<ul>';
         return $html;
     }
 

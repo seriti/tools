@@ -570,6 +570,7 @@ class Html
         $body = '<tr>';
         
         if(!isset($options['layout'])) $options['layout'] = 'ROW';
+        if(!isset($options['header'])) $options['header'] = true;
         
         $html .= '<table class="table  table-striped table-bordered table-hover table-condensed">';
                 
@@ -578,11 +579,13 @@ class Html
                 $header .= '<th>'.ucfirst(str_replace('_',' ',$key)).'</th>';
                 $body .= '<td>'.$value.'</td>';
             }  
-            $html .= '<tr>'.$header.'</tr><tr>'.$body.'</tr>';
+
+            if($options['header']) $html .= '<tr>'.$header.'</tr>';
+            $html .= '<tr>'.$body.'</tr>';
         }
         
         if($options['layout'] === 'COLUMN') {
-            $html .= '<tr><th>Description</th><th>Value</th></tr>';
+            if($options['header']) $html .= '<tr><th>Description</th><th>Value</th></tr>';
             foreach($record as $key => $value) {
                 $html .= '<tr>'.
                              '<td>'.ucfirst(str_replace('_',' ',$key)).'</td><td>'.$value.'</td>'.

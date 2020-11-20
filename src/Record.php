@@ -107,7 +107,11 @@ class Record extends Model
 
         $this->csrf_token = Secure::clean('basic',Form::getVariable('csrf_token','GP'));
 
-        if(isset($_GET['mode'])) $this->mode = Secure::clean('basic',$_GET['mode']);
+        if(isset($_GET['mode'])) {
+            $this->mode = Secure::clean('basic',$_GET['mode']);
+        } else {
+            if($this->pop_up) $this->setCache('popup_updated',false);
+        }    
 
         //normally assigned in setup()
         if($this->record_id == 0) {
@@ -115,7 +119,8 @@ class Record extends Model
             if(isset($_POST['id'])) $this->record_id = Secure::clean('basic',$_POST['id']);
         }    
         $this->key['value'] = $this->record_id;
-        if($this->record_id == 0) $this->mode = 'new';
+
+        //if($this->record_id == 0) $this->mode = 'new';
      
         if(isset($_GET['msg'])) $this->addMessage(Secure::clean('alpha',$_GET['msg']));
      
@@ -135,6 +140,7 @@ class Record extends Model
             if($this->mode === 'edit')   $html .= $this->viewEdit($form,'UPDATE');
             if($this->mode === 'new')    $html .= $this->viewEdit($form,'INSERT');
             if($this->mode === 'update') $html .= $this->updateRecord($_POST);
+            if($this->mode === 'delete') $html .= $this->deleteRecord($_POST);
         }  
         
         if($this->mode === 'custom') $html .= $this->processCustom();
@@ -249,7 +255,18 @@ class Record extends Model
                     $html .= $action['spacer'];       
                 } 
             }
+
+            if($this->show_info) $html .= '&nbsp;<a class="nav_info" href="javascript:toggle_display_scroll(\'info_div\')">Info</a>';
         } 
+
+        if($this->pop_up) {
+            $updated = $this->getCache('popup_updated'); 
+            if($updated and $this->update_calling_page) {
+                $html .= ' '.$this->js_links['close_update'];
+            } else {
+                $html .= ' '.$this->js_links['close'];
+            }  
+        }
         
         return $html;
     }
@@ -274,10 +291,13 @@ class Record extends Model
         $class_submit= 'class="'.$this->classes['col_submit'].'"';
 
         if($this->action_show !== '') {
+            if($edit_type === 'INSERT') $btn_text = $this->texts['btn_insert'];
+            if($edit_type === 'UPDATE') $btn_text = $this->texts['btn_update'];
+
             $actions = $this->viewRecordActions($edit_type,$data,0,'ALL');
             $action_html .= '<div class="row">'.
                             '<div '.$class_label.'>'.$this->action_text.'</div>'.
-                            '<div '.$class_label.'><input id="edit_submit" type="submit" name="submit" value="Update" class="'.$this->classes['button'].'">'.$actions.'</div>'.
+                            '<div '.$class_label.'><input id="edit_submit" type="submit" name="submit" value="'.$btn_text.'" class="'.$this->classes['button'].'">'.$actions.'</div>'.
                             '</div>';    
         }
         
@@ -372,9 +392,8 @@ class Record extends Model
     {
         $html = '';
         
-        $data=$this->view($this->record_id);
-                
-                
+        $data = $this->view($this->record_id);
+       
         if($this->show_info) $info = $this->viewInfo('VIEW'); else $info = '';
         $html .= $info;
         
@@ -382,7 +401,7 @@ class Record extends Model
         $class_value = 'class="'.$this->classes['col_value'].'"';
         
         if($this->action_show !== '') {
-            $actions = $this->viewRecordActions($edit_type,$data,0,'ALL');
+            $actions = $this->viewRecordActions('VIEW',$data,0,'ALL');
             if($actions !== '') {
                 $action_html .= '<div class="row">'.
                                 '<div '.$class_label.'>'.$this->action_text.'</div>'.
@@ -503,6 +522,8 @@ class Record extends Model
         if($this->errors_found) {
             $html .= $this->viewEdit($form,$edit_type);
         } else {
+            if($this->pop_up) $this->setCache('popup_updated',true);
+
             $this->addMessage('Successfuly updated '.$this->record_name); 
             $html .= $this->viewRecord($form);
 
@@ -511,6 +532,36 @@ class Record extends Model
         return $html;
     }
     
+    protected function deleteRecord($form) 
+    {
+        $html = '';
+        $data = '';
+        $error = '';
+        
+        if($this->verify_csrf and !$this->verifyCsrfToken($error)) $this->addError($error);
+
+        if(!$this->errors_found) $this->delete($this->record_id);
+                
+        //delete any images/files or other data associated with record. 
+        //rather leave for manual deletion using afterDelete() event
+                    
+        if($this->errors_found) {
+            $this->mode = 'list';
+            $html  = $this->viewRecord();
+        } else {
+            if($this->pop_up) $this->setCache('popup_updated',true);
+            
+            $this->addMessage('Successfuly deleted '.$this->record_name.' ');
+
+            $data = [];
+            $html .= $this->viewRecordActions('DELETE',$data,0,'ALL');
+
+            $html = $this->viewMessages().$html;
+        }   
+        
+        return $html;
+    } 
+
     /*** PLACEHOLDERS ***/
    
     protected function beforeProcess() {}

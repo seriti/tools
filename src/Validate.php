@@ -124,9 +124,15 @@ class Validate
     {
         $error='';
         
-        if(!isset($rules['alpha'])) $rules['alpha']=true;
-        if(!isset($rules['length'])) $rules['length']=8;
-        if(!isset($rules['strong'])) $rules['strong']=true;
+        if(!isset($rules['alpha'])) {
+            if(defined('PASSWORD_ALPHA_NUMERIC')) $rules['alpha'] = PASSWORD_ALPHA_NUMERIC; else $rules['alpha'] = true;
+        }    
+        if(!isset($rules['length'])) {
+            if(defined('PASSWORD_LENGTH')) $rules['length'] = PASSWORD_LENGTH; else $rules['length'] = 8;
+        }
+        if(!isset($rules['strong'])) {
+            if(defined('PASSWORD_STRONG')) $rules['strong'] = PASSWORD_STRONG; else $rules['strong'] = true;
+        }    
                 
         if($rules['alpha'] and !ctype_alnum($password)) $error.='Password may only contain letters and numbers(no spaces). '; 
         if(strlen($password)<$rules['length'])  $error.='Password less than mimimum length of '.$rules['length'].'. ';
