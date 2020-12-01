@@ -349,9 +349,9 @@ class User extends Model
         if(!$this->errors_found) {
             $user = $this->getUser('EMAIL',$email);
             if($user == 0) {
-                $error = 'Invalid email or password!';
-                if($this->debug) $error .= ' Email['.$email.'] not recognised.';
-                $this->addError($error);
+                $debug_info = 'Email['.$email.'] not recognised.';
+                $user_id = 0;
+                $this->loginFail('USER',$user_id,['email'=>$email,'password'=>$password,'debug_info'=>$debug_info]);
             } else { 
                 $user_id = $user[$this->user_cols['id']];
                 $salt = $user[$this->user_cols['pwd_salt']];
@@ -371,9 +371,8 @@ class User extends Model
 
                     $this->manageUserAction('LOGIN',$user,$remember_me,$days_expire);
                 } else {
-                    //$debug_info = 'password['.$password.'] salt['.$salt.'] & hash['.$password_check.'] stored hash['.$password_db.']';
                     $debug_info = 'password entered['.$password.'] ';
-                    $this->loginFail('MANUAL',$user_id,['email'=>$email,'password'=>$password,'debug_info'=>$debug_info]);
+                    $this->loginFail('PASSWORD',$user_id,['email'=>$email,'password'=>$password,'debug_info'=>$debug_info]);
                 }
             }
         }
@@ -384,8 +383,8 @@ class User extends Model
     
     protected function loginFail($type,$user_id,$param = [])
     {
-        if($type === 'MANUAL') {
-            $description = 'Email['.$param['email'].'] pwd[****'.substr($param['password'],6).'] login FAILED.';
+        if($type === 'PASSWORD') {
+            $description = 'Email['.$param['email'].'] pwd[****'.substr($param['password'],6).'] login FAILED. INVALID PASSWORD.';
             if(isset($_SERVER['REMOTE_ADDR'])) $description .= ' IP['.$_SERVER['REMOTE_ADDR'].']';
             Audit::action($this->db,$user_id,'LOGIN_FAIL',$description);
 
@@ -393,16 +392,30 @@ class User extends Model
             if($this->debug) {
                 $this->addError($param['debug_info']);
             }
+
+            $sql = 'UPDATE '.$this->table.' SET '.$this->user_cols['login_fail'].' = '.$this->user_cols['login_fail'].' + 1 '.
+                   'WHERE '.$this->user_cols['id'].' = "'.$user_id.'" '; 
+            $this->db->executeSql($sql,$error_tmp);
+            if($error_tmp !== '') {
+                $error = 'USER_AUTH_ERROR: could not update fail count';
+                if($this->debug) $error .= ' User ID['.$user_id.']: '.$error_tmp;
+                throw new Exception($error);
+            }
         }    
 
-        $sql = 'UPDATE '.$this->table.' SET '.$this->user_cols['login_fail'].' = '.$this->user_cols['login_fail'].' + 1 '.
-               'WHERE '.$this->user_cols['id'].' = "'.$user_id.'" '; 
-        $this->db->executeSql($sql,$error_tmp);
-        if($error_tmp !== '') {
-            $error = 'USER_AUTH_ERROR: could not update fail count';
-            if($this->debug) $error .= ' User ID['.$user_id.']: '.$error_tmp;
-            throw new Exception($error);
+        if($type === 'USER') {
+            $description = 'Email['.$param['email'].'] pwd[****'.substr($param['password'],6).'] login FAILED. UNKNOWN USER.';
+            if(isset($_SERVER['REMOTE_ADDR'])) $description .= ' IP['.$_SERVER['REMOTE_ADDR'].']';
+            Audit::action($this->db,$user_id,'LOGIN_UNKNOWN',$description);
+
+            $this->addError('Invalid Email or password!');
+            if($this->debug) {
+                $this->addError($param['debug_info']);
+            }
+
         }
+        
+
 
         sleep(3);
     }
