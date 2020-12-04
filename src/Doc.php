@@ -8,7 +8,9 @@ class Doc
 {
     public static function fileNameParts($file_name) 
     {
-        $info = pathinfo($file_name);//returns [dirname] [basename] [extension] [filename]
+        //returns [dirname] [basename] [extension] [filename]
+        //NB: [filename] EXCLUDES [extension]! use [basename] for actual file name
+        $info = pathinfo($file_name);
         
         if($info['dirname'] == '.') $info['dirname'] = '';
         return $info;
@@ -146,7 +148,7 @@ class Doc
         $error = '';
         
         $info = Self::fileNameParts($doc_path);
-        $doc_name = $info['filename'];
+        $doc_name = $info['basename'];
         $extension = strtolower($info['extension']);
         
         $content_type = 'application/octet-stream';

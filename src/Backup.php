@@ -449,7 +449,6 @@ class Backup extends Model
                 $s3 = $this->setupAmazon();
                 
                 $file_path = $this->path['temp'].$file_name;
-
                 $s3->getFile($data[$this->backup_cols['file_name']],$file_path,$error);
                 if($error != '') $this->addError('Could not retrieve backup file['.$file_name.'] from Amazon S3');
             }
@@ -460,7 +459,7 @@ class Backup extends Model
             Doc::downloadDoc($file_path,'DOWNLOAD',$error);
         } 
                 
-        if(!$this->errors_found) {
+        if($this->errors_found) {
             $this->addError('Download failed!');  
         } else { 
             if($output === 'BROWSER') {
@@ -559,9 +558,7 @@ class Backup extends Model
             $html .= '</table>';
             $html .= '</div>';
         }  
-        
-        $html = $this->viewMessages().$html;
-        
+                
         return $html;
     } 
     
@@ -648,7 +645,7 @@ class Backup extends Model
         //construct tar command excluding non-source directories    
         $param = array();
         if($type === 'SOURCE') {
-            $param['root_path'] = '';
+            $param['root_path'] = $this->path['source'];
             $param['file_path'] = $file_path;
             $param['exclude_sub_dir'] = $this->exclude_sub_dir;
         } else {
@@ -692,22 +689,28 @@ class Backup extends Model
         if($type === 'SOURCE') {
             if($param['root_path'] !== '') {
                 $dir = $param['root_path'];
-                //remove trailing '/'
+                
+                //Removing trailing '/' appears to make no difference but dont fix what aint broken
+                //NB:If you use '*' instead of '.' with trailing '/' it works from CLI(and you dont have '.' as archive root) but NOT using system($command)
+                //Tar command appears to be very version and platform dependant
                 if(substr($dir,-1) === '/') $dir = substr($dir,0,-1);
-                //-C flag changes directory
+                
+                //-C flag changes directory 
                 $tar_path = '-C '.$dir.' .';
             } else {
                 //compress everything in current directory/sub-directories: can use "." but "*" better
                 $tar_path = '*';  
             }   
             
-            $command = 'tar -czof '.$param['file_path'].' '.$tar_path.' ';
-            
+            //NB: for some bizarre reason --exclude flags must come before -czof part of command
+            $dir_exclude = '';
             foreach($param['exclude_sub_dir'] as $dir) {
                 //trailing "/" must be removed
                 if(substr($dir,-1) === '/') $dir = substr($dir,0,-1);
-                $command .= '--exclude "'.$dir.'" ';
+                $dir_exclude .= '--exclude "'.$dir.'" ';
             } 
+
+            $command = 'tar '.$dir_exclude.' -czof '.$param['file_path'].' '.$tar_path.' ';
         }  
         
         return $command;   
