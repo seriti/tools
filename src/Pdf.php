@@ -732,6 +732,9 @@ class Pdf extends FPDF
             $format_text['font_size'] = $options['font_size'];
             $format_header['font_size'] = $options['font_size'];
         }
+        //use to overwrite any format settings.
+        if(isset($options['format_header'])) $format_header = array_merge($format_header,$options['format_header']);
+        if(isset($options['format_text'])) $format_text = array_merge($format_text,$options['format_text']);
         //reset default money format options
         if(isset($options['money'])) $this->money = $options['money'];  
         

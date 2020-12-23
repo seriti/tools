@@ -25,6 +25,7 @@ class Report {
 
     protected $report_header = '';
     protected $report_select_title = 'Select report';
+    protected $report_select_class = 'form-control input-medium';
     protected $submit_title = 'View report';
     protected $submit_location = 'BOTTOM';
     protected $report = array();
@@ -129,7 +130,7 @@ class Report {
             $param = [];
             //$param['xtra'] = array('NONE'=>'Select report');
             $param['onchange'] = 'display_options();';
-            $param['class'] = 'form-control input-medium';
+            $param['class'] = $this->report_select_class;
             $list_assoc = true;
             if(isset($this->form['report_id'])) $report_id = $this->form['report_id']; else $report_id = '';
             $html .= '<h1>'.$this->report_select_title.'</h1>'.Form::arrayList($this->report_list,'report_id',$report_id,$list_assoc,$param);
