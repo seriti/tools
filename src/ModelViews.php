@@ -140,6 +140,66 @@ trait  ModelViews
         return $html;
     }
 
+    protected function viewEditActions($id,$data,$row_no) 
+    {
+        $html = '';
+        $state_param = $this->linkState();
+        $data[$this->key['id']] = $id;
+         
+        if(count($this->actions) != 0) {
+            foreach($this->actions as $action) {
+                if($action['type'] === 'edit' or $action['type'] === 'check_box') {
+                    $valid = false;
+                } else {
+                    $valid = true;
+                    if($action['verify']) $valid = $this->verifyEditAction($id,$action,$data);
+                }
+
+                if($valid) {
+                    if($action['class'] != '') $html .= '<span class="'.$action['class'].'">';
+                    
+                    $show = '';
+                    if($action['icon'] !== false) $show .= $action['icon'];
+                    if(isset($action['col_id'])) $show .= $data[$action['col_id']];
+                    if($action['text'] != '') $show .= $action['text']; 
+                        
+                    if($action['type'] === 'popup') {
+                        if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod = '&';
+                        $url = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
+                        $html .= '<a class="action" href="Javascript:open_popup(\''.$url.'\','.
+                                     $action['width'].','.$action['height'].')">'.$show.'</a>';     
+                    } elseif($action['type'] === 'link') {
+                        if(isset($action['target'])) $target = 'target="'.$action['target'].'"'; else $target='';
+                        if(!strpos($action['url'],'?')) $url_mod = '?'; else $url_mod='&';
+                        $href = $action['url'].$url_mod.'id='.$data[$this->key['id']].$state_param;
+                        if($action['mode'] != '') $href .= '&mode='.$action['mode'];
+                        $html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
+                    } else {    
+                        $onclick = '';
+                        if($action['type'] == 'delete') {
+                            $item = $this->row_name.'['.$data[$this->col_label].']';
+                            $onclick = 'onclick="javascript:return confirm(\'Are you sure you want to DELETE '.$item.'?\')" '; 
+                        }
+                        $href = '?mode='.$action['mode'].'&page='.$this->page_no.'&row='.$row_no.'&id='.$data[$this->key['id']].$state_param;  
+                        $html .= '<a class="action" href="'.$href.'" '.$onclick.'>'.$show.'</a>';  
+                    } 
+                    
+                    if($action['class'] != '') $html .= '</span>';
+                    //space between actions, if &nbsp; then no auto breaks
+                    if($action['spacer_edit'])
+                    $html .= $action['spacer_edit'];       
+                } 
+            }
+        }
+
+        if($this->access['copy']) {
+            $html .= '&nbsp;&nbsp;(&nbsp;'.Form::checkbox('copy_record','YES',0).
+                     '&nbsp;Create a new '.$this->row_name.' using displayed data? )';
+        } 
+        
+        return $html;
+    }
+
     protected function viewMessages() 
     {
         $html = '';
@@ -655,6 +715,7 @@ trait  ModelViews
     protected function modifyRecordValue($col_id,$data,&$value) {}
     protected function viewEditXtra($id,$form,$edit_type) {}
     protected function verifyRowAction($action,$data) {}
+    protected function verifyEditAction($id,$action,$data) {}
     protected function modifyEditValue($col_id,$value,$edit_type,$param) {}
     protected function customEditValue($col_id,$value,$edit_type,$form) {}  
     protected function customSearchValue($col_id,$value) {}

@@ -207,7 +207,8 @@ trait  ModelHelpers
         if(!isset($action['class'])) $action['class'] = '';    
         if(!isset($action['mode'])) $action['mode'] = 'list';
         if(!isset($action['verify'])) $action['verify'] = false;
-        if(!isset($action['spacer'])) $action['spacer'] = '&nbsp;';
+        if(!isset($action['spacer'])) $action['spacer'] = '&nbsp;'; //for table rows view
+        if(!isset($action['spacer_edit'])) $action['spacer_edit'] = '&nbsp;-&nbsp;'; //for edit view
                         
         if($action_valid) {
             if(!isset($action['pos'])) $action['pos'] = 'L';

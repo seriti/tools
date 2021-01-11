@@ -653,19 +653,9 @@ class Table extends Model
                  '<input type="hidden" name="edit_type" value="'.$edit_type.'">'; 
                                 
         if($edit_type === 'UPDATE') {   
-            $delete_link = '';
-            if($this->access['delete']) {
-                $onclick = 'onclick="javascript:return confirm(\'Are you sure you want to DELETE '.$this->row_name.'?\')" '; 
-                $href = '?mode=delete&page='.$this->page_no.'&row='.$this->row_no.'&id='.$id;
-                $delete_link .= '<a class="action" href="'.$href.'" '.$onclick.'>(Delete)</a>&nbsp;&nbsp;'; 
-            }  
-                                 
-            $html .= '<div class="row"><div '.$class_label.'>'.$delete_link.$this->key['title'].':</div>'.
-                     '<div '.$class_value.'><input type="hidden" name="'.$this->key['id'].'" value="'.$id.'"><b>'.$id.'</b>';
-            if($this->access['copy']) {
-                $html .= '&nbsp;&nbsp;(&nbsp;'.Form::checkbox('copy_record','YES',0).
-                         '&nbsp;Create a new '.$this->row_name.' using displayed data? )';
-            }    
+            $html .= '<div class="row"><div '.$class_label.'>'.$this->key['title'].':</div>'.
+                     '<div '.$class_value.'><input type="hidden" name="'.$this->key['id'].'" value="'.$id.'"><b>'.$id.'</b>&nbsp;';
+            $html .= $this->viewEditActions($id,$this->data,$this->row_no);
             $html .= '</div></div>';       
         }
 
@@ -1043,7 +1033,9 @@ class Table extends Model
             
             if($this->add_repeat and $edit_type === 'INSERT') {
                 $form = array();
-                $this->addMessage('Successfully added '.$this->row_name.'! Please continue capturing '.$this->row_name_plural);
+                $msg = 'Successfully added '.$this->row_name.'! Please continue capturing '.$this->row_name_plural.
+                       ' or <a href="?mode=list">List all</a>';
+                $this->addMessage($msg);
                 $html .= $this->viewEdit('0',$form,'INSERT');
             } else {  
                 $location = $this->location.'?mode=list'.$this->linkState().
