@@ -731,7 +731,7 @@ class User extends Model
             $routes_allow = $this->setupRouteWhitelist();
             if(!isset($routes_allow[$last_page])) $last_page = ''; 
         }
-
+        
         if($last_page !== ''){
             header('location: '.BASE_URL.Secure::clean('header',$last_page));
         } else {
@@ -834,6 +834,37 @@ class User extends Model
     }
     
     // *** HELPER FUNCTIONS FOR ANY USER, NOT JUST CURRENT LOGGED IN USER ****
+
+    //Update user email token and return login url for use in custom emails only.  
+    public function resetEmailLoginToken($user_id,$days_expire = 1,$login_mode = 'reset_login')
+    {
+        $user = $this->get($user_id);
+        if($user == 0) {
+            $error = 'USER_TOKEN_ERROR: Invalid user';
+            if($this->debug) $error .= ' ID['.$user_id.'] ';
+            throw new Exception($error);
+        }
+
+        $date = getdate(); 
+        $email_token = Crypt::makeToken();
+        $date_str = date('Y-m-d',mktime(0,0,0,$date['mon'],$date['mday']+$days_expire,$date['year']));
+        
+        $data = [$this->user_cols['email_token']=>$email_token,
+                 $this->user_cols['email_token_expire']=>$date_str];
+
+        $result = $this->update($user_id,$data);
+        if($result['status'] !== 'OK') {
+            $error = 'USER_TOKEN_ERROR: Could not update user email token!';
+            if($this->debug) $error .= ' User ID['.$user_id.']: '.implode(',',$result['errors']);
+            throw new Exception($error);
+        }
+
+        $zone = $user[$this->user_cols['zone']];
+        $route = $this->getRoute('login',$zone);
+        $login_url = BASE_URL.$route.'?mode='.$login_mode.'&token='.urlencode($email_token);
+
+        return $login_url;
+    }
 
     //send ANY user link so they can reset password of their own choice
     public function resetSendPasswordLink($user_id)

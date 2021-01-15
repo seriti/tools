@@ -424,6 +424,7 @@ class Date
         return $date_str;
     }
 
+    //NB: Future nights only, otherwise returns 0
     public static function calcNights($date_in,$date_out,$format='MYSQL')
     {
         $no_nights=0;
@@ -448,6 +449,7 @@ class Date
         return $no_nights;
     }
 
+    //NB: Future days only, otherwise returns 0
     public static function calcDays($date_from,$date_to,$format='MYSQL',$options=array()) 
     {
         $no_days=0;
