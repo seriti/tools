@@ -87,6 +87,17 @@ class Model
         }       
     }
 
+    //NB: only use this where need to configure key outside of addCol() like in Import class
+    protected function setupKey($col = []) 
+    {
+        $col['key'] = true;
+        if(!isset($col['title'])) $col['title'] = $col['id'];
+        $col['edit'] = false; 
+        if(!isset($col['key_auto'])) $col['key_auto'] = false;  
+        if($col['key_auto']) $col['required'] = false;
+        $this->key = $col;
+    }
+
     //NB: if you used addAllCols() then this will overwite individual col settings
     protected function addCol($col = []) 
     {

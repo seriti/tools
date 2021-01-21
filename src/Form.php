@@ -491,9 +491,24 @@ class Form
         return $html;
     }
 
-    public static function daysList($day) 
+    public static function daysList($day,$name = '',$param = []) 
     {
         $html = '';
+        $select_tag = false;
+
+        if($name != '') {
+            $select_tag = true;
+            if(!isset($param['select'])) {
+                $class = '';
+                $on_change = '';
+                if(isset($param['class'])) $class = 'class="'.$param['class'].'" ';
+                if(isset($param['onchange'])) $on_change = 'onchange="'.$param['onchange'].'" ';
+                $html .= '<select '.$class.' name="'.$name.'" id="'.$name.'" '.$on_change.'>';
+            } else {
+                $html .= $param['select'];  
+            }           
+        }   
+
         for($i = 1; $i <= 31; $i++) {
             if($day == $i){
                 $option = '<option selected  value="';
@@ -504,6 +519,9 @@ class Form
             $option .= $i.'">'.$i.'</option>'."\n";
             $html .= $option;
         }
+
+        if($select_tag) $html .= '</select>';
+        
         return $html;
     }
 
@@ -523,7 +541,7 @@ class Form
         return $html;
     }
 
-    public static function monthsList($month,$name = '',$param = array())
+    public static function monthsList($month,$name = '',$param = [])
     {
         $html = '';
         $select_tag = false;
@@ -570,7 +588,7 @@ class Form
         return $html;
     }
 
-    public static function yearsList($year,$past_years,$future_years,$name = '',$param = array()) 
+    public static function yearsList($year,$past_years,$future_years,$name = '',$param = []) 
     {
         $html = '';
         $date = getdate();

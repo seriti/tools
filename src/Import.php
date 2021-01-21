@@ -87,6 +87,8 @@ class Import extends Model {
         if(!isset($col['update'])) $col['update'] = false;
         if(!isset($col['confirm'])) $col['confirm'] = true;
 
+        if($col['type'] === 'IGNORE') $col['required'] = false;
+
         //allow update if record id exists
         if($col['update'] === true) $this->update_existing = true; 
 
@@ -155,7 +157,7 @@ class Import extends Model {
                         } 
                         
                         if($error !== '') {
-                            $this->addError($error);
+                            $this->addError($error,false);
                             fclose($handle);
                             return false;
                         } 
@@ -218,7 +220,7 @@ class Import extends Model {
                 $row = array();
                 $valid_row = true;
                 $error_row = false;
-                                
+
                 $name = 'ignore_'.$i;
                 if(isset($_POST[$name])) $valid_row = false;
                 
@@ -227,11 +229,11 @@ class Import extends Model {
                     if($col['type'] !== 'IGNORE') {
                         $name = $id.'_'.$i;
                         //NB: checkbox value is not set if not checked
-                        if(isset($_POST[$name])) $row[$id] = $_POST[$name]; else $row[$id]='';
+                        if(isset($_POST[$name])) $row[$id] = $_POST[$name]; else $row[$id] = '';
                     }    
                 }  
-                
-                //placeholder function to modify row values based on any criteria and/or error checking
+
+                //placeholder function to modify/validate row values based on any criteria and/or error checking
                 $this->modifyConfirmRow($row,$error_row,$valid_row);
                 
                 if($valid_row) {
@@ -282,7 +284,7 @@ class Import extends Model {
             if($valid) {
                 $exists = false;
 
-                if($this->update_existing and $data[$this->key['id']])  {
+                if($this->update_existing and isset($data[$this->key['id']]) and $data[$this->key['id']])  {
                     $update_id = $data[$this->key['id']];
                     $record = $this->get($update_id);
                     if($record !== 0) {
@@ -468,7 +470,7 @@ class Import extends Model {
                     $html .= '</tr>';
                     
                     if($error !== '') {
-                        $this->addError($error);
+                        $this->addError($error,false);
                         fclose($handle);
                         return false;
                     } 
@@ -504,6 +506,7 @@ class Import extends Model {
     }  
 
     //placeholder functions for custom modifications
+    //NB: $error_line & $error_row are BOOLEAN and not string
     protected function modifyCsvLine(&$line,&$error_line,&$valid_line) {}
     protected function modifyConfirmRow(&$row,&$error_row,&$valid_row) {}
     protected function afterRowConfirmed($row) {}

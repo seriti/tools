@@ -268,7 +268,8 @@ class Setup
                   `file_ext` varchar(16) NOT NULL,
                   `file_type` varchar(64) NOT NULL,
                   PRIMARY KEY (`file_id`),
-                  FULLTEXT KEY `search_idx` (`key_words`)
+                  KEY `idx_file1` (`location_id`),
+                  FULLTEXT KEY `idx_file2` (`key_words`)
               ) ENGINE=MyISAM ';
 
         $this->db->executeSql($sql,$error_tmp); 

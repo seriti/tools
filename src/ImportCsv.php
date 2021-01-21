@@ -69,6 +69,10 @@ class ImportCsv {
     protected $errors_found = false; 
     protected $messages = array();
 
+    //all id's of inserted/updated records
+    protected $insert_ids = [];
+    protected $update_ids = [];
+
     public function __construct(DbInterface $db,$table,$format = 'COMMA')
     {
         $this->db = $db;
@@ -152,10 +156,15 @@ class ImportCsv {
         return $this->messages;
     }
 
-
     public function getForm() 
     {
         return $this->form;
+    }
+
+    public function getImportIds($type = 'INSERT') 
+    {
+        if($type === 'INSERT') return $this->insert_ids;
+        if($type === 'UPDATE') return $this->update_ids;
     }
 
     //Placeholder function to modify $this->col_select
@@ -436,21 +445,23 @@ class ImportCsv {
                         }  
                     }
                       
-                    //**** UPDATE STILL TO BE DONE, WHAT TO UPDATE ETC  
+                    //**** UPDATE STILL TO BE IMPLEMENTED, WHAT TO UPDATE ETC ***
                     if($update) {
                         $where[$key_id] = $data[$key_id];
                         unset($data[$key_id]);
-                        if($this->test === false) $this->db->updateRecord($this->table,$data,$where,$error_tmp);
+                        if(!$this->test) $this->db->updateRecord($this->table,$data,$where,$error_tmp);
                         if($error_tmp !== '') {
                             $error_line .= 'Could not UPDATE database record['.$where[$key_id].']:'.$error_tmp.'<br/>';
                         } else {
+                            if(!$this->test) $this->update_ids[] = $data[$key_id];
                             $update_i++; 
                         }  
                     } else {  
-                        if($this->test === false) $this->db->insertRecord($this->table,$data,$error_tmp);    
+                        if(!$this->test) $id = $this->db->insertRecord($this->table,$data,$error_tmp);    
                         if($error_tmp !== '') {
                             $error_line .= 'Could not CREATE database record:'.$error_tmp.'<br/>';
                         } else {
+                            if(!$this->test) $this->insert_ids[] = $id;
                             $insert_i++; 
                         }  
                     }  
