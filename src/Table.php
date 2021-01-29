@@ -984,7 +984,7 @@ class Table extends Model
             
             if($this->calc_aggregate) {
                 foreach($this->search_aggregate as $n => $agg) {
-                    $str = $agg['title'].' : '.$count['agg_'.$n];
+                    $str = $agg['title'].' : '.number_format($count['agg_'.$n],2);
                     $this->addMessage($str);
                 }
             }  
