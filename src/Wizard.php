@@ -38,6 +38,8 @@ class Wizard {
     protected $data = array();
     //store any required javascript
     protected $javascript = '';
+    //must be true to allow normal page processing
+    protected $process_page_no = true;
     //current wizard page no
     protected $page_no = 1;
     //next wizard page assuming no errors 
@@ -50,6 +52,7 @@ class Wizard {
     protected $errors = array();
     protected $errors_found = false; 
     protected $messages = array();
+    protected $show_messages = true;
     protected $access_level = 'NONE';
     protected $form_input = false;
     protected $bread_crumbs = false;
@@ -91,7 +94,9 @@ class Wizard {
 
         if(isset($param['upload_dir'])) $this->upload_dir = $param['upload_dir'];
         //need to manually set user csrf token as wizard can used outside login env 
-        if(isset($param['csrf_token'])) $this->user_csrf_token = $param['csrf_token'];        
+        if(isset($param['csrf_token'])) $this->user_csrf_token = $param['csrf_token']; 
+        //turn message display on/off
+        if(isset($param['show_messages'])) $this->show_messages = $param['show_messages'];      
     }
 
     //define all variable for validation/security purposes
@@ -205,13 +210,13 @@ class Wizard {
             if($param['form_tag'] !== '') {
                 $html .= '<input type="hidden" name="seriti_wizard" value="process"></form>';
             }  
-                
-                
         } 
         
-        $html = $this->viewMessages().$html;
+        if($this->show_messages) {
+            $html = $this->viewMessages().$html;    
+        }
+        
         return $html;
-        //if($error_page) return $this->viewMessages(); else return $html;  
     }
     
     //NB: If you use saveData() then be careful that not overwritten on first page 
@@ -221,18 +226,24 @@ class Wizard {
         $error = '';
         $message = '';
         $html = '';
-        
-        //NB: all form and additional data reset on first(pageless) process
-        if(isset($_GET['page']))  { 
-            $this->page_no = Secure::clean('integer',$_GET['page']);
-            if(isset($_POST['seriti_wizard']) and $_POST['seriti_wizard'] === 'process') $this->form_input = true;
-        } else {
-            $this->resetData('ALL');
-            $this->page_no = 1;
-            $this->initialConfig();
-        }  
+       
+
+        //placeholder for custom processing
+        $this->beforeProcess();
+
+        if($this->process_page_no) {
+            //NB: all form and additional data reset on first(pageless) process
+            if(isset($_GET['page']))  { 
+                $this->page_no = Secure::clean('integer',$_GET['page']);
+                if(isset($_POST['seriti_wizard']) and $_POST['seriti_wizard'] === 'process') $this->form_input = true;
+            } else {
+                $this->resetData('ALL');
+                $this->page_no = 1;
+                $this->initialConfig();
+            }    
+        }
+
         $page = $this->pages[$this->page_no];
-        
 
         if(isset($this->user_csrf_token) and $this->form_input) {
             $this->csrf_token = Secure::clean('basic',Form::getVariable('csrf_token','GP'));
@@ -240,12 +251,8 @@ class Wizard {
             if($error !== '') $this->addError($error); 
         }
 
-        //removed as csrf_token stored in an old form may become stale if left for more than session timeout
-        //Not sure why it was here in first place, always want cached data surely, probably a bug and not a feature???
-        //if(!$this->errors_found) {
-            $this->getData('form');
-            $this->getData('data');
-        //}    
+        $this->getData('form');
+        $this->getData('data');
 
         //only process form variables if form has been submitted
         if($this->form_input) {
@@ -315,6 +322,7 @@ class Wizard {
     
     //placeholder functions
     public function setupPageData($no) {}
+    public function beforeProcess() {}
     public function processPage() {}
     public function initialConfig() {}
     

@@ -8,7 +8,7 @@ trait  MessageHelpers
     {
         $html = '';
                                         
-        if($this->errors_found) {
+        if($this->errors_found and count($this->errors) != 0) {
             $html .= '<div id="error_div" class="'.$this->classes['error'].'">'.
                      '<button type="button" class="close" data-dismiss="alert">x</button><ul>';
             foreach($this->errors as $error) {

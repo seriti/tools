@@ -57,7 +57,7 @@ class User extends Model
     protected $route_access = false;
     protected $routes = ['login'=>'login','logout'=>'login','default'=>'admin/user/dashboard','error'=>'error'];
     //'ANY' value will ignore any occurrence of route key; 'EXACT' value will only ignore exact match of route key
-    protected $routes_redirect_ignore = ['ajax'=>'ANY','login'=>'EXACT'];
+    protected $routes_redirect_ignore = ['ajax'=>'ANY','login'=>'EXACT','admin/data/encrypt'=>'EXACT'];
 
     //cache id's used to maintain state between requests using setCache()/getcache()
     protected $cache = ['user'=>'user_id','reset'=>'password_reset','human'=>'human_id','page'=>'last_url'];
@@ -170,13 +170,11 @@ class User extends Model
         //redirect to default page if user accidentally went to login page
         //NB: if user tries to access a route that thay do not have access to then this can become an infinite loop
         if($this->mode === '') {
-                       
-            $this->user_id = $this->getCache($this->cache['user']);    
-            if($this->user_id !== '') {
+            
+            //NB: Will check if user logged in and setup data only. Required as checkAccessRights() not called here.
+            $this->setupUserData();            
+            if($this->user_id != 0) {
                 $this->addMessage('You are already logged in! You can login as another user or '.$this->js_links['back']);
-
-                $this->data = $this->getUser('ID',$this->user_id);
-                $this->access_zone = $this->data[$this->user_cols['zone']];
 
                 if($this->debug) {
                     $name = $this->data[$this->user_cols['name']];
@@ -204,6 +202,20 @@ class User extends Model
         return $html;
     }
     
+    //NB: Only used where checkAccessRights() not called but user may be known 
+    public function setupUserData() 
+    {
+        $this->user_id = $this->getCache($this->cache['user']);    
+        if($this->user_id !== '') {
+            $this->data = $this->getUser('ID',$this->user_id);
+            $this->access_zone = $this->data[$this->user_cols['zone']];
+        } else {
+            $this->user_id = 0;
+        }
+
+        return $this->user_id;   
+    }
+
     public function getData()
     {
         return $this->data;
@@ -388,7 +400,7 @@ class User extends Model
             if(isset($_SERVER['REMOTE_ADDR'])) $description .= ' IP['.$_SERVER['REMOTE_ADDR'].']';
             Audit::action($this->db,$user_id,'LOGIN_FAIL',$description);
 
-            $this->addError('Invalid Email or password!');
+            $this->addError('Invalid Email or Password!');
             if($this->debug) {
                 $this->addError($param['debug_info']);
             }
@@ -408,7 +420,7 @@ class User extends Model
             if(isset($_SERVER['REMOTE_ADDR'])) $description .= ' IP['.$_SERVER['REMOTE_ADDR'].']';
             Audit::action($this->db,$user_id,'LOGIN_UNKNOWN',$description);
 
-            $this->addError('Invalid Email or password!');
+            $this->addError('Invalid Email or Password!');
             if($this->debug) {
                 $this->addError($param['debug_info']);
             }
