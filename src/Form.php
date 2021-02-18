@@ -368,7 +368,7 @@ class Form
                     } else {
                         $select = '';
                     }  
-                    $option = '<option value="'.$key.'" '.$select.' >'.$name.'</option>'."\n";
+                    $option = '<option value="'.$key.'" '.$select.' >'.$name.'</option>';
                     $html .= $option;
                 } 
             } else {  
@@ -442,7 +442,7 @@ class Form
                     } else {
                         $select = '';
                     }  
-                    $option = '<option value="'.$key.'" '.$select.' >'.$name.'</option>'."\n";
+                    $option = '<option value="'.$key.'" '.$select.' >'.$name.'</option>';
                     $html .= $option;
                 } 
             } else {  
@@ -466,7 +466,7 @@ class Form
                 } else {
                     $select = '';
                 }  
-                $option = '<option value="'.$keys[$i].'" '.$select.' >'.$array[$key].'</option>'."\n";
+                $option = '<option value="'.$keys[$i].'" '.$select.' >'.$array[$key].'</option>';
                 $html .= $option;
             } 
         } else {
@@ -477,7 +477,7 @@ class Form
                 } else {
                     $select = '';
                 }  
-                $option = '<option value="'.$array[$i].'" '.$select.' >'.$array[$i].'</option>'."\n";
+                $option = '<option value="'.$array[$i].'" '.$select.' >'.$array[$i].'</option>';
                 $html .= $option;
             }
         }
@@ -516,7 +516,7 @@ class Form
                 $option = '<option  value="';
             }
             
-            $option .= $i.'">'.$i.'</option>'."\n";
+            $option .= $i.'">'.$i.'</option>';
             $html .= $option;
         }
 
@@ -535,7 +535,7 @@ class Form
             
             if($val == $time) $sel = 'selected'; else $sel = '';
             
-            $option = '<option '.$sel.' value="'.$val.'">'.$show.'</option>'."\n";
+            $option = '<option '.$sel.' value="'.$val.'">'.$show.'</option>';
             $html .= $option;
         }
         return $html;
@@ -579,7 +579,7 @@ class Form
                 $option = '<option value="';
             }
             
-            $option .= $i.'">'.$names[$i].'</option>'."\n";
+            $option .= $i.'">'.$names[$i].'</option>';
             $html .= $option;
         }
         
@@ -615,7 +615,7 @@ class Form
                 $option = '<option value="';
             }
             
-            $option .= $i.'">'.$i.'</option>'."\n";
+            $option .= $i.'">'.$i.'</option>';
             
             $html .= $option;
         }
@@ -668,7 +668,7 @@ class Form
                 $option = '<option value="'.$i.'">';
             }
             
-            $option .= $i.'</option>'."\n";
+            $option .= $i.'</option>';
             $html .= $option;
         }
         return $html;
