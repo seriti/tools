@@ -192,7 +192,7 @@ class Doc
         if(!is_file($compress_path)) {
             $result=$zip->open($compress_path,ZipArchive::CREATE);
         } else {
-            $result=$zip->open($archive);
+            $result=$zip->open($compress_path);
         }
         
         if($result===true) {
