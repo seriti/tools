@@ -39,6 +39,7 @@ class ImportCsv {
     protected $escape = "\\";
 
     protected $unique_field = '';
+    protected $update_flag = false;
 
     protected $import_flag = false;
     protected $import_flag_field = 'import_flag';
@@ -134,7 +135,9 @@ class ImportCsv {
         //NB: must be same as $this->cols settings in processLinkForm()
         if(isset($param['setup_cols'])) $this->cols = $param['setup_cols']; 
         //will not import if this field value exists
-        if(isset($param['unique_field'])) $this->unique_field = $param['unique_field']; 
+        if(isset($param['unique_field'])) $this->unique_field = $param['unique_field'];
+        //if unique field set and update flag true then will update record where unique field found
+        if(isset($param['update_flag'])) $this->update_flag = $param['update_flag'];  
 
         if(isset($param['import_flag'])) $this->import_flag = $param['import_flag'];  
         if(isset($param['import_flag_field'])) $this->import_flag_field = $param['import_flag_field'];  
@@ -427,9 +430,15 @@ class ImportCsv {
                         $where[$this->unique_field] = $data[$this->unique_field];
                         $rec = $this->db->getRecord($this->table,$where);
                         if($rec !== 0) {
-                            $line_valid = false;
-                            $exist_i++;
-                            $this->addMessage('Existing record in line['.$i.'] using '.$this->unique_field.' ['.$data[$this->unique_field].']');
+                            if($this->update_flag) {
+                                $update = true;
+                                $exist_i++;
+                            } else {
+                                $line_valid = false;
+                                $exist_i++;
+                                $this->addMessage('Existing record in line['.$i.'] using '.$this->unique_field.' ['.$data[$this->unique_field].']');    
+                            }
+                            
                         }
                     } 
                 }  
@@ -447,6 +456,7 @@ class ImportCsv {
                       
                     //**** UPDATE STILL TO BE IMPLEMENTED, WHAT TO UPDATE ETC ***
                     if($update) {
+                        $key_id = $this->unique_field;
                         $where[$key_id] = $data[$key_id];
                         unset($data[$key_id]);
                         if(!$this->test) $this->db->updateRecord($this->table,$data,$where,$error_tmp);

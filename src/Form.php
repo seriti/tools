@@ -713,13 +713,13 @@ class Form
         $count = 0;
         $l = $param['level'];
 
-        $number = '123456789';
+        $number = '23456789';
         $lowercase = 'abcdefghjkmnpqrstuvwxyz';
         $uppercase = 'ABCDEFGHIJKLMNPQRSTUVWXYZ';
         
-        $set[1] = '123456789abcdefghjkmnpqrstuvwxyz';
-        $set[2] = '123456789abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
-        $set[3] = '123456789_!@#$%&*()-=+/abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ_!@#$%&*()-=+/';
+        $set[1] = '23456789abcdefghjkmnpqrstuvwxyz';
+        $set[2] = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ';
+        $set[3] = '23456789_!@#$%&*()-=+/abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNPQRSTUVWXYZ_!@#$%&*()-=+/';
         
         while($count < $param['min_length']) {
             $char = substr($set[$l], rand(0, strlen($set[$l])-1), 1);
