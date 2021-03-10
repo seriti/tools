@@ -918,7 +918,7 @@ class User extends Model
             if(!$this->errors_found) {
                 $mailer = $this->getContainer('mail');
                 if($mailer->sendEmail($from,$to,$subject,$body,$error)) {
-                    $this->addMessage('SUCCESS sending password reset link to['.$to.'] '); 
+                    $this->addMessage('SUCCESS emailing password reset link to['.$to.'] '); 
                 } else {
                     $this->addError('FAILURE emailing password reset link to['.$to.']: Please try again later or contact support['.$from.']'); 
                 } 
@@ -1018,6 +1018,8 @@ class User extends Model
                 $error .= 'FAILURE emailing user['.$user_id.'] login token to address['.$to.']'; 
                 if($this->debug) $error .= $error_tmp;
                 $this->addError($error);
+            } else {
+                $this->addMessage('SUCCESS emailing login link to['.$to.'] '); 
             }
 
         } 
