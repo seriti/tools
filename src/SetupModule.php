@@ -41,10 +41,11 @@ class SetupModule
     protected $base_url;
     protected $upload_url;
     
-    protected $module = '';
+    protected $module = [];
     protected $change_count = 0;
 
     protected $default_type = ['TEXT','TEXTAREA','HTML','SELECT','IMAGE'];
+    protected $default_prefix = '';
     protected $default = [];
 
     protected $user_access_level;
@@ -65,7 +66,7 @@ class SetupModule
         $this->container = $container;
 
         $this->system = $this->getContainer('system');
-        $this->module = strtoupper($module['name']);
+        $this->module = $module;
         
         //NB: these assumes public access to uploaded files
         $this->upload_dir = BASE_PATH.BASE_UPLOAD_WWW;
@@ -124,13 +125,15 @@ class SetupModule
         $html .= '<div class="row">'.
                  '<div class="col-sm-12">'.
                  '<h2>Change any settings below and then click update button to save: '.
-                    '<input type="submit" class="btn btn-primary" value="Update '.$this->module.' settings"></h2>'.
+                    '<input type="submit" class="btn btn-primary" value="Update '.$this->module['name'].' settings"></h2>'.
                     $this->viewMessages().
                  '</div>'.
                  '</div>'.
                  '<hr/>';
         foreach($this->default as $default) {
-            $value = $this->system->getDefault($default['id'],$default['value']);
+            //NB: default_id is NOT modified for form but only storage and retrieval
+            $system_id = $this->default_prefix.$default['id'];
+            $value = $this->system->getDefault($system_id,$default['value']);
             
             $html .= '<div class="row">'.
                      '<div class="col-sm-3"><strong>'.$default['title'].'</strong></div>';
@@ -185,8 +188,8 @@ class SetupModule
 
     protected function addDefault($type,$id,$title,$param = [])
     {
-        if($id == '') $this->addError('DEfault ID cannot be blank.');
-        if($title == '') $this->addError('DEfault Title cannot be blank.');
+        if($id == '') $this->addError('Default ID cannot be blank.');
+        if($title == '') $this->addError('Default Title cannot be blank.');
 
         if(!in_array($type,$this->default_type)) {
             $this->addError($type.' is Not valid default type.');
@@ -239,7 +242,8 @@ class SetupModule
             $this->addError($error);
         } else {    
             foreach($this->default as $default) {
-                $reset = $this->system->removeDefault($default['id']);
+                $system_id = $this->default_prefix.$default['id'];
+                $reset = $this->system->removeDefault($system_id);
                 if($reset) {
                     $this->addMessage('Successfully reset: '.$default['title']);
                 } else {
@@ -259,12 +263,15 @@ class SetupModule
         
         if(!$this->errors_found) {  
             foreach($this->default as $default) {
+                //NB: default_id is NOT modified for form but only storage and retrieval
+                $system_id = $this->default_prefix.$default['id'];
+
                 if($default['type'] === 'TEXT') {
                     if(isset($form[$default['id']])) {
-                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value_exist = $this->system->getDefault($system_id,$default['value']);
                         $value = Secure::clean('string',$form[$default['id']]);
                         if($value_exist !== $value) {
-                            $this->system->setDefault($default['id'],$value);
+                            $this->system->setDefault($system_id,$value);
                             $this->addMessage('Successfully updated '.$default['title'].' setting.');
                             $updated[$default['id']] = true;
                             $this->change_count++;
@@ -276,10 +283,10 @@ class SetupModule
                 
                 if($default['type'] === 'TEXTAREA') {
                    if(isset($form[$default['id']])) {
-                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value_exist = $this->system->getDefault($system_id,$default['value']);
                         $value = Secure::clean('text',$form[$default['id']]);
                         if($value_exist !== $value) {
-                            $this->system->setDefault($default['id'],$value);
+                            $this->system->setDefault($system_id,$value);
                             $this->addMessage('Successfully updated '.$default['title'].' setting.');
                             $updated[$default['id']] = true;
                             $this->change_count++;
@@ -291,11 +298,11 @@ class SetupModule
 
                 if($default['type'] === 'HTML') {
                    if(isset($form[$default['id']])) {
-                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value_exist = $this->system->getDefault($system_id,$default['value']);
                         //NB: NO cleaning of input as anything goes
                         $value = $form[$default['id']];
                         if($value_exist !== $value) {
-                            $this->system->setDefault($default['id'],$value);
+                            $this->system->setDefault($system_id,$value);
                             $this->addMessage('Successfully updated '.$default['title'].' setting.');
                             $updated[$default['id']] = true;
                             $this->change_count++;
@@ -307,10 +314,10 @@ class SetupModule
 
                 if($default['type'] === 'SELECT') {
                     if(isset($form[$default['id']])) {
-                        $value_exist = $this->system->getDefault($default['id'],$default['value']);
+                        $value_exist = $this->system->getDefault($system_id,$default['value']);
                         $value = Secure::clean('alpha',$form[$default['id']]);
                         if($value_exist !== $value) {
-                            $this->system->setDefault($default['id'],$value);
+                            $this->system->setDefault($system_id,$value);
                             $this->addMessage('Successfully updated '.$default['title'].' setting.');
                             $updated[$default['id']] = true;
                             $this->change_count++;
@@ -331,7 +338,7 @@ class SetupModule
                         if($error !== 'NO_FILE') $this->addError($default['title'].': '.$error);
                         $updated[$default['id']] = false;
                     } else {
-                        $this->system->setDefault($default['id'],$image_name);
+                        $this->system->setDefault($system_id,$image_name);
                         $this->addMessage('Successfully updated '.$default['title'].' image.');
                         $updated[$default['id']] = true;
                         $this->change_count++;

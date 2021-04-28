@@ -420,10 +420,15 @@ class Table extends Model
         } 
                         
         $html .= '</table>';
-        if($this->table_action) $html .= '</form>'; 
+        if($this->table_action) {
+            if(strpos($this->nav_show,'BOTTOM')) {
+                $html .= '<input type="submit" name="action_submit" value="'.$this->texts['btn_action'].'" class="'.$this->classes['button'].'">';
+            }
+            $html .= '</form>';
+        }     
         $html .= '</div>';
 
-        if(strpos($this->nav_show,'BOTTOM') !== false and $this->row_count > 50) $html .= $nav;
+        if(strpos($this->nav_show,'BOTTOM') !== false and $this->row_count > $this->max_rows) $html .= $nav;
         
         $html = $this->viewMessages().$html;
 
