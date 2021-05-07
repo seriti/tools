@@ -20,6 +20,7 @@ use Seriti\Tools\TableStructures;
 use Seriti\Tools\BASE_URL;
 use Seriti\Tools\URL_CLEAN;
 use Seriti\Tools\BASE_UPLOAD_WWW;
+
 use Seriti\Tools\TABLE_TOKEN;
 use Seriti\Tools\TABLE_ROUTE;
 
@@ -1025,6 +1026,61 @@ class User extends Model
         } 
 
         if(!$this->errors_found) return true; else return false; 
+    }
+
+    //copy user access setting from one user to any other user, unless from user has GOD access
+    public function copyUserAccess($from_user_id,$user_id) 
+    {
+        $error = '';
+        $error_tmp = '';
+        
+        $from_user = $this->getUser('ID',$from_user_id);
+        if($from_user[$this->user_cols['access']] === 'GOD') {
+            $error = 'Cannot copy access details for GOD access level.';
+            $this->addError($error);
+        } else {
+            $copy = [];
+            $copy[$this->user_cols['zone']] = $from_user[$this->user_cols['zone']];
+            $copy[$this->user_cols['access']] = $from_user[$this->user_cols['access']];
+            $copy[$this->user_cols['route_access']] = $from_user[$this->user_cols['route_access']];
+
+            $where = [$this->user_cols['id']=>$user_id];
+            $this->db->updateRecord($this->table,$copy,$where,$error_tmp);
+            if($error_tmp !== '') {
+                $error = 'Could not update user access zone and access';
+                if($this->debug) $error .= $error_tmp;
+                $this->addError($error);
+            } else {
+                if($from_user[$this->user_cols['route_access']]) {
+                    $sql = 'DELETE FROM '.TABLE_ROUTE.' '.
+                           'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" ';
+                    $this->db->executeSql($sql,$error_tmp);
+                    if($error_tmp !== '') {
+                        $error = 'Could not remove old route access setting';
+                        if($this->debug) $error .= $error_tmp;
+                        $this->addError($error);
+                    } else {
+                        $sql = 'SELECT * FROM '.TABLE_ROUTE.' '.
+                               'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($from_user_id).'" ';
+                        $routes = $this->db->readSqlArray($sql); 
+                        if($routes != 0) {
+                            foreach($routes as $route) {
+                                $route[$this->route_cols['user_id']] = $user_id;
+                                $this->db->insertRecord(TABLE_ROUTE,$route,$error_tmp);
+                                if($error_tmp !== '') {
+                                    $error = 'Could not insert user access route['.$route[$this->route_cols['route']].']';
+                                    if($this->debug) $error .= $error_tmp;
+                                    $this->addError($error);
+                                }    
+                            }
+                        }
+                    }    
+                }
+            }
+        }
+
+        if(!$this->errors_found) return true; else return false; 
+
     }
 
     //get rid of any expired login tokens.
