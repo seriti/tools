@@ -363,6 +363,7 @@ trait  ModelViews
         if(isset($col['onchange'])) $input_param['onchange'] = $col['onchange'];
         if(isset($col['onkeyup'])) $input_param['onkeyup'] = $col['onkeyup'];
         if(isset($col['onblur'])) $input_param['onblur'] = $col['onblur'];
+        if(isset($col['autofocus'])) $input_param['autofocus'] = $col['autofocus'];
         
         //setup form input name/id
         if(isset($param['name'])) {

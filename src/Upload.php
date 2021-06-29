@@ -151,6 +151,7 @@ class Upload extends Model
         if(isset($param['upload_path_base'])) $this->upload['path_base'] = $param['upload_path_base'];
         if(isset($param['upload_path'])) $this->upload['path'] = $param['upload_path'];
         if(isset($param['upload_rank_interval'])) $this->upload['rank_interval'] = $param['upload_rank_interval'];
+        if(isset($param['upload_max_size'])) $this->upload['max_size'] = $param['upload_max_size'];
         //only used by Amazon S3 storage if file access is different from bucket access. valid values PUBLIC or PRIVATE
         if(isset($param['upload_access'])) $this->upload['access'] = $param['upload_access'];
 

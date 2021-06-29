@@ -258,6 +258,7 @@ class Form
         if(isset($param['max'])) $xtra .= 'maxlength="'.$param['max'].'" ';
         if(isset($param['size'])) $xtra .= 'size="'.$param['size'].'" ';
         if(isset($param['placeholder'])) $xtra .= 'placeholder="'.$param['placeholder'].'" ';
+        if(isset($param['autofocus']) and $param['autofocus']) $xtra .= ' autofocus ';
         
         $value = str_replace('"','&quot;',$value);
                         
@@ -280,6 +281,7 @@ class Form
         if(isset($param['form'])) $xtra .= 'form="'.$param['form'].'" ';
         if(isset($param['class'])) $xtra .= 'class="'.$param['class'].'" ';
         if(isset($param['placeholder'])) $xtra .= 'placeholder="'.$param['placeholder'].'" ';
+        if(isset($param['autofocus']) and $param['autofocus']) $xtra .= ' autofocus ';
     
         $html .= '<textarea id="'.$name.'" name="'.$name.'" '.$xtra.'>'.$value.'</textarea>';    
         return $html;

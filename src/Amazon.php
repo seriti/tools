@@ -123,6 +123,7 @@ class Amazon
     }
 
     //EXPERIMENTAL: might be no faster than putFiles
+    //https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_commands.html#command-pool
     public function putFilesBulk($files = array(),&$error) 
     {
         $error = '';

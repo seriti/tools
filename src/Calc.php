@@ -150,6 +150,49 @@ class Calc
         return $original;
     }  
     
+    //get NEXT valid id counter and update system table accordingly
+    public static function getNextSystemId(DbInterface $db,$system_id)  
+    {
+        $table = TABLE_SYSTEM;
+                
+        $error = '';
+        $error_tmp = '';
+
+        if($system_id === '') $error .= 'No System table counter ID set!';
+        
+        if($error === '') {             
+            $sql = 'LOCK TABLES `'.$table.'` WRITE';
+            $db->executeSql($sql,$error_tmp);
+            if($error_tmp != '') $error .= 'Could NOT lock system table for ['.$system_id.'] counter!'; 
+        }    
+                            
+        if($error === '') {          
+            $sql = 'SELECT sys_count FROM `'.$table.'` WHERE system_id = "'.$system_id.'" ';
+            $id = $db->readSqlValue($sql,0);
+            if($id == 0) {
+                $error .= 'Could not read System table ['.$id.'] value!';
+            } else {
+                $id = $id+1;   
+            }
+        }
+        
+        if($error === '') {          
+            $sql = 'UPDATE `'.$table.'` SET sys_count = sys_count + 1 WHERE system_id = "'.$system_id.'" ';
+            $db->executeSql($sql,$error_tmp);
+            if($error_tmp != '') $error .= 'Could not update system ['.$system_id.'] value';
+        }
+                
+        $sql = 'UNLOCK TABLES';
+        $db->executeSql($sql,$error_tmp);
+        if($error_tmp != '') $error .= 'Could NOT UNlock system table for ['.$system_id.'] counter!';
+            
+        if($error !== '') {
+            throw new Exception('SYSTEM_NEXT_ID_ERROR['.$error.']');
+        }      
+        
+        return $id;
+    }
+
     //get NEXT valid file id and update system table accordingly
     public static function getFileId(DbInterface $db)  
     {
