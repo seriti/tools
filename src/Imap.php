@@ -14,21 +14,25 @@ Class Imap
         $error_str = '';
         //NB can have 'pop3' or 'nntp' protocol as well
         if(!isset($options['protocol'])) $options['protocol'] = 'imap';
-        if(!isset($options['ssl'])) $options['ssl'] = false;   
-        if(!isset($options['read_only'])) $options['read_only'] = true;   
+        if(!isset($options['ssl'])) $options['ssl'] = true; 
+        if(!isset($options['validate_cert'])) $options['validate_cert'] = false;   
+        if(!isset($options['read_only'])) $options['read_only'] = false;   
         if(!isset($options['port'])) {
             if($options['ssl']) $options['port'] = '993'; else $options['port'] = '110';
         }  
         if(!isset($options['box'])) $options['box'] = 'INBOX';  
         
         $mbox = '{'.$host.':'.$options['port'].'/'.$options['protocol'];
-        if($options['ssl']) $mbox .= '/ssl';
+        if($options['ssl']) {
+            $mbox .= '/ssl';
+            if(!$options['validate_cert']) $mbox .= '/novalidate-cert'; // validate-cert is default
+        }    
         if($options['read_only']) $mbox .= '/readonly';
         $mbox .= '}'.$options['box'];
         
         //try and establish connection
-        $conn = imap_open($mbox, $user, $pwd);
-        if($conn === false) $error_str .= 'Could not connect: '.imap_last_error();  
+        $conn = \imap_open($mbox, $user, $pwd);
+        if($conn === false) $error_str .= 'Could not connect['.$mbox.'] user['.$user.']: '.\imap_last_error();  
         return $conn;   
     }  
     
@@ -40,10 +44,10 @@ Class Imap
         if(!isset($options['attachments'])) $options['attachments'] = true;
                 
         if($options['id_type'] === 'UID') {
-            $msg_no = imap_msgno($conn,$msg_id);
+            $msg_no = \imap_msgno($conn,$msg_id);
         } else {
             $msg_no = $msg_id;
-            $msg_id = imap_uid($msg_no);
+            $msg_id = \imap_uid($msg_no);
         }  
         
         $message = array();
@@ -54,7 +58,7 @@ Class Imap
         $message['no'] = $msg_no;
         //get all header info
         if($options['header']) {
-            $header = imap_headerinfo($conn,$msg_no);
+            $header = \imap_headerinfo($conn,$msg_no);
             $message['time'] = $header->udate;
             $message['date'] = date('F j, Y, g:i a', $header->udate);
             $message['from_name'] = $header->fromaddress;
@@ -65,11 +69,11 @@ Class Imap
         }
                 
         if($options['body'] or $options['attachments']) {
-            $structure = imap_fetchstructure($conn,$msg_id,FT_UID);
+            $structure = \imap_fetchstructure($conn,$msg_id,FT_UID);
             if(!isset($structure->parts)) {  
                 $part_no = '0';
                 $part = $structure;
-                self::imap_get_message_part($conn,$msg_id,$part,$part_no,$options,$message);
+                self::imapGetMessagePart($conn,$msg_id,$part,$part_no,$options,$message);
             } else {
                 foreach($structure->parts as $key => $part) {
                     $part_no = strval($key+1);
@@ -99,7 +103,7 @@ Class Imap
                         
         //ATTACHMENTS
         if($options['attachments'] and isset($part->disposition) and $part->disposition == "ATTACHMENT") {
-            $data = imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
+            $data = \imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
             $data = self::imapDecode($data,$part->type);
             
             // filename may be given as 'Filename' or 'Name' or both
@@ -111,9 +115,9 @@ Class Imap
         //BODY
         if($options['body']) {
             if($part_no == '0') {
-                $data = imap_body($conn,$msg_id,FT_UID);  
+                $data = \imap_body($conn,$msg_id,FT_UID);  
             } else {
-                $data = imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
+                $data = \imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
             }    
             $data = self::imapDecode($data,$part->type);
             
@@ -151,12 +155,12 @@ Class Imap
         5 OTHER
         */
         switch($encoding) {
-            case 0:$value = imap_8bit($value);break;
-            case 1:$value = imap_8bit($value);break;
-            case 2:$value = imap_binary($value);break;
-            case 3:$value = imap_base64($value);break;
-            case 4:$value = imap_qprint($value);break;
-            case 5:$value = imap_base64($value);break;
+            case 0:$value = \imap_8bit($value);break;
+            case 1:$value = \imap_8bit($value);break;
+            case 2:$value = \imap_binary($value);break;
+            case 3:$value = \imap_base64($value);break;
+            case 4:$value = \imap_qprint($value);break;
+            case 5:$value = \imap_base64($value);break;
         }
 
         return $value;

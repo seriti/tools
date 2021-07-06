@@ -83,6 +83,8 @@ trait  SecurityHelpers
                 $this->access['search'] = true;
                 $this->access['read_only'] = true;
                 $this->access['edit'] = false;
+                $this->access['move'] = false;
+                $this->access['copy'] = false;
                 $this->access['add'] = false;
                 $this->access['delete'] = false;
                 $this->access['email'] = false;

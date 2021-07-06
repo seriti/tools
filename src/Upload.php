@@ -65,6 +65,10 @@ class Upload extends Model
     protected $upload = array('interface'=>'plupload','interface_change'=>true,'jquery_inline'=>false,'url_ajax'=>BASE_URL.URL_CLEAN,
                               'path_base'=>BASE_UPLOAD,'path'=>UPLOAD_DOCS,'max_size'=>200000000,'prefix'=>'','location'=>'ALL',
                               'encrypt'=>false,'max_size_encrypt'=>10000000,'text_extract'=>false,'rank_interval'=>10,'access'=>'');
+
+    //use to create link to file at another location
+    protected $copy = ['action_sql'=>'','location'=>'','table'=>'','key'=>''];
+  
   
     protected $show_info = false;
     protected $info = array();
@@ -154,6 +158,11 @@ class Upload extends Model
         if(isset($param['upload_max_size'])) $this->upload['max_size'] = $param['upload_max_size'];
         //only used by Amazon S3 storage if file access is different from bucket access. valid values PUBLIC or PRIVATE
         if(isset($param['upload_access'])) $this->upload['access'] = $param['upload_access'];
+
+        if(isset($param['copy_action_sql'])) $this->copy['action_sql'] = $param['copy_action_sql'];
+        if(isset($param['copy_location'])) $this->copy['location'] = $param['copy_location'];
+        if(isset($param['copy_table'])) $this->copy['table'] = $param['copy_table'];
+        if(isset($param['copy_key'])) $this->copy['key'] = $param['copy_key'];
 
         if(isset($param['storage'])) $this->storage = $param['storage'];
         if(isset($param['storage_backup'])) $this->storage_backup = $param['storage_backup'];
@@ -555,9 +564,14 @@ class Upload extends Model
                 $actions['EMAIL'] = 'Email selected '.$this->row_name_plural;
                 if(isset($_POST['action_email'])) $action_email = Secure::clean('email',$_POST['action_email']);
             }
-            if($this->child and $this->access['edit']) {
+            if($this->child and $this->access['edit'] and $this->access['move']) {
                 $actions['MOVE'] = 'Move selected '.$this->row_name_plural;
-            }   
+            }
+            //create link to same file at another location
+            if($this->access['edit'] and $this->access['copy']) {
+                $actions['COPY'] = 'Copy selected '.$this->row_name_plural;
+            } 
+              
         }  
         
         if(count($actions) > 0) {
@@ -577,9 +591,9 @@ class Upload extends Model
             
             $js_xtra = '';
             $html_xtra = '';
-
-            if($this->child) {
-                $param = array();
+            $param = [];
+            
+            if($this->child and isset($actions['MOVE'])) {
                 $param['class'] = $this->classes['action'];
                 if($this->master['action_item'] === 'SELECT') {
                     if($this->master['action_sql'] != '') {
@@ -604,6 +618,26 @@ class Upload extends Model
                 $html_xtra .= '<span id="action_master_select" style="display:none"> to&raquo;'.
                               $html_action_item.
                               '</span>';
+            }
+
+            if(isset($actions['COPY'])) {
+                $param['class'] = $this->classes['action'];
+                if($this->copy['action_sql'] !== '') {
+                    $copy_action_id = '';
+                    $html_copy_item = Form::sqlList($this->copy['action_sql'],$this->db,'copy_action_id',$copy_action_id,$param);
+                } else { 
+                    $param['class'] = $this->classes['search'];
+                    $html_copy_item = str_replace('_',' ',$this->copy['key']).' '.
+                                      Form::textInput('copy_action_id',$copy_action_id,$param);
+                }
+
+                $js_xtra .= 'var action_copy_select = document.getElementById(\'action_copy_select\');'.
+                            'action_copy_select.style.display = \'none\'; '.
+                            'if(table_action.options[action_index].value==\'COPY\') action_copy_select.style.display = \'inline\'; ';
+
+                $html_xtra .= '<span id="action_copy_select" style="display:none"> to&raquo;'.
+                              $html_copy_item.
+                              '</span>';
             }    
                  
             $html .= '<script type="text/javascript">'.
@@ -616,6 +650,7 @@ class Upload extends Model
                      $js_xtra.
                      '}</script>';
 
+            $param['class'] = $this->classes['action'];
             $html .= '<span id="action_email_select" style="display:none"> to&raquo;'.
                      Form::textInput('action_email',$action_email,$param).
                      '</span>'.$html_xtra.'&nbsp;'.
@@ -1610,48 +1645,58 @@ class Upload extends Model
         if($file == 0) $this->addError('Could not get file details to delete!');
 
         if($this->upload_location_only and $this->upload['location'] !== 'ALL') {
-            if(strpos($file[$this->file_cols['location_id']],$this->upload['location'])===false) {
-                $error_str .= 'file location is invalid!<br/>';
-                if($this->debug) $error_str .= 'Expecting['.$this->upload['location'].'] but set as ['.$this->file_cols['location_id'].'] ';
-             }   
+            if(strpos($file[$this->file_cols['location_id']],$this->upload['location']) === false) {
+                $error .= 'file location is invalid!<br/>';
+                if($this->debug) $error .= 'Expecting['.$this->upload['location'].'] but set as ['.$this->file_cols['location_id'].'] ';
+                $this->addError($error);
+            }   
         }  
 
         //delete physical file/s
         if(!$this->errors_found) {
-            if($this->storage === 'amazon') {
-                $s3 = $this->getContainer('s3');
+            //check if file is referenced from another location before deleting
+            $delete_file = true;
+            $sql = 'SELECT COUNT(*) FROM '.$this->table.' WHERE '.$this->file_cols['file_name'].' = "'.$file[$this->file_cols['file_name']].'" ';
+            $count = $this->db->readSqlValue($sql,0);
+            if($count > 1) $delete_file = false;
 
-                $s3->deleteFile($file[$this->file_cols['file_name']],$error);
-                if($error != '') $this->addError('Could NOT remove file from Amazon S3 storage!');
+            if($delete_file) {               
+                if($this->storage === 'amazon') {
+                    $s3 = $this->getContainer('s3');
 
-                if($file[$this->file_cols['file_name_tn']] != '')  {
-                    $s3->deleteFile($file[$this->file_cols['file_name_tn']],$error);
-                    if($error != '') $this->addError('Could NOT remove image thumbnail from Amazon S3 storage!');
+                    $s3->deleteFile($file[$this->file_cols['file_name']],$error);
+                    if($error != '') $this->addError('Could NOT remove file from Amazon S3 storage!');
+
+                    if($file[$this->file_cols['file_name_tn']] != '')  {
+                        $s3->deleteFile($file[$this->file_cols['file_name_tn']],$error);
+                        if($error != '') $this->addError('Could NOT remove image thumbnail from Amazon S3 storage!');
+                    }
                 }
-            }
-                
-            if($this->storage === 'local' or $this->storage_backup === 'local' or $this->storage_download_local) { 
-                $file_path = $this->getPath('UPLOAD',$file[$this->file_cols['file_name']]);
-                if(file_exists($file_path)){
-                    if(!unlink($file_path)) {
-                        $error = $this->row_name.'['.$file[$this->file_cols['file_name_orig']].'] could not be deleted!';
-                        if($this->debug) $error .= ' Path['.$file_path.']';
-                        $this->addError($error);
-                    }    
-                } 
-                
-                //delete thumbnail
-                if($file[$this->file_cols['file_name_tn']] != '')  {
-                    $file_path = $this->getPath('UPLOAD',$file[$this->file_cols['file_name_tn']]);
+                    
+                if($this->storage === 'local' or $this->storage_backup === 'local' or $this->storage_download_local) { 
+                    $file_path = $this->getPath('UPLOAD',$file[$this->file_cols['file_name']]);
                     if(file_exists($file_path)){
-                        if (!unlink($file_path)) {
-                            $error = $this->row_name.'['.$file[$this->file_cols['file_name_orig']].'] thumbnail could not be deleted!';
+                        if(!unlink($file_path)) {
+                            $error = $this->row_name.'['.$file[$this->file_cols['file_name_orig']].'] could not be deleted!';
                             if($this->debug) $error .= ' Path['.$file_path.']';
                             $this->addError($error);
                         }    
                     } 
-                } 
-            } 
+                    
+                    //delete thumbnail
+                    if($file[$this->file_cols['file_name_tn']] != '')  {
+                        $file_path = $this->getPath('UPLOAD',$file[$this->file_cols['file_name_tn']]);
+                        if(file_exists($file_path)){
+                            if (!unlink($file_path)) {
+                                $error = $this->row_name.'['.$file[$this->file_cols['file_name_orig']].'] thumbnail could not be deleted!';
+                                if($this->debug) $error .= ' Path['.$file_path.']';
+                                $this->addError($error);
+                            }    
+                        } 
+                    } 
+                }
+
+            }     
         } 
 
         //Finally delete file record
@@ -1662,7 +1707,7 @@ class Upload extends Model
                 $this->mode = 'list';
                 $html  = $this->viewTable();
             } elseif($type === 'MULTIPLE') {
-                $html = 'ERROR: ['.$this->viewMessages().']';
+                $html = 'ERROR';
             }
         } else {
             if($this->pop_up) $this->setCache('popup_updated',true);
@@ -1675,7 +1720,7 @@ class Upload extends Model
                 header('location: '.$location);
                 exit;
             } elseif($type === 'MULTIPLE') {
-                $html = $this->row_name.'['.$id.']';
+                $html = 'OK';
             }
         }   
         
@@ -1811,6 +1856,12 @@ class Upload extends Model
         if($action === 'SELECT') {
            $this->addError('You have not selected any action to perform on '.$this->row_name_plural.'!');
         } else {
+            if($this->child) {
+                $audit_name = $this->master['table'].' id['.$this->master['key_val'].']';
+            } else {
+                $audit_name = $this->table;
+            }
+
             if($this->child and $action === 'MOVE') {
                 $action_id = Secure::clean('basic',$_POST['master_action_id']);
                 $new_location_id = $this->db->escapeSql($this->upload['location'].$action_id);
@@ -1818,24 +1869,25 @@ class Upload extends Model
                 $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
                 $move_id = $this->db->readSqlValue($sql,0);
                 if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
-                $audit_str .= 'Move '.$this->row_name_plural.' from '.$this->master['table'].' id['.$this->master['key_val'].'] to id['.$action_id.'] :';
+                $audit_str .= 'Move '.$this->row_name_plural.' from '.$audit_name.' to id['.$action_id.'] :';
             }
             if($action === 'EMAIL') {
                 $action_email = $_POST['action_email'];
                 Validate::email('Action email',$action_email,$error_tmp);
                 if($error_tmp != '') $this->addError('Invalid action email!');
-                if($this->child) {
-                    $audit_str .= 'Email '.$this->master['table'].' id['.$this->master['key_val'].'] '.$this->row_name_plural.' to '.$action_email.' :';
-                } else {
-                    $audit_str .= 'Email '.$this->table.' '.$this->row_name_plural.' to '.$action_email.' :';
-                }  
+                $audit_str .= 'Email '.$audit_name.' '.$this->row_name_plural.' to '.$action_email.' :';
             }
             if($action === 'DELETE') {
-                if($this->child) {
-                    $audit_str .= 'Delete '.$this->master['table'].' id['.$this->master['key_val'].'] '.$this->row_name_plural.' :';
-                } else {
-                    $audit_str .= 'Delete '.$this->table.' '.$this->row_name_plural.' :';
-                }    
+                $audit_str .= 'Delete '.$audit_name.' '.$this->row_name_plural.' :';
+            }
+            if($action === 'COPY') {
+                $action_id = Secure::clean('basic',$_POST['copy_action_id']);
+                $copy_location_id = $this->db->escapeSql($this->copy['location'].$action_id);
+                //check that action_id is valid
+                $sql = 'SELECT '.$this->copy['key'].' FROM '.$this->copy['table'].' WHERE '.$this->copy['key'].' = "'.$action_id.'" ';
+                $copy_id = $this->db->readSqlValue($sql,0);
+                if($copy_id !== $action_id) $this->addError('Copy action for '.str_replace('_',' ',$this->copy['table']).' id['.$action_id.'] does not exist!');
+                $audit_str .= 'Copy '.$this->row_name_plural.' from '.$audit_name.' to '.$this->copy['table'].' id['.$action_id.'] :';
             }  
         }
         
@@ -1856,11 +1908,7 @@ class Upload extends Model
                         
                         if($action === 'DELETE') {
                             $response = $this->deleteFile($file_id,'MULTIPLE');
-                            if($response == 'OK') {
-                                $this->addMessage('Successfully deleted '.$file_name_orig);
-                            } else {  
-                                $this->addError($response);
-                            }  
+                            if($response === 'OK') $this->addMessage('Successfully deleted '.$file_name_orig);
                         } 
 
                         if($action === 'EMAIL') {
@@ -1874,10 +1922,21 @@ class Upload extends Model
                             $sql = 'UPDATE '.$this->table.' SET '.$this->file_cols['location_id'].' = "'.$new_location_id.'" '.
                                    'WHERE '.$this->file_cols['file_id'].' = "'.$file_id.'" ';
                             $this->db->executeSql($sql,$error_tmp);
-                            if($error_tmp == '') {
+                            if($error_tmp === '') {
                                 $this->addMessage('Successfully moved '.$file_name_orig);
                             } else {
                                 $this->addError('Could not MOVE '.$file_name_orig.'!');
+                            }  
+                        }
+
+                        if($action === 'COPY') {
+                            $file[$this->file_cols['file_id']] = Calc::getFileId($this->db);
+                            $file[$this->file_cols['location_id']] = $copy_location_id;
+                            $this->db->insertRecord($this->table,$file,$error_tmp);
+                            if($error_tmp === '') {
+                                $this->addMessage('Successfully Copied '.$file_name_orig);
+                            } else {
+                                $this->addError('Could not COPY '.$file_name_orig.'!');
                             }  
                         } 
                     }     
