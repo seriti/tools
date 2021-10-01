@@ -90,6 +90,12 @@ class Date
             $month=0;
             $day=0;
             
+            if($format_in==='YYMMDD') {
+                $year =intval(substr($date_str,0,2));
+                $month=intval(substr($date_str,2,2));
+                $day  =intval(substr($date_str,4,2));
+                if($year>30) $year+=1900; else $year+=2000;
+            }
             if($format_in==='YYYYMMDD') {
                 $year =intval(substr($date_str,0,4));
                 $month=intval(substr($date_str,4,2));

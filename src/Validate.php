@@ -9,7 +9,88 @@ use Seriti\Tools\Date;
 //NB: some functions modify $value as well to make compatible with database, see cellNo/boolean/number/integer
 class Validate 
 {
-    
+    //modified from https://codeblock.co.za/how-to-validate-a-south-african-id-number-with-php/
+    public static function saIdNumber($id_number,&$error,$known = [])
+    {
+        $error = '';
+        $error_tmp = '';
+        $validated = false;
+
+        //get array of characters in ID
+        $num_array = str_split($id_number);
+
+        if(strlen($id_number) !== 13) $error .= 'Must be 13 characters. ';
+
+        if(!is_numeric($id_number)) $error .= 'Can only contain numbers. ';
+        
+        $date_str = Date::convertDate(substr($id_number,0,6),'YYMMDD','YYYY-MM-DD',$error_tmp);
+        if($error_tmp != '') $error .= 'Invalid birth date['.$error_tmp.']. ';
+
+        if($error === '') {
+            // Validate gender
+            $id_gender = $num_array[6] >= 5 ? 'male' : 'female';
+            if(isset($known['gender']) and strtolower($known['gender']) !== $id_gender) {
+                $error .= 'Indicated gender['.$known['gender'].'] does not match ID gender['.$id_gender.'] ';
+            }
+
+            // Validate citizenship
+            $id_foreigner = $num_array[10]; //0 = south african, 1 = foreigner
+            if(isset($known['foreigner']) and (int)$known['foreigner'] !== (int)$id_foreigner ) {
+                $error .= 'Indicated citizenship['.$known['foreigner'].'] does not match ID citizenship['.$id_foreigner.'] ';
+            }
+        }
+        
+        //Finally apply Luhn Algorithm test
+        if($error === '') {    
+            $even_digits = [];
+            $odd_digits = [];
+
+            foreach ( $num_array as $index => $digit) {
+                if ($index === 0 || $index % 2 === 0) {
+                    $odd_digits[] = $digit;
+                } else {
+                    $even_digits[] = $digit;
+                }
+            }
+
+            $check_digit = array_pop($odd_digits);
+
+            //All digits in odd positions (excluding the check digit) must be added together.
+            $added_odds = array_sum($odd_digits);
+
+            //All digits in even positions must be concatenated to form a 6 digit number.
+            $concatenated_evens = implode('', $even_digits);
+
+            //This 6 digit number must then be multiplied by 2.
+            $evensx2 = $concatenated_evens * 2;
+
+            // Add all the numbers produced from the even numbers x 2
+            $added_evens = array_sum( str_split($evensx2) );
+
+            $sum = $added_odds + $added_evens;
+
+            // get the last digit of the $sum
+            $last_digit = substr($sum, -1);
+
+            /* 10 - $last_digit
+             * $verify_check_digit = 10 - (int)$last_digit; (Will break if $last_digit = 0)
+             * Edit suggested by Ruan Luies
+             * verify check digit is the resulting remainder of
+             *  10 minus the last digit divided by 10
+             */
+             $verify_check_digit = (10 - (int)$last_digit) % 10;
+
+            // test expected last digit against the last digit in $id_number submitted
+            if ((int)$verify_check_digit !== (int)$check_digit) {
+                $error .= 'Luhn algorithm failure.';
+            }
+        }
+
+
+        if($error === '') return true; else return false;
+
+    }
+
     public static function cellNo($name,&$value,&$error) 
     {
         $error='';
