@@ -40,6 +40,7 @@ trait  SecurityHelpers
                 $this->access['add'] = true;
                 $this->access['delete'] = true;
                 $this->access['email'] = true;
+                $this->access['move'] = true;
                 $this->access['link'] = true;
                 break;
             }
@@ -52,6 +53,7 @@ trait  SecurityHelpers
                 $this->access['add'] = true;
                 $this->access['delete'] = true;
                 $this->access['email'] = true;
+                $this->access['move'] = true;
                 $this->access['link'] = true;
                 break;
             }
@@ -63,6 +65,7 @@ trait  SecurityHelpers
                 $this->access['add'] = true;
                 $this->access['delete'] = false;
                 $this->access['email'] = true;
+                $this->access['move'] = false;
                 $this->access['link'] = false;
                 break;
             }
@@ -74,6 +77,7 @@ trait  SecurityHelpers
                 $this->access['add'] = false;
                 $this->access['delete'] = false;
                 $this->access['email'] = false;
+                $this->access['move'] = false;
                 $this->access['link'] = false;
                 break;
             }

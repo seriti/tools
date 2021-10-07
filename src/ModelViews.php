@@ -678,7 +678,8 @@ trait  ModelViews
             $sql = 'SELECT '.$this->file_cols['file_id'].' AS id,'.$this->file_cols['file_name_orig'].' AS name , '.$this->file_cols['file_size'].' AS size '.
                    'FROM '.$this->files['table'].' '.
                    'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
-                   'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC LIMIT '.$this->files['list_no'];
+                   'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC ,'.$this->file_cols['file_id'].' DESC '.
+                   'LIMIT '.$this->files['list_no'];
             $file_list = $this->db->readSqlArray($sql);
             if($file_list !== 0) {
                 $html .= '<br/>';
