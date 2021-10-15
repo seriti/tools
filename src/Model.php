@@ -557,7 +557,7 @@ class Model
 
         if($type === 'SELECT_COUNT') {
             $sql='SELECT COUNT(DISTINCT T.'.$this->key['id'].') AS row_count '.$this->sql_count.' '.
-                 'FROM '.$this->table.' AS T '.$this->sql_join;
+                 'FROM `'.$this->table.'` AS T '.$this->sql_join;
             if(count($where)) $sql .= 'WHERE '.implode(' AND ',$where);
         }
 
@@ -580,7 +580,7 @@ class Model
                 }  
             }
             
-            $sql = substr($sql,0,-1).' FROM '.$this->table.' AS T '.$this->sql_join;
+            $sql = substr($sql,0,-1).' FROM `'.$this->table.'` AS T '.$this->sql_join;
             if($type === 'SELECT_VIEW') {
                 $sql .= 'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
                 if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
@@ -596,14 +596,14 @@ class Model
             foreach($this->cols as $col) {
                 if($col['edit']) $sql .= 'T.'.$col['id'].','; 
             } 
-            $sql = substr($sql,0,-1).' FROM '.$this->table.' AS T '.$this->sql_join.
+            $sql = substr($sql,0,-1).' FROM `'.$this->table.'` AS T '.$this->sql_join.
                   'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
         }
 
         if($type === 'SELECT_RAW') {
-            $sql = 'SELECT * FROM '.$this->table.' AS T '.$this->sql_join.
+            $sql = 'SELECT * FROM `'.$this->table.'` AS T '.$this->sql_join.
                   'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
@@ -611,7 +611,7 @@ class Model
 
         //NOT USED ANYWHERE, INCLUDES ALL RESTRICTIONS
         if($type === 'DELETE') {
-          $sql = 'DELETE FROM '.$this->table.' AS T '.$this->sql_join.
+          $sql = 'DELETE FROM `'.$this->table.'` AS T '.$this->sql_join.
                  'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
           if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict);
         } 

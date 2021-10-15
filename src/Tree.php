@@ -124,7 +124,7 @@ class Tree extends Model
         $this->addSelect($this->tree_cols['parent'],$select);
 
         //If you change this then nothing will work
-        $this->order_by = $this->tree_cols['rank'];
+        $this->order_by = '`'.$this->tree_cols['rank'].'`';
 
         $this->user_access_level = $this->getContainer('user')->getAccessLevel();
         $this->user_id = $this->getContainer('user')->getId();
