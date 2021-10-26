@@ -113,7 +113,7 @@ class Setup
             $this->message[] = 'Succesfully created missing custom menu table['.$table.']';
 
 
-            $sql = 'INSERT INTO `'.$table.'` (id_parent,title,level,lineage,menu_link,menu_type,menu_access) '.
+            $sql = 'INSERT INTO `'.$table.'` (id_parent,title,`level`,lineage,menu_link,menu_type,menu_access) '.
                    'VALUES("0","Dashboard","1","","admin/user/dashboard","LINK_SYSTEM","VIEW")';
             $this->db->executeSql($sql,$error_tmp); 
             if($error_tmp == '') {

@@ -159,7 +159,7 @@ class Csv
     //NB: Cache class also uses the "cache" table but with hashed cache_id so clash extremely unlikely
     //legacy code, rather use Cache class!
     public static function csvUpdate($db,$csv_id,$csv_data){
-        $sql='REPLACE INTO '.TABLE_CACHE.' (cache_id,date,data) '.
+        $sql='REPLACE INTO `'.TABLE_CACHE.'` (`cache_id`,`date`,`data`) '.
              'VALUES ("'.$db->escapeSql($csv_id).'","'.date('Y-m-d').'","'.$db->escapeSql($csv_data).'") ';
         $db->executeSql($sql,$error_str);
         if($error_str=='') return true; else return false;

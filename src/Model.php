@@ -546,7 +546,7 @@ class Model
         $restrict = [];
         //NB: sometimes master['key_val'] is not know when fetching a record, like with fileDownload() in Upload class
         if($this->child and $type !== 'SELECT_RAW') {
-            $restrict[] = 'T.'.$this->master['child_col'].' = "'.$this->db->escapeSql($this->master['child_prefix'].$this->master['key_val']).'" ';
+            $restrict[] = 'T.`'.$this->master['child_col'].'` = "'.$this->db->escapeSql($this->master['child_prefix'].$this->master['key_val']).'" ';
         }    
         if($this->sql_restrict != '') $restrict[] = $this->sql_restrict; 
 
@@ -556,7 +556,7 @@ class Model
         $where = array_merge($restrict,$where);
 
         if($type === 'SELECT_COUNT') {
-            $sql='SELECT COUNT(DISTINCT T.'.$this->key['id'].') AS row_count '.$this->sql_count.' '.
+            $sql='SELECT COUNT(DISTINCT T.`'.$this->key['id'].'`) AS `row_count` '.$this->sql_count.' '.
                  'FROM `'.$this->table.'` AS T '.$this->sql_join;
             if(count($where)) $sql .= 'WHERE '.implode(' AND ',$where);
         }
@@ -567,22 +567,22 @@ class Model
 
             foreach($this->cols as $col) {
                 if(isset($col['join'])) { //for nested select statement to get related field from id
-                    $sql .= '( SELECT '.$col['join'].' = T.'.$col['id'].' LIMIT 1 ) AS '.$col['id'].',';
+                    $sql .= '( SELECT '.$col['join'].' = T.`'.$col['id'].'` LIMIT 1 ) AS `'.$col['id'].'`,';
                 } elseif(isset($col['linked'])) { 
                     if($col['linked'] === 'EMPTY' or $col['linked'] === 'KEY_VAL') { //placeholder filled with key field for later modification.
-                        $sql .= 'T.'.$this->key['id'].' AS '.$col['id'].','; 
+                        $sql .= 'T.`'.$this->key['id'].'` AS `'.$col['id'].'`,'; 
                     } else { //$col['linked'] must include any table identifier(ie: T2.xyz) as specified in addSql('JOIN',....).  
-                        $str = str_replace('{KEY_VAL}','T.'.$this->key['id'],$col['linked']); 
-                        $sql .= '('.$str.') AS '.$col['id'].','; 
+                        $str = str_replace('{KEY_VAL}','T.`'.$this->key['id'].'`',$col['linked']); 
+                        $sql .= '('.$str.') AS `'.$col['id'].'`,'; 
                     } 
                 } else {  
-                    $sql .= 'T.'.$col['id'].',';
+                    $sql .= 'T.`'.$col['id'].'`,';
                 }  
             }
             
             $sql = substr($sql,0,-1).' FROM `'.$this->table.'` AS T '.$this->sql_join;
             if($type === 'SELECT_VIEW') {
-                $sql .= 'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+                $sql .= 'WHERE T.`'.$this->key['id'].'` = "'.$this->db->escapeSql($id).'" ';
                 if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
                 $sql .= 'LIMIT 1 ';
             } else {
@@ -594,17 +594,17 @@ class Model
         if($type === 'SELECT_EDIT') {
             $sql = 'SELECT ';
             foreach($this->cols as $col) {
-                if($col['edit']) $sql .= 'T.'.$col['id'].','; 
+                if($col['edit']) $sql .= 'T.`'.$col['id'].'`,'; 
             } 
             $sql = substr($sql,0,-1).' FROM `'.$this->table.'` AS T '.$this->sql_join.
-                  'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+                  'WHERE T.`'.$this->key['id'].'` = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
         }
 
         if($type === 'SELECT_RAW') {
             $sql = 'SELECT * FROM `'.$this->table.'` AS T '.$this->sql_join.
-                  'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+                  'WHERE T.`'.$this->key['id'].'` = "'.$this->db->escapeSql($id).'" ';
             if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict).' ';
             $sql .= 'LIMIT 1 ';
         }
@@ -612,7 +612,7 @@ class Model
         //NOT USED ANYWHERE, INCLUDES ALL RESTRICTIONS
         if($type === 'DELETE') {
           $sql = 'DELETE FROM `'.$this->table.'` AS T '.$this->sql_join.
-                 'WHERE T.'.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+                 'WHERE T.`'.$this->key['id'].'` = "'.$this->db->escapeSql($id).'" ';
           if(count($restrict)) $sql .= 'AND '.implode(' AND ',$restrict);
         } 
 

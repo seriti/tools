@@ -62,7 +62,7 @@ class Import extends Model {
         $this->container = $container;
     } 
 
-    public function setup($param) {
+    public function setup($param = []) {
         $this->file_path = $param['file_path'];
 
         if(!file_exists($this->file_path)) {

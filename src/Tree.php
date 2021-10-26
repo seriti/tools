@@ -118,9 +118,9 @@ class Tree extends Model
 
         //for dropdown list of node parent
         $select['xtra'] = array('0'=>'TREE ROOT');
-        $select['sql'] = 'SELECT '.$this->tree_cols['node'].','.
-                         'CONCAT(IF('.$this->tree_cols['level'].' > 1,REPEAT("--",'.$this->tree_cols['level'].' - 1),""),'.$this->tree_cols['title'].') '.
-                         'FROM '.$this->table.'  ORDER BY '.$this->tree_cols['rank'];
+        $select['sql'] = 'SELECT `'.$this->tree_cols['node'].'`,'.
+                         'CONCAT(IF(`'.$this->tree_cols['level'].'` > 1,REPEAT("--",`'.$this->tree_cols['level'].'` - 1),""),`'.$this->tree_cols['title'].'`) '.
+                         'FROM `'.$this->table.'`  ORDER BY `'.$this->tree_cols['rank'].'`';
         $this->addSelect($this->tree_cols['parent'],$select);
 
         //If you change this then nothing will work
@@ -299,9 +299,9 @@ class Tree extends Model
                 $node_level = $node_parent['level']+1;
                 
                 //calculate new ranking based on desired position within parent node
-                $sql = 'SELECT '.$this->tree_cols['rank'].' AS rank FROM '.$this->table.' '.
-                       'WHERE '.$this->tree_cols['parent'].' = "'.$node_id_parent.'" '.
-                       'ORDER BY '.$this->tree_cols['rank'].' ';
+                $sql = 'SELECT `'.$this->tree_cols['rank'].'` AS `rank` FROM `'.$this->table.'` '.
+                       'WHERE `'.$this->tree_cols['parent'].'` = "'.$node_id_parent.'" '.
+                       'ORDER BY `'.$this->tree_cols['rank'].'` ';
                 $rank_list = $this->db->readSqlList($sql);
                 $node_count = count($rank_list);
                 if($node_count == 1) {
@@ -328,17 +328,17 @@ class Tree extends Model
                 if($node_rank == $rank_list[$node_count-1]) $node_rank++; 
                 
                 //increment ALL nodes ranking after calculated node rank
-                $sql = 'UPDATE '.$this->table.' '.
-                       'SET '.$this->tree_cols['rank'].' = '.$this->tree_cols['rank'].' + 1 '.
-                       'WHERE '.$this->tree_cols['rank'].' >= '.$node_rank.' ';
+                $sql = 'UPDATE `'.$this->table.'` '.
+                       'SET `'.$this->tree_cols['rank'].'` = `'.$this->tree_cols['rank'].'` + 1 '.
+                       'WHERE `'.$this->tree_cols['rank'].'` >= '.$node_rank.' ';
                 $this->db->executeSql($sql,$error_tmp);
                 if($error_tmp != '') $this->addError('update incrementing ranking: '.$error_tmp);
                         
                 //Finally update node record
-                $sql = 'UPDATE '.$this->table.' '.
-                       'SET '.$this->tree_cols['level'].' = "'.$this->db->escapeSql($node_level).'", '.
-                              $this->tree_cols['rank'].' = "'.$node_rank.'" '.
-                       'WHERE '.$this->tree_cols['node'].' = "'.$node_id.'" ';
+                $sql = 'UPDATE `'.$this->table.'` '.
+                       'SET `'.$this->tree_cols['level'].'` = "'.$this->db->escapeSql($node_level).'", '.
+                              '`'.$this->tree_cols['rank'].'` = "'.$node_rank.'" '.
+                       'WHERE `'.$this->tree_cols['node'].'` = "'.$node_id.'" ';
                 $this->db->executeSql($sql,$error_tmp);
                 if($error_tmp != '') $this->addError('update new ranking error: '.$error_tmp);
                 
@@ -363,8 +363,8 @@ class Tree extends Model
             $node = $this->getNode($id);
 
             //check NO child nodes before delete
-            $sql = 'SELECT COUNT(*) FROM '.$this->table.' '.
-                   'WHERE '.$this->tree_cols['parent'].' = "'.$this->db->escapeSql($id).'" ';
+            $sql = 'SELECT COUNT(*) FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->tree_cols['parent'].'` = "'.$this->db->escapeSql($id).'" ';
             $count = $this->db->readSqlValue($sql,0);
             if($count > 0) {
                 $error = 'You cannot delete node['.$node['title'].'] as you will create orphaned child nodes!'.
@@ -705,10 +705,10 @@ class Tree extends Model
             //where looking up root node parent
             $node = array('id'=>0,'level'=>0,'rank'=>0,'rank_end'=>0);
         } else {
-            $sql = 'SELECT '.$this->tree_cols['level'].' AS level ,'.$this->tree_cols['rank'].' AS rank,'.$this->tree_cols['rank_end'].' AS rank_end,'.
-                             $this->tree_cols['node'].' AS id , '.$this->tree_cols['parent'].' AS parent, '.$this->tree_cols['title'].' AS title '.
-                   'FROM '.$this->table.' '.
-                   'WHERE '.$this->tree_cols['node'].' = '.$this->db->escapeSql($id).' ';
+            $sql = 'SELECT `'.$this->tree_cols['level'].'` AS `level` ,`'.$this->tree_cols['rank'].'` AS `rank`,`'.$this->tree_cols['rank_end'].'` AS `rank_end`,'.
+                           '`'. $this->tree_cols['node'].'` AS `id` , `'.$this->tree_cols['parent'].'` AS `parent`,`'.$this->tree_cols['title'].'` AS `title` '.
+                   'FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->tree_cols['node'].'` = '.$this->db->escapeSql($id).' ';
             $node = $this->db->readSqlRecord($sql);
         }
 
@@ -717,18 +717,18 @@ class Tree extends Model
 
     protected function crawlNode($id,&$rank) 
     {
-        $sql = 'SELECT '.$this->tree_cols['node'].','.
-               '(SELECT '.$this->tree_cols['level'].' FROM '.$this->table.' WHERE '.$this->tree_cols['node'].' = "'.$this->db->escapeSql($id).'" ) '.
-               'FROM '.$this->table.' '.
-               'WHERE '.$this->tree_cols['parent'].' = "'.$this->db->escapeSql($id).'" '.
-               'ORDER BY '.$this->tree_cols['rank'].' ';
+        $sql = 'SELECT `'.$this->tree_cols['node'].'`,'.
+               '(SELECT `'.$this->tree_cols['level'].'` FROM `'.$this->table.'` WHERE `'.$this->tree_cols['node'].'` = "'.$this->db->escapeSql($id).'" ) '.
+               'FROM `'.$this->table.'` '.
+               'WHERE `'.$this->tree_cols['parent'].'` = "'.$this->db->escapeSql($id).'" '.
+               'ORDER BY `'.$this->tree_cols['rank'].'` ';
         $id_list = $this->db->readSqlList($sql);
         if($id_list !== 0) {
             foreach($id_list as $node_id => $parent_level) {
                 $rank++;
                 $level = $parent_level+1;
-                $sql = 'UPDATE '.$this->table.' SET '.$this->tree_cols['rank'].' = "'.$rank.'", '.$this->tree_cols['level'].' = "'.$level.'" '.
-                       'WHERE '.$this->tree_cols['node'].' = "'.$this->db->escapeSql($node_id).'"';
+                $sql = 'UPDATE `'.$this->table.'` SET `'.$this->tree_cols['rank'].'` = "'.$rank.'", `'.$this->tree_cols['level'].'` = "'.$level.'" '.
+                       'WHERE `'.$this->tree_cols['node'].'` = "'.$this->db->escapeSql($node_id).'"';
                 $this->db->executeSql($sql,$error_str);
                 //*** recursion ***
                 $this->crawlNode($node_id,$rank);
@@ -739,23 +739,23 @@ class Tree extends Model
     protected function updateNodeEnd() 
     {
         //need maximum rank for last nodes in tree
-        $sql = 'SELECT MAX('.$this->tree_cols['rank'].') FROM '.$this->table;
+        $sql = 'SELECT MAX(`'.$this->tree_cols['rank'].'`) FROM `'.$this->table.'`';
         $rank_max = $this->db->readSqlValue($sql);
      
         //step through all nodes in tree
-        $sql = 'SELECT '.$this->tree_cols['node'].' AS id,'.$this->tree_cols['parent'].' AS parent_id,'.
-                         $this->tree_cols['rank'].' AS rank,'.$this->tree_cols['level'].' AS level '.
-               'FROM '.$this->table.' ORDER BY '.$this->tree_cols['rank'].' ';
+        $sql = 'SELECT `'.$this->tree_cols['node'].'` AS `id`,`'.$this->tree_cols['parent'].'` AS `parent_id`,'.
+                       '`'.$this->tree_cols['rank'].'` AS `rank`,`'.$this->tree_cols['level'].'` AS `level` '.
+               'FROM `'.$this->table.'` ORDER BY `'.$this->tree_cols['rank'].'` ';
         $nodes = $this->db->readSqlArray($sql);
         if($nodes != 0)  {
             foreach($nodes as $node_id => $node) {  
-                $sql = 'SELECT MIN('.$this->tree_cols['rank'].') - 1 FROM '.$this->table.' '.
-                       'WHERE '.$this->tree_cols['level'].' <= '.$node['level'].' AND '.$this->tree_cols['rank'].' > '.$node['rank'].' ';
+                $sql = 'SELECT MIN(`'.$this->tree_cols['rank'].'`) - 1 FROM `'.$this->table.'` '.
+                       'WHERE `'.$this->tree_cols['level'].'` <= '.$node['level'].' AND `'.$this->tree_cols['rank'].'` > '.$node['rank'].' ';
                 $rank_end = $this->db->readSqlValue($sql,0);
                 if($rank_end == 0) $rank_end = $rank_max;
                   
-                $sql = 'UPDATE '.$this->table.' SET '.$this->tree_cols['rank_end'].' = "'.$rank_end.'" '.
-                       'WHERE '.$this->tree_cols['node'].' = "'.$this->db->escapeSql($node_id).'" ';
+                $sql = 'UPDATE `'.$this->table.'` SET `'.$this->tree_cols['rank_end'].'` = "'.$rank_end.'" '.
+                       'WHERE `'.$this->tree_cols['node'].'` = "'.$this->db->escapeSql($node_id).'" ';
                 $this->db->executeSql($sql,$error_str);
             }
         } 
@@ -767,9 +767,9 @@ class Tree extends Model
         $old_level = 0;
         
         //step through all nodes in tree
-        $sql = 'SELECT '.$this->tree_cols['node'].' AS id,'.$this->tree_cols['parent'].' AS parent_id,'.
-                         $this->tree_cols['rank'].' AS rank,'.$this->tree_cols['level'].' AS level '.
-               'FROM '.$this->table.' ORDER BY '.$this->tree_cols['rank'].' ';
+        $sql = 'SELECT `'.$this->tree_cols['node'].'` AS `id`,`'.$this->tree_cols['parent'].'` AS `parent_id`,'.
+                       '`'.$this->tree_cols['rank'].'` AS `rank`,`'.$this->tree_cols['level'].'` AS `level` '.
+               'FROM `'.$this->table.'` ORDER BY `'.$this->tree_cols['rank'].'` ';
         $nodes = $this->db->readSqlArray($sql);
         if($nodes != 0)  {
             foreach($nodes as $node_id => $node) {  
@@ -788,8 +788,8 @@ class Tree extends Model
                     } 
                 } 
                     
-                $sql = 'UPDATE '.$this->table.' SET '.$this->tree_cols['lineage'].' = "'.$lineage.'" '.
-                       'WHERE '.$this->tree_cols['node'].' = "'.$this->db->escapeSql($node_id).'" ';
+                $sql = 'UPDATE `'.$this->table.'` SET `'.$this->tree_cols['lineage'].'` = "'.$lineage.'" '.
+                       'WHERE `'.$this->tree_cols['node'].'` = "'.$this->db->escapeSql($node_id).'" ';
                 $this->db->executeSql($sql,$error_str);
                 
                 $old_level = $node['level'];

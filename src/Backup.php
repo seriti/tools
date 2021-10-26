@@ -881,9 +881,9 @@ class Backup extends Model
         //backup files based on files table values
         if($type === 'FILE_DB' and !$this->errors_found) {
             //NB: This assumes files table has standard structure
-            $sql = 'SELECT '.$this->file_cols['file_id'].','.$this->file_cols['file_name'].','.$this->file_cols['file_name_tn'].','.$this->file_cols['file_name_orig'].' '.
-                   'FROM '.$param['table'].' WHERE '.$this->file_cols['file_backup'].' = "" '.
-                   'ORDER BY '.$this->file_cols['file_id'].' LIMIT '.$batch_no;
+            $sql = 'SELECT `'.$this->file_cols['file_id'].'`,`'.$this->file_cols['file_name'].'`,`'.$this->file_cols['file_name_tn'].'`,`'.$this->file_cols['file_name_orig'].'` '.
+                   'FROM `'.$param['table'].'` WHERE `'.$this->file_cols['file_backup'].'` = "" '.
+                   'ORDER BY `'.$this->file_cols['file_id'].'` LIMIT '.$batch_no;
             $files = $this->db->readSqlArray($sql);
             if($files != 0) {
                 if($this->backup['source'] === 'AMAZON') {
@@ -907,8 +907,8 @@ class Backup extends Model
                 //set file backup details in db on success
                 if(!$this->errors_found and $file_count > 0) {
                     foreach($files as $file_id => $file) {
-                        $sql='UPDATE '.$param['table'].' SET '.$this->file_cols['file_backup'].' = "'.$param['backup_id'].'" '.
-                             'WHERE '.$this->file_cols['file_id'].' = "'.$this->db->escapeSql($file_id).'" ';
+                        $sql='UPDATE `'.$param['table'].'` SET `'.$this->file_cols['file_backup'].'` = "'.$param['backup_id'].'" '.
+                             'WHERE `'.$this->file_cols['file_id'].'` = "'.$this->db->escapeSql($file_id).'" ';
                         $this->db->executeSql($sql,$error);
                         if($error!='') $this->addError('Could not update file ID['.$file_id.'] for backup.'); 
                     } 
@@ -939,8 +939,8 @@ class Backup extends Model
         
         if($type === 'FILE_DB' and !$this->errors_found) {   
             //NB: This assumes files table has standard structure
-            $sql='SELECT * FROM '.$param['table'].' '.
-                 'WHERE '.$this->file_cols['file_id'].' = "'.$this->db->escapeSql($file_id).'" ';
+            $sql='SELECT * FROM `'.$param['table'].'` '.
+                 'WHERE `'.$this->file_cols['file_id'].'` = "'.$this->db->escapeSql($file_id).'" ';
             $file = $this->db->readSqlRecord($sql);
             if($file == 0) {
                 $this->addError('File ID['.$file_id.'] does not exist!');

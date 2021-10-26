@@ -169,7 +169,7 @@ class Cache
             }
         }
         if($this->cache_type === 'MYSQL') {
-             $sql = 'DELETE FROM `'.$this->table.'` WHERE '.$this->cols['id'].' = "'.$this->cache_name.'" ';
+             $sql = 'DELETE FROM `'.$this->table.'` WHERE `'.$this->cols['id'].'` = "'.$this->cache_name.'" ';
              $this->db->executeSql($sql,$error_str); 
              if($error_str=='') $valid=true;    
         }   
@@ -209,7 +209,7 @@ class Cache
             if($bytes !== false) $valid = true;
         }  
         if($this->cache_type === 'MYSQL') {
-             $sql = 'REPLACE INTO `'.$this->table.'` ('.$this->cols['id'].','.$this->cols['data'].','.$this->cols['date'].') '.
+             $sql = 'REPLACE INTO `'.$this->table.'` (`'.$this->cols['id'].'`,`'.$this->cols['data'].'`,`'.$this->cols['date'].'`) '.
                     'VALUES("'.$this->cache_name.'","'.$this->db->escapeSql($cache).'",NOW())';
              $this->db->executeSql($sql,$error_str); 
              if($error_str == '') $valid = true;    

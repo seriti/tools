@@ -483,9 +483,9 @@ class Table extends Model
                     if($this->master['action_sql'] != '') {
                         $sql  = str_replace('{KEY_VAL}',$this->db->escapeSql($this->master['key_val']),$this->master['action_sql']);
                     } else {
-                        $sql = 'SELECT '.$this->master['key'].','.$this->master['label'].' FROM '.$this->master['table'].' '.
-                               'WHERE '.$this->master['key'].' <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
-                               'ORDER BY '.$this->master['label'].' ';
+                        $sql = 'SELECT `'.$this->master['key'].'`,`'.$this->master['label'].'` FROM `'.$this->master['table'].'` '.
+                               'WHERE `'.$this->master['key'].'` <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
+                               'ORDER BY `'.$this->master['label'].'` ';
                     }
                     $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
                 } else { 
@@ -861,7 +861,7 @@ class Table extends Model
         
         foreach($this->search as $col_id) {
             $col = $this->cols[$col_id];
-            if(isset($col['xtra'])) $col_str = $col['xtra']; else $col_str = 'T.'.$col_id;
+            if(isset($col['xtra'])) $col_str = $col['xtra']; else $col_str = 'T.`'.$col_id.'`';
             
             if($col['type'] == 'DATE' or $col['type'] == 'DATETIME') {
                 $value = array();
@@ -1109,7 +1109,7 @@ class Table extends Model
                 } else {
                     $action_id = Secure::clean('basic',$_POST['master_action_id']);
                     //check that action_id is valid
-                    $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
+                    $sql = 'SELECT `'.$this->master['key'].'` FROM `'.$this->master['table'].'` WHERE `'.$this->master['key'].'` = "'.$action_id.'" ';
                     $move_id = $this->db->readSqlValue($sql,0);
                     if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
                     $audit_str .= 'Move '.$this->row_name_plural.' from '.$this->master['table'].' id['.$this->master['key_val'].'] to id['.$action_id.'] :';    
@@ -1164,8 +1164,8 @@ class Table extends Model
                         } 
 
                         if($this->child and $action === 'MOVE') {
-                            $sql = 'UPDATE '.$this->table.' SET '.$this->master['child_col'].' = "'.$move_id.'" '.
-                                   'WHERE '.$this->key['id'].' = "'.$this->db->escapeSql($key_id).'" ';
+                            $sql = 'UPDATE `'.$this->table.'` SET `'.$this->master['child_col'].'` = "'.$move_id.'" '.
+                                   'WHERE `'.$this->key['id'].'` = "'.$this->db->escapeSql($key_id).'" ';
                             $this->db->executeSql($sql,$error_tmp);
                             if($error_tmp == '') {
                                 $this->addMessage('Successfully moved '.$this->row_name.' ID['.$key_id.'] '.$label);
@@ -1194,8 +1194,8 @@ class Table extends Model
                         }   
 
                         if($action === 'STATUS_CHANGE') {
-                            $sql = 'UPDATE '.$this->table.' SET status = "'.$this->db->escapeSql($status_change).'" '.
-                                   'WHERE '.$this->key['id'].' = "'.$this->db->escapeSql($key_id).'" ';
+                            $sql = 'UPDATE `'.$this->table.'` SET `status` = "'.$this->db->escapeSql($status_change).'" '.
+                                   'WHERE `'.$this->key['id'].'` = "'.$this->db->escapeSql($key_id).'" ';
                             $this->db->executeSql($sql,$error_tmp);
                             if($error_tmp === '') {
                                 $audit_str .= ' success!';

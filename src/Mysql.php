@@ -130,7 +130,7 @@ class Mysql implements DbInterface
     {
         $sql = 'SELECT * FROM `'.$table.'` WHERE ';
         foreach($where as $key => $value) {
-            $sql .= $key.' = "'.$this->escapeSql($value).'" AND ';
+            $sql .= '`'.$key.'` = "'.$this->escapeSql($value).'" AND ';
         }
         $sql = substr($sql,0,-4);
 
@@ -145,7 +145,7 @@ class Mysql implements DbInterface
         
         $sql = 'DELETE FROM `'.$table.'` WHERE ';
         foreach($where as $key => $value) {
-            $sql .= $key.' = "'.$this->escapeSql($value).'" AND ';
+            $sql .= '`'.$key.'` = "'.$this->escapeSql($value).'" AND ';
         }
         $sql = substr($sql,0,-4);
 
@@ -165,12 +165,12 @@ class Mysql implements DbInterface
                 
         $sql = 'UPDATE `'.$table.'` SET ';
         foreach($rec as $key => $value) {
-            $sql .= $key.' = "'.$this->escapeSql($value).'",';
+            $sql .= '`'.$key.'` = "'.$this->escapeSql($value).'",';
         }
         
         $sql = substr($sql,0,-1).' WHERE ';
         foreach($where as $key => $value) {
-            $sql .= $key.' = "'.$this->escapeSql($value).'" AND ';
+            $sql .= '`'.$key.'` = "'.$this->escapeSql($value).'" AND ';
         } 
         $sql = substr($sql,0,-4);
         
@@ -191,7 +191,7 @@ class Mysql implements DbInterface
         $values = '';
                 
         foreach($rec as $key => $value) {
-            $fields .= $key.',';
+            $fields .= '`'.$key.'`,';
             $values .= '"'.$this->escapeSql($value).'",';
         }
         $fields = '('.substr($fields,0,-1).')';

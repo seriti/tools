@@ -406,8 +406,8 @@ class User extends Model
                 $this->addError($param['debug_info']);
             }
 
-            $sql = 'UPDATE '.$this->table.' SET '.$this->user_cols['login_fail'].' = '.$this->user_cols['login_fail'].' + 1 '.
-                   'WHERE '.$this->user_cols['id'].' = "'.$user_id.'" '; 
+            $sql = 'UPDATE `'.$this->table.'` SET `'.$this->user_cols['login_fail'].'` = `'.$this->user_cols['login_fail'].'` + 1 '.
+                   'WHERE `'.$this->user_cols['id'].'` = "'.$user_id.'" '; 
             $this->db->executeSql($sql,$error_tmp);
             if($error_tmp !== '') {
                 $error = 'USER_AUTH_ERROR: could not update fail count';
@@ -619,11 +619,11 @@ class User extends Model
         }    
          
         if($type === 'EMAIL_TOKEN') {
-            $sql = 'SELECT * FROM '.$this->table.' '.
-                   'WHERE '.$this->user_cols['email_token'].' = "'.$this->db->escapeSql($value).'" AND '.
-                            $this->user_cols['email_token_expire'].' >= CURDATE() AND '.
-                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max.' AND '.
-                            $this->user_cols['status'].' <> "HIDE" ';
+            $sql = 'SELECT * FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->user_cols['email_token'].'` = "'.$this->db->escapeSql($value).'" AND '.
+                         '`'.$this->user_cols['email_token_expire'].'` >= CURDATE() AND '.
+                         '`'.$this->user_cols['login_fail'].'` <= '.$this->login_fail_max.' AND '.
+                         '`'.$this->user_cols['status'].'` <> "HIDE" ';
             $user = $this->db->readSqlRecord($sql);
         }    
 
@@ -637,17 +637,17 @@ class User extends Model
         }
 
         if($type === 'EMAIL') {
-            $sql = 'SELECT * FROM '.$this->table.' '.
-                   'WHERE '.$this->user_cols['email'].' = "'.$this->db->escapeSql($value).'" AND '.
-                            $this->user_cols['login_fail'].' <= '.$this->login_fail_max.' AND '.
-                            $this->user_cols['status'].' <> "HIDE" ';
+            $sql = 'SELECT * FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->user_cols['email'].'` = "'.$this->db->escapeSql($value).'" AND '.
+                         '`'.$this->user_cols['login_fail'].'` <= '.$this->login_fail_max.' AND '.
+                         '`'.$this->user_cols['status'].'` <> "HIDE" ';
             $user = $this->db->readSqlRecord($sql);
         }
 
         //NB: only use this option to check if user exists NOT if user valid.
         if($type === 'EMAIL_EXIST') {
-            $sql = 'SELECT * FROM '.$this->table.' '.
-                   'WHERE '.$this->user_cols['email'].' = "'.$this->db->escapeSql($value).'" ';
+            $sql = 'SELECT * FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->user_cols['email'].'` = "'.$this->db->escapeSql($value).'" ';
             $user = $this->db->readSqlRecord($sql);
         }
 
@@ -685,10 +685,10 @@ class User extends Model
     protected function setupRouteWhitelist()
     {
         //array key will be route from url root
-        $sql = 'SELECT '.$this->route_cols['route'].','.$this->route_cols['access'].','.$this->route_cols['title'].','.$this->route_cols['config'].' '.
-               'FROM '.TABLE_ROUTE.' '.
-               'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($this->user_id).'" '.
-               'ORDER BY '.$this->route_cols['sort'];
+        $sql = 'SELECT `'.$this->route_cols['route'].'`,`'.$this->route_cols['access'].'`,`'.$this->route_cols['title'].'`,`'.$this->route_cols['config'].'` '.
+               'FROM `'.TABLE_ROUTE.'` '.
+               'WHERE `'.$this->route_cols['user_id'].'` = "'.$this->db->escapeSql($this->user_id).'" '.
+               'ORDER BY `'.$this->route_cols['sort'].'`';
         $list = $this->db->readSqlArray($sql);
 
         //set user default page
@@ -1052,16 +1052,16 @@ class User extends Model
                 $this->addError($error);
             } else {
                 if($from_user[$this->user_cols['route_access']]) {
-                    $sql = 'DELETE FROM '.TABLE_ROUTE.' '.
-                           'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" ';
+                    $sql = 'DELETE FROM `'.TABLE_ROUTE.'` '.
+                           'WHERE `'.$this->route_cols['user_id'].'` = "'.$this->db->escapeSql($user_id).'" ';
                     $this->db->executeSql($sql,$error_tmp);
                     if($error_tmp !== '') {
                         $error = 'Could not remove old route access setting';
                         if($this->debug) $error .= $error_tmp;
                         $this->addError($error);
                     } else {
-                        $sql = 'SELECT * FROM '.TABLE_ROUTE.' '.
-                               'WHERE '.$this->route_cols['user_id'].' = "'.$this->db->escapeSql($from_user_id).'" ';
+                        $sql = 'SELECT * FROM `'.TABLE_ROUTE.'` '.
+                               'WHERE `'.$this->route_cols['user_id'].'` = "'.$this->db->escapeSql($from_user_id).'" ';
                         $routes = $this->db->readSqlArray($sql); 
                         if($routes != 0) {
                             foreach($routes as $route) {
@@ -1088,9 +1088,9 @@ class User extends Model
     {
         $error = '';
 
-        $sql = 'DELETE FROM '.TABLE_TOKEN.' '.
-               'WHERE '.$this->token_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" AND '.
-                        $this->token_cols['date_expire'].' <= NOW()';
+        $sql = 'DELETE FROM `'.TABLE_TOKEN.'` '.
+               'WHERE `'.$this->token_cols['user_id'].'` = "'.$this->db->escapeSql($user_id).'" AND '.
+                     '`'.$this->token_cols['date_expire'].'` <= NOW()';
 
         $this->db->executeSql($sql,$error); 
         if($error !== '') {
@@ -1106,8 +1106,8 @@ class User extends Model
         $token = Secure::Clean('alpha',$token);
 
         if($token !== '') {
-            $sql = 'DELETE FROM '.TABLE_TOKEN.' '.
-                   'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" ';
+            $sql = 'DELETE FROM `'.TABLE_TOKEN.'` '.
+                   'WHERE `'.$this->token_cols['token'].'` = "'.$this->db->escapeSql($token).'" ';
 
             $this->db->executeSql($sql,$error); 
             if($error !== '') {
@@ -1124,10 +1124,10 @@ class User extends Model
         //token should only contain alphanumeric characters
         $token = Secure::Clean('alpha',$token);
 
-        $sql = 'SELECT '.$this->token_cols['user_id'].' AS '.$this->user_cols['id'].','.$this->token_cols['date_expire'].' '.
-               'FROM '.TABLE_TOKEN.' '.
-               'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" AND '.
-                        $this->token_cols['date_expire'].' >= NOW() ';
+        $sql = 'SELECT `'.$this->token_cols['user_id'].'` AS `'.$this->user_cols['id'].'`,`'.$this->token_cols['date_expire'].'` '.
+               'FROM `'.TABLE_TOKEN.'` '.
+               'WHERE `'.$this->token_cols['token'].'` = "'.$this->db->escapeSql($token).'" AND '.
+                     '`'.$this->token_cols['date_expire'].'` >= NOW() ';
 
         $rec = $this->db->readSqlRecord($sql);
         //wait 3 seconds to slow down any attack
@@ -1144,9 +1144,9 @@ class User extends Model
 
         $token_new = Crypt::makeToken();
 
-        $sql = 'UPDATE '.TABLE_TOKEN.' SET '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token_new).'" '.
-               'WHERE '.$this->token_cols['token'].' = "'.$this->db->escapeSql($token).'" AND '.
-                        $this->token_cols['user_id'].' = "'.$this->db->escapeSql($user_id).'" ';
+        $sql = 'UPDATE `'.TABLE_TOKEN.'` SET `'.$this->token_cols['token'].'` = "'.$this->db->escapeSql($token_new).'" '.
+               'WHERE `'.$this->token_cols['token'].'` = "'.$this->db->escapeSql($token).'" AND '.
+                     '`'.$this->token_cols['user_id'].'` = "'.$this->db->escapeSql($user_id).'" ';
 
         $this->db->executeSql($sql,$error_tmp); 
         if($error_tmp !== '') {

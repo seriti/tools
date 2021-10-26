@@ -167,7 +167,7 @@ class Calc
         }    
                             
         if($error === '') {          
-            $sql = 'SELECT sys_count FROM `'.$table.'` WHERE system_id = "'.$system_id.'" ';
+            $sql = 'SELECT `sys_count` FROM `'.$table.'` WHERE `system_id` = "'.$system_id.'" ';
             $id = $db->readSqlValue($sql,0);
             if($id == 0) {
                 $error .= 'Could not read System table ['.$id.'] value!';
@@ -177,7 +177,7 @@ class Calc
         }
         
         if($error === '') {          
-            $sql = 'UPDATE `'.$table.'` SET sys_count = sys_count + 1 WHERE system_id = "'.$system_id.'" ';
+            $sql = 'UPDATE `'.$table.'` SET `sys_count` = `sys_count` + 1 WHERE `system_id` = "'.$system_id.'" ';
             $db->executeSql($sql,$error_tmp);
             if($error_tmp != '') $error .= 'Could not update system ['.$system_id.'] value';
         }
@@ -207,7 +207,7 @@ class Calc
         if($error_tmp != '') $error .= 'Could NOT lock system table for FILE counter!'; 
                             
         if($error == '') {          
-            $sql = 'SELECT sys_count FROM `'.$table.'` WHERE system_id = "FILES" ';
+            $sql = 'SELECT `sys_count` FROM `'.$table.'` WHERE `system_id` = "FILES" ';
             $id = $db->readSqlValue($sql,0);
             if($id == 0) {
                 $error .= 'Could not read System table FILES value!';
@@ -217,7 +217,7 @@ class Calc
         }
         
         if($error == '') {          
-            $sql = 'UPDATE `'.$table.'` SET sys_count = sys_count + 1 WHERE system_id = "FILES" ';
+            $sql = 'UPDATE `'.$table.'` SET `sys_count` = `sys_count` + 1 WHERE `system_id` = "FILES" ';
             $db->executeSql($sql,$error_tmp);
             if($error_tmp != '') $error .= 'Could not update system FILES value';
         }

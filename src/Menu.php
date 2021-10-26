@@ -58,8 +58,8 @@ class Menu extends Tree
     {
         $access = true;
         if($this->check_access and $route !== '') {
-            $sql = 'SELECT * FROM '.$this->table.' '.
-                   'WHERE '.$this->menu_cols['route'].' = "'.$this->db->escapeSql($route).'" ';
+            $sql = 'SELECT * FROM `'.$this->table.'` '.
+                   'WHERE `'.$this->menu_cols['route'].'` = "'.$this->db->escapeSql($route).'" ';
             $item = $this->db->readSqlRecord($sql);  
 
             //NB: only check access if valid menu item found matching route
@@ -165,7 +165,7 @@ class Menu extends Tree
         } else {
             //get all top level menu items
             $this->addSql('ORDER',$this->order_by);
-            $this->addSql('WHERE',$this->tree_cols['level'].' = 1 ');
+            $this->addSql('WHERE','`'.$this->tree_cols['level'].'` = 1 ');
             $menu = $this->list();
 
             if($menu != 0) {
@@ -191,8 +191,8 @@ class Menu extends Tree
                                 //construct sub menu, single layer with indents for lower levels
                                 $this->resetSql();
                                 $this->addSql('ORDER',$this->order_by);
-                                $this->addSql('RESTRICT',$this->tree_cols['rank'].' > '.$item[$this->tree_cols['rank']].' AND '.
-                                                      $this->tree_cols['rank'].' <= '.$item[$this->tree_cols['rank_end']]);
+                                $this->addSql('RESTRICT','`'.$this->tree_cols['rank'].'` > '.$item[$this->tree_cols['rank']].' AND '.
+                                                      '`'.$this->tree_cols['rank'].'` <= '.$item[$this->tree_cols['rank_end']]);
                                
                                 $sub_menu = $this->list();
                                 if($sub_menu != 0) {

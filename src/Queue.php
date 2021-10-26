@@ -114,22 +114,22 @@ class Queue extends Model
         $process_id = $this->db->escapeSql($process_id);
                 
         //NB: first field in query must be a unique identifier! 
-        $sql='SELECT T.'.$this->queue_cols['id'].' AS id , T.* '.
-             'FROM '.$this->table.' AS T '.
-             'WHERE T.'.$this->queue_cols['process_complete'].' = 0 AND '.
-                         'T.'.$this->queue_cols['process_status'].' <> "ERROR" ';
+        $sql='SELECT T.`'.$this->queue_cols['id'].'` AS `id` , T.* '.
+             'FROM `'.$this->table.'` AS T '.
+             'WHERE T.`'.$this->queue_cols['process_complete'].'` = 0 AND '.
+                   'T.`'.$this->queue_cols['process_status'].'` <> "ERROR" ';
 
         if($param['process_id_match'] === 'EXACT') {
-            $sql.=' AND '.$this->queue_cols['process_id'].' = "'.$process_id.'" ';      
+            $sql.=' AND `'.$this->queue_cols['process_id'].'` = "'.$process_id.'" ';      
         }
         if($param['process_id_match'] === 'BEGIN') {
-            $sql .= ' AND '.$this->queue_cols['process_id'].' LIKE "'.$process_id.'%" ';      
+            $sql .= ' AND `'.$this->queue_cols['process_id'].'` LIKE "'.$process_id.'%" ';      
         }
         if($param['process_id_match'] === 'END') {
-            $sql .= ' AND '.$this->queue_cols['process_id'].' LIKE "%'.$process_id.'" ';      
+            $sql .= ' AND `'.$this->queue_cols['process_id'].'` LIKE "%'.$process_id.'" ';      
         } 
 
-        $sql .= 'ORDER BY '.$this->queue_cols['id'].' LIMIT '.$param['max_items'];
+        $sql .= 'ORDER BY `'.$this->queue_cols['id'].'` LIMIT '.$param['max_items'];
         return $sql;
     }
     
@@ -139,9 +139,9 @@ class Queue extends Model
         $error = '';
         
         //first test if process_key exists already before adding
-        $sql='SELECT COUNT(*) FROM '.$this->table.' '.
-             'WHERE '.$this->queue_cols['process_id'].' = "'.$this->db->escapeSql($process_id).'" AND '.
-                      $this->queue_cols['process_key'].' = "'.$this->db->escapeSql($process_key).'" ';
+        $sql='SELECT COUNT(*) FROM `'.$this->table.'` '.
+             'WHERE `'.$this->queue_cols['process_id'].'` = "'.$this->db->escapeSql($process_id).'" AND '.
+                    '`'.$this->queue_cols['process_key'].'` = "'.$this->db->escapeSql($process_key).'" ';
         $count = $this->db->readSqlValue($sql,0);
         if($count == 0) {     
             $item[$this->queue_cols['process_id']] = $process_id;

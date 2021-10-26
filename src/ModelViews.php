@@ -613,10 +613,10 @@ trait  ModelViews
         
         $image_count = 0;
         if($this->images['list']) {
-            $sql = 'SELECT '.$this->file_cols['file_id'].' AS id,'.$this->file_cols['file_name_orig'].' AS name , '.$this->file_cols['file_name_tn'].' AS thumbnail  '.
-                   'FROM '.$this->images['table'].' '.
-                   'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
-                   'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC LIMIT '.$this->images['list_no'];
+            $sql = 'SELECT `'.$this->file_cols['file_id'].'` AS `id`,`'.$this->file_cols['file_name_orig'].'` AS `name` , `'.$this->file_cols['file_name_tn'].'` AS `thumbnail`  '.
+                   'FROM `'.$this->images['table'].'` '.
+                   'WHERE `'.$this->file_cols['location_id'].'` = "'.$location_id.'" '.
+                   'ORDER BY `'.$this->file_cols['location_rank'].'`,`'.$this->file_cols['file_date'].'` DESC LIMIT '.$this->images['list_no'];
             $images = $this->db->readSqlArray($sql);
             if($images !== 0) {
                 $html .= '<br/>';
@@ -649,7 +649,7 @@ trait  ModelViews
                 }
             } 
         } else {
-            $sql = 'SELECT COUNT(*) FROM '.$this->images['table'].' WHERE location_id ="'.$location_id.'" ';
+            $sql = 'SELECT COUNT(*) FROM `'.$this->images['table'].'` WHERE `location_id` ="'.$location_id.'" ';
             $count = $this->db->readSqlValue($sql,0);
             if($count != 0) $html .= '&nbsp;('.$count.')';
         }
@@ -675,10 +675,10 @@ trait  ModelViews
         
         $file_count = 0;
         if($this->files['list'] and $view === 'BLOCK') {
-            $sql = 'SELECT '.$this->file_cols['file_id'].' AS id,'.$this->file_cols['file_name_orig'].' AS name , '.$this->file_cols['file_size'].' AS size '.
-                   'FROM '.$this->files['table'].' '.
-                   'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
-                   'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC ,'.$this->file_cols['file_id'].' DESC '.
+            $sql = 'SELECT `'.$this->file_cols['file_id'].'` AS `id`,`'.$this->file_cols['file_name_orig'].'` AS `name` , `'.$this->file_cols['file_size'].'` AS `size` '.
+                   'FROM `'.$this->files['table'].'` '.
+                   'WHERE `'.$this->file_cols['location_id'].'` = "'.$location_id.'" '.
+                   'ORDER BY `'.$this->file_cols['location_rank'].'`,`'.$this->file_cols['file_date'].'` DESC ,`'.$this->file_cols['file_id'].'` DESC '.
                    'LIMIT '.$this->files['list_no'];
             $file_list = $this->db->readSqlArray($sql);
             if($file_list !== 0) {
@@ -696,8 +696,8 @@ trait  ModelViews
         } 
 
         if($view === 'SUMMARY') {
-            $sql = 'SELECT COUNT(*) AS num, MAX('.$this->file_cols['file_date'].') AS latest '.
-                   'FROM '.$this->files['table'].' WHERE location_id = "'.$location_id.'" ';
+            $sql = 'SELECT COUNT(*) AS `num`, MAX(`'.$this->file_cols['file_date'].'`) AS `latest` '.
+                   'FROM `'.$this->files['table'].'` WHERE `location_id` = "'.$location_id.'" ';
             $files = $this->db->readSqlRecord($sql);
             if($files != 0 and $files['num'] > 0) $html .= '&nbsp;('.$files['num'].$this->files['name'].' '.$files['latest'].')';
         }   

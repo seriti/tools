@@ -39,7 +39,7 @@ class Pdf extends FPDF
     protected function getLayout($db,$id) 
     {
         $layout = 0;
-        $sql = 'SELECT sys_text FROM system WHERE system_id = "'.$db->escapeSql($id).'" ';
+        $sql = 'SELECT `sys_text` FROM `system` WHERE `system_id` = "'.$db->escapeSql($id).'" ';
         $layout = $db->readSqlValue($sql,0);
         return $layout; 
     }  

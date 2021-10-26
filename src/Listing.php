@@ -950,11 +950,11 @@ class Listing extends Model
         
         $image_count = 0;
         if($this->images['list']) {
-            $sql = 'SELECT '.$this->file_cols['file_id'].' AS file_id,'.$this->file_cols['file_name_orig'].' AS name, '.
-                             $this->file_cols['file_name'].' AS file_name , '.$this->file_cols['file_name_tn'].' AS file_name_tn  '.
-                   'FROM '.$this->images['table'].' '.
-                   'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '.
-                   'ORDER BY '.$this->file_cols['location_rank'].','.$this->file_cols['file_date'].' DESC LIMIT '.$this->images['list_no'];
+            $sql = 'SELECT `'.$this->file_cols['file_id'].'` AS `file_id`,`'.$this->file_cols['file_name_orig'].'` AS `name`, '.
+                          '`'.$this->file_cols['file_name'].'` AS `file_name` , `'.$this->file_cols['file_name_tn'].'` AS `file_name_tn`  '.
+                   'FROM `'.$this->images['table'].'` '.
+                   'WHERE `'.$this->file_cols['location_id'].'` = "'.$location_id.'" '.
+                   'ORDER BY `'.$this->file_cols['location_rank'].'`,`'.$this->file_cols['file_date'].'` DESC LIMIT '.$this->images['list_no'];
             $images = $this->db->readSqlArray($sql);
             if($images !== 0) {
                 
@@ -1019,7 +1019,7 @@ class Listing extends Model
         
         foreach($this->search as $col_id) {
             $col = $this->cols[$col_id];
-            if(isset($col['xtra'])) $col_str = $col['xtra']; else $col_str = 'T.'.$col_id;
+            if(isset($col['xtra'])) $col_str = $col['xtra']; else $col_str = 'T.`'.$col_id.'`';
             
             if($col['type'] == 'DATE' or $col['type'] == 'DATETIME') {
                 $value = array();
@@ -1060,7 +1060,7 @@ class Listing extends Model
                         if($value_mod != 'ALL') {
                             if($col['tree'] != '') {
                                 //$col['tree'] must be SQL alias for JOINed tree table
-                                $csv_col = $col['tree'].'.'.$this->tree_cols['lineage'];
+                                $csv_col = $col['tree'].'.`'.$this->tree_cols['lineage'].'`';
                                 $where .= '('.$col_str.' = "'.$value_mod.'" OR FIND_IN_SET("'.$value_mod.'",'.$csv_col.') > 0) AND ';
                             } else {
                                 $where .= $col_str.' = "'.$value_mod.'" AND ';
@@ -1112,7 +1112,7 @@ class Listing extends Model
         
         if($this->calc_aggregate) {
             $sql_agg = '';
-            foreach($this->search_aggregate as $n => $agg) $sql_agg .= ', '.$agg['sql'].' AS agg_'.$n.' '; 
+            foreach($this->search_aggregate as $n => $agg) $sql_agg .= ', '.$agg['sql'].' AS `agg_'.$n.'` '; 
             $this->addSql('COUNT',$sql_agg);            
         }  
             

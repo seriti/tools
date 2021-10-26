@@ -277,7 +277,7 @@ class Upload extends Model
 
         //if($this->upload['location'] !== 'NONE' and $this->master['key_val'] != 0) {
         //    $location_id = $this->upload['location'].$this->master['key_val'];
-        //    $this->addSql('RESTRICT','T.'.$this->file_cols['location_id'].' = "'.$location_id.' ');
+        //    $this->addSql('RESTRICT','T.`'.$this->file_cols['location_id'].'` = "'.$location_id.' ');
         //}  
 
         $this->beforeProcess($id);    
@@ -599,9 +599,9 @@ class Upload extends Model
                     if($this->master['action_sql'] != '') {
                         $sql  = str_replace('{KEY_VAL}',$this->db->escapeSql($this->master['key_val']),$this->master['action_sql']);
                     } else {
-                        $sql = 'SELECT '.$this->master['key'].','.$this->master['label'].' FROM '.$this->master['table'].' '.
-                               'WHERE '.$this->master['key'].' <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
-                               'ORDER BY '.$this->master['label'].' ';
+                        $sql = 'SELECT `'.$this->master['key'].'`,`'.$this->master['label'].'` FROM `'.$this->master['table'].'` '.
+                               'WHERE `'.$this->master['key'].'` <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
+                               'ORDER BY `'.$this->master['label'].'` ';
                     }
 
                     $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
@@ -1199,7 +1199,7 @@ class Upload extends Model
     protected function beforeUpdate($id,$edit_type,&$form,&$error) 
     {
         if($edit_type === 'UPDATE' ) {
-            $sql = 'SELECT * FROM '.$this->table.' WHERE '.$this->key['id'].' = "'.$this->db->escapeSql($id).'" ';
+            $sql = 'SELECT * FROM `'.$this->table.'` WHERE `'.$this->key['id'].'` = "'.$this->db->escapeSql($id).'" ';
             $original = $this->db->readSqlRecord($sql); 
 
             $info_orig = Doc::fileNameParts($original[$this->file_cols['file_name']]);
@@ -1506,8 +1506,8 @@ class Upload extends Model
             if(isset($form[$this->file_cols['location_rank']])) {
                 $location_rank = intval($form[$this->file_cols['location_rank']]);
             } else {
-                $sql = 'SELECT MAX('.$this->file_cols['location_rank'].') FROM '.$this->table.' '.
-                       'WHERE '.$this->file_cols['location_id'].' = "'.$location_id.'" '; 
+                $sql = 'SELECT MAX(`'.$this->file_cols['location_rank'].'`) FROM `'.$this->table.'` '.
+                       'WHERE `'.$this->file_cols['location_id'].'` = "'.$location_id.'" '; 
                 $location_rank = intval($this->db->readSqlValue($sql,0)) + $this->upload['rank_interval'];
     
             }
@@ -1656,7 +1656,7 @@ class Upload extends Model
         if(!$this->errors_found) {
             //check if file is referenced from another location before deleting
             $delete_file = true;
-            $sql = 'SELECT COUNT(*) FROM '.$this->table.' WHERE '.$this->file_cols['file_name'].' = "'.$file[$this->file_cols['file_name']].'" ';
+            $sql = 'SELECT COUNT(*) FROM `'.$this->table.'` WHERE `'.$this->file_cols['file_name'].'` = "'.$file[$this->file_cols['file_name']].'" ';
             $count = $this->db->readSqlValue($sql,0);
             if($count > 1) $delete_file = false;
 
@@ -1866,7 +1866,7 @@ class Upload extends Model
                 $action_id = Secure::clean('basic',$_POST['master_action_id']);
                 $new_location_id = $this->db->escapeSql($this->upload['location'].$action_id);
                 //check that action_id is valid
-                $sql = 'SELECT '.$this->master['key'].' FROM '.$this->master['table'].' WHERE '.$this->master['key'].' = "'.$action_id.'" ';
+                $sql = 'SELECT `'.$this->master['key'].'` FROM `'.$this->master['table'].'` WHERE `'.$this->master['key'].'` = "'.$action_id.'" ';
                 $move_id = $this->db->readSqlValue($sql,0);
                 if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
                 $audit_str .= 'Move '.$this->row_name_plural.' from '.$audit_name.' to id['.$action_id.'] :';
@@ -1884,7 +1884,7 @@ class Upload extends Model
                 $action_id = Secure::clean('basic',$_POST['copy_action_id']);
                 $copy_location_id = $this->db->escapeSql($this->copy['location'].$action_id);
                 //check that action_id is valid
-                $sql = 'SELECT '.$this->copy['key'].' FROM '.$this->copy['table'].' WHERE '.$this->copy['key'].' = "'.$action_id.'" ';
+                $sql = 'SELECT `'.$this->copy['key'].'` FROM `'.$this->copy['table'].'` WHERE `'.$this->copy['key'].'` = "'.$action_id.'" ';
                 $copy_id = $this->db->readSqlValue($sql,0);
                 if($copy_id !== $action_id) $this->addError('Copy action for '.str_replace('_',' ',$this->copy['table']).' id['.$action_id.'] does not exist!');
                 $audit_str .= 'Copy '.$this->row_name_plural.' from '.$audit_name.' to '.$this->copy['table'].' id['.$action_id.'] :';
@@ -1919,8 +1919,8 @@ class Upload extends Model
                         }  
 
                         if($this->child and $action === 'MOVE') {
-                            $sql = 'UPDATE '.$this->table.' SET '.$this->file_cols['location_id'].' = "'.$new_location_id.'" '.
-                                   'WHERE '.$this->file_cols['file_id'].' = "'.$file_id.'" ';
+                            $sql = 'UPDATE `'.$this->table.'` SET `'.$this->file_cols['location_id'].'` = "'.$new_location_id.'" '.
+                                   'WHERE `'.$this->file_cols['file_id'].'` = "'.$file_id.'" ';
                             $this->db->executeSql($sql,$error_tmp);
                             if($error_tmp === '') {
                                 $this->addMessage('Successfully moved '.$file_name_orig);
