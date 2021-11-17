@@ -1009,7 +1009,7 @@ class Listing extends Model
             $form['order_by'] = $this->order_by_current; 
             $form['order_by_desc'] =  false;
         } else  {
-            $form['order_by'] = Secure::clean('basic',$_POST['order_by']);
+            $form['order_by'] = Secure::clean('string',$_POST['order_by']);
             if(isset($_POST['order_by_desc']) and substr($form['order_by'],-4) != 'DESC') {
                 $form['order_by_desc'] = true; 
             } else {
