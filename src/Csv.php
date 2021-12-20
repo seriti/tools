@@ -31,16 +31,18 @@ class Csv
     }
     
     //for arrays created using Mysql::readSqlArray()
-    public static function sqlArrayDumpCsv($key_name,$array) {
+    public static function sqlArrayDumpCsv($key_name,$array,$options = []) {
         $data='';
         
+        if(!isset($options['show_key'])) $options['show_key'] = true; 
+
         $header = false;
         $header_line = array();
-        $header_line[] = self::csvPrep($key_name);
+        if($options['show_key']) $header_line[] = self::csvPrep($key_name);
                 
         foreach($array as $key => $array2) {
             $line = array();
-            $line[] = self::csvPrep($key);
+            if($options['show_key']) $line[] = self::csvPrep($key);
             foreach($array2 as $key2 => $value) {
                 if(!$header) $header_line[] = self::csvPrep($key2);
                 $line[] = self::csvPrep($value);
