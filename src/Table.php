@@ -57,6 +57,7 @@ class Table extends Model
                 
     protected $table_action = false;//where multiple rows can be selected and modified as one
     protected $table_edit_all = false; //where all rows are editable together 
+    protected $table_update_only = false; //where table_edit_all true and update action only option
     protected $excel_csv = true;
     protected $actions = array();
     protected $location = '';
@@ -111,7 +112,10 @@ class Table extends Model
         }
 
         if(isset($param['max_rows'])) $this->max_rows = $param['max_rows'];    
+        
         if(isset($param['table_edit_all'])) $this->table_edit_all = $param['table_edit_all'];
+        if(isset($param['table_update_only'])) $this->table_update_only = $param['table_update_only'];
+
         if(isset($param['nav_show'])) $this->nav_show = $param['nav_show'];
         if(isset($param['col_label'])) $this->col_label = $param['col_label'];
         if(isset($param['action_header'])) $this->action_header = $param['action_header'];
@@ -465,58 +469,62 @@ class Table extends Model
             $param['onchange'] = 'javascript:change_table_action()';
             
             $html .= '<div id="action_div">';
-          
-            $html .= '<span style="padding:8px;"><input type="checkbox" id="checkbox_all"></span>'.
-                     '<script type="text/javascript">'.
-                     '$("#checkbox_all").click(function () {$(".checkbox_action").prop(\'checked\', $(this).prop(\'checked\'));});'.
-                     '</script>';
-          
-            $html .= Form::arrayList($actions,'table_action',$action_id,true,$param);
+                      
+            if($this->table_update_only) {
+                $html .= '<input type="hidden" name="table_action" value="UPDATE" >'; 
+            } else {
+                $html .= '<span style="padding:8px;"><input type="checkbox" id="checkbox_all"></span>'.
+                         '<script type="text/javascript">'.
+                         '$("#checkbox_all").click(function () {$(".checkbox_action").prop(\'checked\', $(this).prop(\'checked\'));});'.
+                         '</script>';
+                $html .= Form::arrayList($actions,'table_action',$action_id,true,$param);
             
-            $js_xtra = '';
-            $html_xtra = '';
+                $js_xtra = '';
+                $html_xtra = '';
 
-            if($this->child) {
-                $param = array();
-                $param['class'] = $this->classes['action'];
-                if($this->master['action_item'] === 'SELECT') {
-                    if($this->master['action_sql'] != '') {
-                        $sql  = str_replace('{KEY_VAL}',$this->db->escapeSql($this->master['key_val']),$this->master['action_sql']);
-                    } else {
-                        $sql = 'SELECT `'.$this->master['key'].'`,`'.$this->master['label'].'` FROM `'.$this->master['table'].'` '.
-                               'WHERE `'.$this->master['key'].'` <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
-                               'ORDER BY `'.$this->master['label'].'` ';
+                if($this->child) {
+                    $param = array();
+                    $param['class'] = $this->classes['action'];
+                    if($this->master['action_item'] === 'SELECT') {
+                        if($this->master['action_sql'] != '') {
+                            $sql  = str_replace('{KEY_VAL}',$this->db->escapeSql($this->master['key_val']),$this->master['action_sql']);
+                        } else {
+                            $sql = 'SELECT `'.$this->master['key'].'`,`'.$this->master['label'].'` FROM `'.$this->master['table'].'` '.
+                                   'WHERE `'.$this->master['key'].'` <> "'.$this->db->escapeSql($this->master['key_val']).'" '.
+                                   'ORDER BY `'.$this->master['label'].'` ';
+                        }
+                        $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
+                    } else { 
+                        $param['class'] = $this->classes['search'];
+                        $html_action_item = str_replace('_',' ',$this->master['key']).' '.
+                                            Form::textInput('master_action_id',$this->master['action_id'],$param);
                     }
-                    $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
-                } else { 
-                    $param['class'] = $this->classes['search'];
-                    $html_action_item = str_replace('_',' ',$this->master['key']).' '.
-                                        Form::textInput('master_action_id',$this->master['action_id'],$param);
-                }
 
-                $js_xtra .= 'var action_master_select = document.getElementById(\'action_master_select\');'.
-                            'action_master_select.style.display = \'none\'; '.
-                            'if(table_action.options[action_index].value==\'MOVE\') action_master_select.style.display = \'inline\'; ';
+                    $js_xtra .= 'var action_master_select = document.getElementById(\'action_master_select\');'.
+                                'action_master_select.style.display = \'none\'; '.
+                                'if(table_action.options[action_index].value==\'MOVE\') action_master_select.style.display = \'inline\'; ';
 
-                $html_xtra .= '<span id="action_master_select" style="display:none"> to&raquo;'.
-                              $html_action_item.
-                              '</span>';
-            }    
-                 
-            $html .= '<script type="text/javascript">'.
-                     'function change_table_action() {'.
-                     'var table_action = document.getElementById(\'table_action\');'.
-                     'var action_index = table_action.selectedIndex; '.
-                     'var action_email_select = document.getElementById(\'action_email_select\');'.
-                     'action_email_select.style.display = \'none\'; '.
-                     'if(table_action.options[action_index].value==\'EMAIL\') action_email_select.style.display = \'inline\'; '.
-                     $js_xtra.
-                     '}</script>';
+                    $html_xtra .= '<span id="action_master_select" style="display:none"> to&raquo;'.
+                                  $html_action_item.
+                                  '</span>';
+                }    
+                     
+                $html .= '<script type="text/javascript">'.
+                         'function change_table_action() {'.
+                         'var table_action = document.getElementById(\'table_action\');'.
+                         'var action_index = table_action.selectedIndex; '.
+                         'var action_email_select = document.getElementById(\'action_email_select\');'.
+                         'action_email_select.style.display = \'none\'; '.
+                         'if(table_action.options[action_index].value==\'EMAIL\') action_email_select.style.display = \'inline\'; '.
+                         $js_xtra.
+                         '}</script>';
 
-            $html .= '<span id="action_email_select" style="display:none"> to&raquo;'.
-                     Form::textInput('action_email',$action_email,$param).
-                     '</span>'.$html_xtra.'&nbsp;'.
-                     '<input type="submit" name="action_submit" value="'.$this->texts['btn_action'].'" class="'.$this->classes['button'].'">';
+                $html .= '<span id="action_email_select" style="display:none"> to&raquo;'.
+                         Form::textInput('action_email',$action_email,$param).
+                         '</span>'.$html_xtra.'&nbsp;';
+            }
+
+            $html .= '<input type="submit" name="action_submit" value="'.$this->texts['btn_action'].'" class="'.$this->classes['button'].'">';
 
             $html .= '</div>';
         } 

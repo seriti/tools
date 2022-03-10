@@ -201,6 +201,8 @@ trait  ModelHelpers
             } else {  
                 $this->table_action = true; 
                 if(!isset($action['checked'])) $action['checked'] = false;
+                //if 'hidden' = true then all rows selected and 'checked' ignored  
+                if(!isset($action['hidden'])) $action['hidden'] = false;
             }  
         } 
                 

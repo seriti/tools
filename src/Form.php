@@ -354,6 +354,8 @@ class Form
         if(isset($param['class'])) $xtra .= 'class="'.$param['class'].'" ';
         if(isset($param['onchange'])) $xtra .= 'onchange="'.$param['onchange'].'" ';
         if(isset($param['form'])) $xtra .= 'form="'.$param['form'].'" ';
+        //NB: only single $value selected currently
+        if(isset($param['multiple'])) $xtra .= 'multiple="'.$param['multiple'].'" ';
         
         if(isset($param['select'])) {
             $html .= $param['select'];
@@ -428,6 +430,8 @@ class Form
         if(isset($param['class'])) $xtra .= 'class="'.$param['class'].'" ';
         if(isset($param['onchange'])) $xtra .= 'onchange="'.$param['onchange'].'" ';
         if(isset($param['form'])) $xtra .= 'form="'.$param['form'].'" ';
+        //NB: only single $value selected currently
+        if(isset($param['multiple'])) $xtra .= 'multiple="'.$param['multiple'].'" ';
                 
         if(isset($param['select'])) {
             $html .= $param['select'];

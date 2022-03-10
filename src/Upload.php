@@ -50,7 +50,7 @@ class Upload extends Model
     
     protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'),
                                  'Images'=>array('jpg','jpeg','bmp','gif','tif','tiff','png','pnt','pict','pct','pcd','pbm'),
-                                 'Audiovisual'=>array('mp3','m3u','mp4','m4v','m4a','mpg','mpeg','mpeg4','wav','swf','wmv','mov','ogg','ogv','webm','avi','3gp','3g2')); 
+                                 'Audiovisual'=>array('mp3','m3u','mp4','m4v','m4a','mpg','mpeg','mpeg4','wav','swf','wmv','wma','mov','ogg','ogv','webm','avi','3gp','3g2')); 
     protected $encrypt_ext = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'); 
     protected $image_resize_ext = array('jpg','jpeg','png','gif');
     protected $inline_ext = array('pdf'); //default to inline donwload option rather than force as file download 

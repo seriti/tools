@@ -118,8 +118,14 @@ trait  ModelViews
                         if($action['mode'] != '') $href .= '&mode='.$action['mode'];
                         $html .= '<a class="action" '.$target.' href="'.$href.'" >'.$show.'</a>'; 
                     } elseif($action['type'] === 'check_box'){
-                        $param['class'] = 'checkbox_action';
-                        $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',$action['checked'],$param).$show;
+                        //only hidden when used with table_edit_all
+                        if($action['hidden']) {
+                            $html .= '<input type="hidden" name="checked_'.$data[$this->key['id']].'" value="YES" >'; 
+                        } else {
+                            $param['class'] = 'checkbox_action';
+                            $html .= Form::checkbox('checked_'.$data[$this->key['id']],'YES',$action['checked'],$param).$show; 
+                        }
+                        
                     } else {    
                         $onclick = '';
                         if($action['type'] == 'delete') {
