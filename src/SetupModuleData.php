@@ -56,6 +56,9 @@ class SetupModuleData
 
         $this->checkTables();
         $this->updateData();
+        //will not update if any errors in execution
+        $this->updateTimeStamp();
+        //placeholder for any custom code
         $this->afterProcess();
 
         if($this->process_count === 0) $this->addMessage('No changes processed.');
@@ -95,7 +98,7 @@ class SetupModuleData
             $this->addMessage('NO '.$this->module.' Tables present.');
             $this->createAllTables();
             $this->initialiseData();
-            $this->updateTimeStamp();
+            //$this->updateTimeStamp();
         }
     }  
 
@@ -189,8 +192,7 @@ class SetupModuleData
                     }
                 }
                 
-                //will not update if any errors in execution
-                $this->updateTimeStamp($update_time);
+                //$this->updateTimeStamp($update_time);
             }
         }
     }
