@@ -48,7 +48,7 @@ class Upload extends Model
     protected $row_name_plural = 'files';
     protected $row_tag = true;
     
-    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'),
+    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','dwg'),
                                  'Images'=>array('jpg','jpeg','bmp','gif','tif','tiff','png','pnt','pict','pct','pcd','pbm'),
                                  'Audiovisual'=>array('mp3','m3u','mp4','m4v','m4a','mpg','mpeg','mpeg4','wav','swf','wmv','wma','mov','ogg','ogv','webm','avi','3gp','3g2')); 
     protected $encrypt_ext = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'); 

@@ -48,12 +48,17 @@ class Html
         for ($i = 0; $i < $col_count; $i++) {
             $field = mysqli_fetch_field_direct($data_set,$i);
 
-            if(isset($options['col_type'][$field->name])) $col_type[$field->name] = $options['col_type'][$field->name]; else $col_type[$field->name] = '';
+            if(isset($options['col_type'][$field->name])) {
+                $col_type[$i] = $options['col_type'][$field->name];
+            } elseif(isset($options['col_type'][$i])) {
+                $col_type[$i] = $options['col_type'][$i];
+            } else $col_type[$i] = '';
+
             $html .= '<th style="text-align:'.$options['header_align'].'">'.str_replace('_',' ',$field->name).'</th>';
         }  
         $html.='</tr>';
 
-        //now add rows
+        //NB: $key is 0,1,2,3,4, NOT field name
         while($row = mysqli_fetch_row($data_set)) {
             $html .= '<tr>';
             foreach($row as $key => $value) {
@@ -92,13 +97,21 @@ class Html
             $html .= '<thead>';
             //include row key value if required
             if($options['show_key']) $html .= '<th style="text-align:'.$options['header_align'].'">'.$options['key_name'].'</th>';
+            $i = 0;
             foreach($row as $key => $value) {
                 //if no col_type set then assume text and no formating applied
-                if(isset($options['col_type'][$key])) $col_type[$key] = $options['col_type'][$key]; else $col_type[$key] = '';
+                if(isset($options['col_type'][$key])) {
+                    $col_type[$key] = $options['col_type'][$key]; 
+                } elseif(isset($options['col_type'][$i])) {
+                    $col_type[$key] = $options['col_type'][$i]; 
+                }  else $col_type[$key] = '';
+                
                 $html .= '<th style="text-align:'.$options['header_align'].'">'.str_replace('_',' ',$key).'</th>';
+                $i++;
             }    
             $html .= '</thead>';
             
+            //NB: $key is field name NOT 0,1,2,3,4,
             foreach($array as $key_arr => $row) {
                 $html .= '<tr>';
                 if($options['show_key']) $html .= self::drawTableCell('',$key_arr);
@@ -475,6 +488,7 @@ class Html
         if(!isset($options['1000_spacer'])) $options['1000_spacer'] = ',';
         if(!isset($options['curr_symbol'])) $options['curr_symbol'] = '';
         if(!isset($options['width'])) $options['width'] = 0;
+        if(!isset($options['date_format'])) $options['date_format'] = '';
                 
         if(substr($cell_type,0,3) === 'DBL') {
             $number = true;
@@ -506,7 +520,12 @@ class Html
         
         if(substr($cell_type,0,4) === 'BOOL' and is_numeric($value)) {
             if($value != 0) $value = 'True'; else $value='False';
-        }  
+        } 
+
+        if(substr($cell_type,0,4) === 'DATE') {
+            if($value != '') $value = Date::formatDate($value,'MYSQL',$options['date_format']); 
+        }
+        
             
         
         if($number) {
