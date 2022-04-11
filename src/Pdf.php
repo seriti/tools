@@ -716,6 +716,249 @@ class Pdf extends FPDF
         if(isset($options['font_size'])) $this->SetFontSize($old_font_size);
     }
 
+    //print array returned from mysql::readSqlArray()
+    //public function arrayDumpPdf($data_set,$row_h,$col_w,$col_type,$align = 'L',$options = array())
+    public function arrayDumpPdf($array,$row_h,$col_w,$col_type,$align = 'L',$options = array())
+    {
+        $num_value = '';
+        $num_type = '';
+
+        //configure any option defaults
+        $calc_totals = false;
+        $reset_font = false;
+        if(!isset($options['resize_cols'])) $options['resize_cols'] = false;
+        //formating options
+        $format_header = array('fill' => $this->table['th_fill'],'font' => 'TH','line_width' => 0.1,'line_color' => '#CCCCCC');
+        $format_text = array('fill' => '#CCCCCC','font' => 'TEXT','line_width' => 0.1);
+        
+        if(isset($options['font_size'])) {
+            $old_font_size = $this->FontSizePt;
+            
+            $format_text['font_size'] = $options['font_size'];
+            $format_header['font_size'] = $options['font_size'];
+        }
+
+        if(isset($options['col_total'])) {
+            $calc_totals = true;
+            $col_total = $options['col_total'];
+            $totals = array();
+        }
+                 
+        //determine start position of table based on alignment
+        $table_w = array_sum($col_w);
+        $page_w = $this->w-($this->lMargin+$this->rMargin);
+        $page_h = $this->h-($this->tMargin+$this->bMargin);
+
+        //column widths need to be adjusted to fit page
+        if($table_w > $page_w or $options['resize_cols']) {
+            $calc = $page_w/$table_w;
+            foreach ($col_w as $key => $value) $col_w[$key] = round($value*$calc);
+            $table_w = array_sum($col_w); 
+        }
+        
+        if(!is_int($align)) {
+            switch ($align) {
+                case 'C' : $align = round(($page_w-$table_w)/2); break;
+                case 'L' : $align = 0;                           break;
+                case 'R' : $align = round(($page_w-$table_w));  break;
+            }
+            if ($align<0) $align = 0;
+        }
+
+        $x_start = $this->lMargin+$align;
+        $x_end = $x_start+$table_w;
+
+        //draw table headers
+        $header_inc = 0;
+        $this->formatCell($format_header);
+        
+        //set X position based on calculated offset($align) from left margin
+        //could probaly use $this->SetX(x_start) but do not have time to test
+        if($align != 0) $this->Cell($align);
+        $y_inc = $row_h;
+        $y_start = $this->GetY();
+
+        //get header row from first rec keys
+        $row = reset($array);
+        
+        $col_count = count($row);
+        $row_count = count($array);
+
+        //get main HEADER row key maximum height and first row values max height
+        $header = [];
+        $max_key = 0;
+        $max_val = 0;
+        $i = 0;
+        foreach($row as $key => $value) {
+            $header[$i] = str_replace('_',' ',$key);
+            $n = $this->countLines($col_w[$i],$header[$i]);
+            $max_key = max($n,$max_key);
+
+            $n = $this->countLines($col_w[$i],$value);
+            $max_val = max($n,$max_val);
+
+            $i++;
+        }
+        $header_inc = $max_key*$row_h; 
+        $row_inc = $max_val*$row_h;  
+
+        //check that sufficient space for header AND first row
+        $page_space = ($this->h - $this->GetY() - $this->bMargin)-($header_inc + $row_inc);
+        if($page_space < 10) {
+            $this->AddPage();
+            $y_start = $this->GetY();
+        } 
+                 
+        //draw header border around each header cell in row and fill
+        $x_temp = $x_start;
+        for($i = 0; $i < $col_count; $i++) {
+            $this->Rect($x_temp,$y_start,$col_w[$i],$header_inc,'DF');
+            $x_temp = $x_temp+$col_w[$i];
+        }
+        
+        //write header text 
+        $this->SetXY($x_start,$y_start);
+        for($i = 0; $i < $col_count; $i++) {
+            $txt_align = 'C';
+            $x_temp = $this->GetX();
+            $y_temp = $this->GetY();
+            $this->MultiCell($col_w[$i],$row_h,$header[$i],0,$txt_align,0);
+            $this->SetXY($x_temp+$col_w[$i],$y_temp);
+        }
+        
+        //start next row
+        $this->ln($header_inc);
+            
+        //draw row contents with word wrap to fit column width
+        $this->formatCell($format_text); 
+        $row_no = 0;
+        foreach($array as $row) {
+        //while($row = @mysqli_fetch_array($data_set,MYSQLI_NUM)) {
+            $row_no++;
+            
+            //new page check based on space available and next row height
+            $page_space = $this->h - $this->GetY() - $this->bMargin;
+            if($row_no < $row_count) {
+                $max = 0;
+                $i = 0;
+                foreach($row as $key => $value) {
+                    $n = $this->countLines($col_w[$i],$value);
+                    $max = max($n,$max);
+                    $i++;   
+                }
+                $page_space = $page_space - $max*$row_h;
+            }
+            
+            //add page and header if required
+            if($page_space < 10 and $row_no < $row_count) {
+                $this->AddPage();
+
+                //draw header border around each header cell in row and fill
+                $x_temp = $x_start;
+                for($i = 0; $i < $col_count; $i++) {
+                    $this->Rect($x_temp,$y_start,$col_w[$i],$header_inc,'DF');
+                    $x_temp = $x_temp+$col_w[$i];
+                }
+                
+                //write header text 
+                $this->SetXY($x_start,$y_start);
+                for($i = 0; $i < $col_count; $i++) {
+                    $txt_align = 'C';
+                    $x_temp = $this->GetX();
+                    $y_temp = $this->GetY();
+                    $this->MultiCell($col_w[$i],$row_h,$header[$i],0,$txt_align,0);
+                    $this->SetXY($x_temp+$col_w[$i],$y_temp);
+                }
+
+                $this->ln($header_inc);
+                $this->formatCell($format_text);
+            }    
+
+
+            if($align != 0) $this->Cell($align);
+            $y_inc = $row_h;
+
+            $i = 0;
+            foreach($row as $key => $value) {
+            //for($i = 0; $i < count($row); $i++) {
+                $y_start = $this->GetY();
+                
+                if (($col_type[$i] == 'email' or $col_type[$i] == 'www') and $row[$i] != '') {
+                    $this->changeFont('LINK');
+                }
+                
+                $txt_align = 'L';
+                if ($col_type[$i] == 'R' or substr($col_type[$i],0,3) == 'DBL' or substr($col_type[$i],0,3) == 'PCT' 
+                    or substr($col_type[$i],0,4) == 'CASH') $txt_align='R';
+                
+                $x_temp = $this->GetX();
+                $y_temp = $this->GetY();
+                $this->drawCellContents($col_type[$i],$col_w[$i],$row_h,$value,$txt_align,$num_value);
+                if($calc_totals) {
+                    if(!isset($totals[$i])) $totals[$i] = 0;
+                    if($col_total[$i] == 'T') $totals[$i] += $num_value; else $totals[$i] = 0; 
+                }
+                
+                $cell_h = $this->GetY()-$y_temp;
+                if ($cell_h > $y_inc) $y_inc = $cell_h;
+                $this->SetXY($x_temp+$col_w[$i],$y_temp);
+
+                if (($col_type[$i] == 'email' or $col_type[$i] == 'www') and $value != '') {
+                     if ($col_type[$i] == 'email') $link_url = 'mailto:'.$value;
+                     if ($col_type[$i] == 'www')   $link_url = 'http://'.$value;
+                     $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
+                     
+                     $this->formatCell($format_text);
+                }
+
+                $i++;
+            }
+
+            //now that we know final row height...draw border around each cell in row
+            $x_temp = $x_start;
+            for($i = 0; $i < count($row); $i++) {
+                $this->Rect($x_temp,$y_start,$col_w[$i],$y_inc,'D');
+                $x_temp = $x_temp+$col_w[$i];
+            }
+
+            //start next row
+            $this->ln($y_inc);
+        }
+        
+        //WRITE COLUMN TOTALS IF REQUIRED
+        if($calc_totals) {
+            $this->formatCell($format_header);
+            
+            $x_temp = $x_start;
+            $y_temp = $this->GetY();
+            for($i = 0; $i < $col_count; $i++) {
+                //fill block and add border regardless if no content
+                $this->Rect($x_temp,$y_temp,$col_w[$i],$row_h,'DF');
+            
+                if($col_total[$i] == 'T') {
+                    $this->SetXY($x_temp,$y_temp);
+                    $value_str = $this->prepareValueStr($col_type[$i],$totals[$i],$num_value,$num_type);
+                    if($num_type == 'CASH' and $value_str[0] == '(') {
+                        $old_color = $this->TextColor;
+                        $this->SetTextColor(255,0,0);
+                        $reset_font = true; 
+                    }
+                    
+                    $this->MultiCell($col_w[$i],$row_h,$value_str,0,'R',0);
+                    if($reset_font) $this->SetTextColor(0,0,0);
+                } 
+                $x_temp += $col_w[$i];
+            }
+            
+            $this->ln($row_h);
+        }
+        
+        
+        //reset drawing parameters to defaults
+        $this->formatCell($format_text);
+        if(isset($options['font_size'])) $this->SetFontSize($old_font_size);
+    }
+
     public function arrayDrawTable($array,$row_h,$col_w,$col_type,$align = 'L',$options = array())
     {
         //configure any option defaults
