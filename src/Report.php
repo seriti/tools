@@ -143,7 +143,10 @@ class Report {
                 if($input_html !== '') {
                     //$html .= '<div id="'.$id.'"><li>'.$input_html.'</li></div>';
                     $html .= '<div id="'.$id.'"><h2>'.$title.'</h2>'.$input_html.'</div>';
-                }  
+                } else {
+                    //empty div so javascript doesnt break
+                    $html .= '<div id="'.$id.'"></div>';
+                } 
             }  
             //$html .= '</ul>';
         }  

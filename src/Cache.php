@@ -153,10 +153,14 @@ class Cache
                     $counter++;
                 }
             }
-            //only update cache if some data has expired
-            
         }
-        return $counter;
+
+        //only update cache if some data has expired
+        if($counter > 0) {
+            return $this->saveCache($cache);
+        } else {
+            return false;
+        }     
     }
 
     public function eraseAll() {

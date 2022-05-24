@@ -211,6 +211,12 @@ trait  ModelHelpers
         if(!isset($action['verify'])) $action['verify'] = false;
         if(!isset($action['spacer'])) $action['spacer'] = '&nbsp;'; //for table rows view
         if(!isset($action['spacer_edit'])) $action['spacer_edit'] = '&nbsp;-&nbsp;'; //for edit view
+
+        if(isset($action['access'])) {
+            //user access level must >= $action['access'] (must be = valid access level)
+            $action_valid = $this->container->user->checkUserAccess($action['access']);
+
+        }
                         
         if($action_valid) {
             if(!isset($action['pos'])) $action['pos'] = 'L';

@@ -35,7 +35,7 @@ class Setup
         }
 
         if(!count($this->error)) {
-            $param['audit'] = false;
+            $param['audit'] = ['enabled'=>false];
             $this->db = new Mysql($param);
 
             $sql = 'SHOW TABLES ';

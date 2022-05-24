@@ -619,7 +619,7 @@ class Model
         return $sql;
     } 
 
-    //NB: some validation functions also clean/convert form values....see validate_number/integer;
+    //NB: some validation functions also clean/convert form values....see validate_number/integer/email;
     public function validate($col_id,&$value,$context = 'UPDATE')  
     {
         $error = '';
