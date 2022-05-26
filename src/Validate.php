@@ -329,7 +329,7 @@ class Validate
         $name = '['.$name.']';
 
         //leading and trailing spaces are invalid for email addresses.
-        $email = trim(email);
+        $email = trim($email);
         
         $str_length = strlen($email);
         
