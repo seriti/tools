@@ -52,8 +52,8 @@ class Email
         if(isset($param['secure']))   $this->secure = $param['secure']; 
         if(isset($param['wrap_text']))$this->wrap_text = $param['wrap_text'];
         if(isset($param['footer']))   $this->footer = $param['footer'];
-        if(isset($param['from']))     $this->addAddress('FROM',$param['from']);
-        if(isset($param['reply']))    $this->addAddress('REPLY',$param['reply']);
+        if(isset($param['from']))     $this->addAddress('from',$param['from']);
+        if(isset($param['reply']))    $this->addAddress('reply',$param['reply']);
 
         if(isset($param['debug'])) {
             $this->debug = $param['debug'];
@@ -203,19 +203,23 @@ class Email
 
         $this->prepareSMTP();
 
-        //clear message data from any previous send. Does not reset from address.
+        //NB: 'ALL' Clears message data and recipients from any previous send. Does not reset From or Reply addresses.
         $this->reset($param['reset']);
 
-        //NB: from address is specified when class created, so unless different can leave blank.
-        if($from !== '' ) $this->addAddress('from',$from);
+        //NB: From & Reply addresses is specified when class created, so unless different can leave blank.
+        if($from !== '' )  $this->addAddress('from',$from);
         if(count($this->from) === 0) throw new Exception('EMAIL_SEND: No from address specified.');
 
+        //Can have multiple reply addresses but unusual so need to specify all in $param rather than add to default
+        if(isset($param['reply'])) {
+            $this->reset('REPLY');
+            $this->addAddress('reply',$param['reply']);
+        }  
+        
         $this->addAddress('to',$to);
 
         if(isset($param['cc'])) $this->addAddress('cc',$param['cc']);
         if(isset($param['bcc'])) $this->addAddress('bcc',$param['bcc']);
-        if(isset($param['reply'])) $this->addAddress('reply',$param['reply']);
-
         if(isset($param['attach'])) $this->addAttachment($param['attach']);
         if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
         
@@ -252,17 +256,21 @@ class Email
 
         $this->prepareSMTP(['keep_alive'=>true]);
 
-        //clear message data from any previous send. Does not reset from address.
+        //NB: 'ALL' Clears message data and recipients from any previous send. Does not reset From or Reply addresses.
         $this->reset($param['reset']);
 
-        //NB: from address is specified when class created, so unless different can leave blank.
+        //NB: From & Reply addresses is specified when class created, so unless different can leave blank.
         if($from !== '' ) $this->addAddress('from',$from);
         if(count($this->from) === 0) throw new Exception('EMAIL_SEND: No from address specified.');
 
+        //Can have multiple reply addresses but unusual so need to specify all in $param rather than add to default
+        if(isset($param['reply'])) {
+            $this->reset('REPLY');
+            $this->addAddress('reply',$param['reply']);
+        }   
+
         if(isset($param['cc'])) $this->addAddress('cc',$param['cc']);
         if(isset($param['bcc'])) $this->addAddress('bcc',$param['bcc']);
-        if(isset($param['reply'])) $this->addAddress('reply',$param['reply']);
-
         if(isset($param['attach'])) $this->addAttachment($param['attach']);
         if(isset($param['embed'])) $this->addEmbeddedImage($param['embed']);
 
@@ -360,10 +368,9 @@ class Email
     protected function reset($type = 'ALL')
     {
         switch($type) {
+            //NB: 'ALL' does not clear From and Reply addresses. This must be done explicitly if required.
             case 'ALL'    : $this->mailer->clearAllRecipients();
                             $this->mailer->clearAttachments();
-                            $this->mailer->clearReplyTos();
-                            $this->reply = [];
                             $this->to = [];
                             $this->cc = [];
                             $this->bcc = [];

@@ -78,7 +78,11 @@ class Config
         $this->config['email']['method'] = MAIL_METHOD; // 'smtp' 'php'
         $this->config['email']['charset'] = MAIL_CHARSET; // 'UTF-8'
         $this->config['email']['from'] = ['address'=>MAIL_FROM,'name'=>SITE_NAME];
-        $this->config['email']['reply'] = MAIL_FROM;
+        if(defined('MAIL_REPLY')) {
+            $this->config['email']['reply'] = ['address'=>MAIL_REPLY,'name'=>SITE_NAME];;
+        } else {
+            $this->config['email']['reply'] = $this->config['email']['from'];
+        }
         $this->config['email']['notify'] = MAIL_WEBMASTER;
         $this->config['email']['host'] = MAIL_HOST;
         $this->config['email']['user'] = MAIL_USER;
