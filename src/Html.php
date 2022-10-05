@@ -528,7 +528,7 @@ class Html
         
             
         
-        if($number) {
+        if($number and is_numeric($value)) {
             if(round($value,$decimals)<0.0) $negative = true; else $negative = false;
             
             if($negative and stripos('RED',$options['negative']) !== false) {

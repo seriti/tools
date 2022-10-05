@@ -629,8 +629,8 @@ trait  ModelViews
                 
                 foreach($images as $image_id => $image) {
                     $image_count++;
-                    
-                    if($this->images['list_thumbnail']) {
+                                        
+                    if($this->images['list_thumbnail'] and $image['thumbnail'] !== '') {
                         if($this->images['storage'] === 'amazon') {
                             $url = $this->images['s3']->getS3Url($image['thumbnail'],['access'=>$this->images['access']]);
                             if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
@@ -641,7 +641,7 @@ trait  ModelViews
                                 $path = $this->images['path'].$image['thumbnail'];
                                 //NB: this returns encoded image and NOT url as image normally stored outside public directory
                                 $url = Image::getImage('SRC',$path,$error);
-                                if($error != '') $this->addError('Thumbnail error: '.$error);
+                                if($error != '' and DEBUG) $this->addError('Thumbnail error: '.$error);
                             }    
                         }   
                         

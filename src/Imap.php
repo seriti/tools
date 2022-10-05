@@ -57,7 +57,7 @@ Class Imap
         $message['id'] = $msg_id;
         $message['no'] = $msg_no;
         //get all header info
-        if($options['header']) {
+        if($options['header'] and $msg_no > 0) {
             $header = \imap_headerinfo($conn,$msg_no);
             $message['time'] = $header->udate;
             $message['date'] = date('F j, Y, g:i a', $header->udate);

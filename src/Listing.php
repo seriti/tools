@@ -950,7 +950,7 @@ class Listing extends Model
         
         $image_count = 0;
         if($this->images['list']) {
-            $sql = 'SELECT `'.$this->file_cols['file_id'].'` AS `file_id`,`'.$this->file_cols['file_name_orig'].'` AS `name`, '.
+            $sql = 'SELECT `'.$this->file_cols['file_id'].'` AS `file_id`,`'.$this->file_cols['file_name_orig'].'` AS `name`,`'.$this->file_cols['file_ext'].'` AS `file_ext`, '.
                           '`'.$this->file_cols['file_name'].'` AS `file_name` , `'.$this->file_cols['file_name_tn'].'` AS `file_name_tn`  '.
                    'FROM `'.$this->images['table'].'` '.
                    'WHERE `'.$this->file_cols['location_id'].'` = "'.$location_id.'" '.
@@ -960,26 +960,36 @@ class Listing extends Model
                 
                 foreach($images as $file_id => $image) {
                     $image_count++;
-                    
+
                     if($this->images['list_thumbnail']) $file_name = $image['file_name_tn']; else $file_name = $image['file_name'];
+                      
 
-                    if($this->images['storage'] === 'amazon') {
-                        $url = $this->images['s3']->getS3Url($file_name,['access'=>$this->images['access']]);
-                        if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
+                    if($file_name === '') {
+                        $url = '';
                     } else {
-                        if($this->images['path_public']) {
-                            $url = BASE_URL.$this->images['path'].$file_name;
+                        if($this->images['storage'] === 'amazon') {
+                            $url = $this->images['s3']->getS3Url($file_name,['access'=>$this->images['access']]);
+                            if($this->images['https'] and strpos($url,'https') === false) $url = str_replace('http','https',$url);
                         } else {
-                            //this will return image as encoded string when stored outside public access
-                            $path = $this->images['path'].$file_name;
-                            $url = Image::getImage('SRC',$path,$error);
-                            if($error != '') $this->addError('Thumbnail error: '.$error);
+                            if($this->images['path_public']) {
+                                $url = BASE_URL.$this->images['path'].$file_name;
+                            } else {
+                                //this will return image as encoded string when stored outside public access
+                                $path = $this->images['path'].$file_name;
+                                $url = Image::getImage('SRC',$path,$error);
+                                if($error != '') $this->addError('Thumbnail error: '.$error);
+                            }    
                         }    
-                    } 
+                    }
+                     
+                    //placeholder for custom image/video embed html
+                    $image_html = $this->renderListImage($image,$url);
 
-                    //$images[$file_id]['url'] = $url;  
+                    if($image_html == '') {
+                        $image_html = '<img class="'.$this->list_classes['image'].'" src="'.$url.'" title="'.$image['name'].'" align="left">';
+                    }
                     
-                    $html .= '<img class="'.$this->list_classes['image'].'" src="'.$url.'" title="'.$image['name'].'" align="left">';
+                    $html .= $image_html;
                 
                 }
             } else {
@@ -1166,5 +1176,7 @@ class Listing extends Model
     protected function processCustom($id) {}
     protected function afterUpdateTable($action) {}
     protected function customListAction($data,$row_no,$pos = 'L') {}  
+
+    protected function renderListImage($image = [],$url) {}
     
 }

@@ -275,6 +275,7 @@ class Table extends Model
     public function addSearchAggregate($aggregate) 
     {
         $this->calc_aggregate = true;
+        if(!isset($aggregate['decimal'])) $aggregate['decimal'] = 2;
         //$aggregate['sql'],$aggregate['title'] as a minimum
         //ie:$aggregate=['sql'=>'SUM(amount)','title'=>'Total amount'];
         $this->search_aggregate[] = $aggregate; 
@@ -997,7 +998,7 @@ class Table extends Model
             
             if($this->calc_aggregate) {
                 foreach($this->search_aggregate as $n => $agg) {
-                    $str = $agg['title'].' : '.number_format($count['agg_'.$n],2);
+                    $str = $agg['title'].' : '.number_format($count['agg_'.$n],$agg['decimal']);
                     $this->addMessage($str);
                 }
             }  

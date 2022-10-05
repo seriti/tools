@@ -48,7 +48,7 @@ class Upload extends Model
     protected $row_name_plural = 'files';
     protected $row_tag = true;
     
-    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','dwg'),
+    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','dwg','htm','html'),
                                  'Images'=>array('jpg','jpeg','bmp','gif','tif','tiff','png','pnt','pict','pct','pcd','pbm'),
                                  'Audiovisual'=>array('mp3','m3u','mp4','m4v','m4a','mpg','mpeg','mpeg4','wav','swf','wmv','wma','mov','ogg','ogv','webm','avi','3gp','3g2')); 
     protected $encrypt_ext = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'); 
@@ -1035,10 +1035,17 @@ class Upload extends Model
                 if($this->storage === 'local') {
                     $path=$this->getPath('UPLOAD',$image[$this->file_cols['file_name']]);
                     $url = Image::getImage('SRC',$path,$error);
-                    if($error != '') $this->addError('Thumbnail error: '.$error);
+                    if($error != '') $this->addError('Image error: '.$error);
                 } 
-                $image_str = '<img src="'.$url.'" class="image">'; 
-            
+
+                if($image[$this->file_cols['file_ext']] === 'mp4') {
+                    $image_str = '<video width="320" height="240" controls> '.
+                                   '<source src="'.$url.'" type="video/mp4"> '.
+                                 '</video>'; 
+                } else {
+                    $image_str = '<img src="'.$url.'" class="image">'; 
+                }
+                
                 $image_header = '<p>'.$image[$this->file_cols['file_name_orig']].'&nbsp;'.
                                 '<a id="img'.$id.'" href="?mode=download&id='.$id.'" onclick="link_download(\'img'.$id.'\')">'.
                                 $this->icons['download'].'download image</a></p>';

@@ -10,7 +10,7 @@ class Image
     {
         $error = '';
         $data = false;
-        $allow = ['jpg','jpeg','gif','tif','tiff','png']; 
+        $allow = ['jpg','jpeg','gif','tif','tiff','png','mp4']; 
 
         if(!file_exists($path)) $error .= 'Image does not exist!';
 
@@ -24,6 +24,7 @@ class Image
             case 'png'  : $content_type = 'image/png';  break;
             case 'tif'  : $content_type = 'image/tiff'; break;
             case 'tiff' : $content_type = 'image/tiff'; break;
+            case 'mp4'  : $content_type = 'video/mp4'; break;
         }
 
         if($error !== '') return false;
@@ -96,7 +97,13 @@ class Image
         if(!isset($options['src_root'])) $options['src_root'] = '';
         if(!isset($options['img_class'])) $options['img_class'] = 'img-responsive center-block';
         if(!isset($options['img_style'])) $options['img_style'] = '';
+        if(!isset($options['img_width'])) $options['img_width'] = '';
+        if(!isset($options['img_height'])) $options['img_height'] = '';
         if(!isset($options['auto_rotate'])) $options['auto_rotate'] = false;
+
+        $img_size = '';
+        if($options['img_width'] !== '') $img_size .= 'width="'.$options['img_width'].'" ';
+        if($options['img_height'] !== '') $img_size .= 'height="'.$options['img_height'].'"';
         
         $img_style = '';
         if($options['img_style'] !== '') $img_style .= 'style="'.$options['img_style'].'"';
@@ -123,8 +130,21 @@ class Image
                 } else {
                     $src = $options['src_root'].$image['file_name'];
                 }  
-                $html .= '<div '.$class.'>'.
-                         '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>';
+
+                //check image/video type and gemerate display html 
+                $parts = Doc::fileNameParts($image['file_name']);
+                if(strtolower($parts['extension']) === 'mp4') {
+                    $image_html = '<video controls> '.
+                                      '<source '.$img_size.' src="'.$src.'" type="video/mp4"> '.
+                                      'Your browser does not support the video tag. '.
+                                  '</video>';
+                } else {
+                    $image_html = '<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>';
+                }
+
+
+                $html .= '<div '.$class.'>'.$image_html;
+                         //'<img src="'.$src.'" alt="'.$image['title'].'" class="'.$options['img_class'].'" '.$img_style.'>';
                 if($image['title'] != '') {
                     $html .= '<div class="carousel-caption"><h3>'.$image['title'].'</h3>';
                     if(isset($image['description']) and $image['description'] != '') $html .= '<p>'.$image['description'].'</p>';
