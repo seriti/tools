@@ -590,7 +590,10 @@ class Pdf extends FPDF
 
                 if (($col_type[$i] == 'email' or $col_type[$i] == 'www') and $row[$i] != '') {
                      if ($col_type[$i] == 'email') $link_url = 'mailto:'.$row[$i];
-                     if ($col_type[$i] == 'www')   $link_url = 'http://'.$row[$i];
+                     if ($col_type[$i] == 'www') {
+                        $link_url = $row[$i];
+                        if(stripos($link_url,'http') === false) $link_url = 'http://'.$link_url;
+                     }  
                      $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
                      
                      $this->formatCell($format_text);
@@ -852,6 +855,7 @@ class Pdf extends FPDF
             //add page and header if required
             if($page_space < 10 and $row_no < $row_count) {
                 $this->AddPage();
+                $y_start = $this->GetY();
 
                 //draw header border around each header cell in row and fill
                 $x_temp = $x_start;
@@ -905,7 +909,10 @@ class Pdf extends FPDF
 
                 if (($col_type[$i] == 'email' or $col_type[$i] == 'www') and $value != '') {
                      if ($col_type[$i] == 'email') $link_url = 'mailto:'.$value;
-                     if ($col_type[$i] == 'www')   $link_url = 'http://'.$value;
+                     if ($col_type[$i] == 'www') {
+                        $link_url = $value;
+                        if(stripos($link_url,'http') === false) $link_url = 'http://'.$link_url;
+                     }  
                      $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
                      
                      $this->formatCell($format_text);
@@ -1092,11 +1099,14 @@ class Pdf extends FPDF
                     $this->SetXY($x_temp+$col_w[$i],$y_temp);
                     
                     if (($col_type[$i] == 'email' or $col_type[$i] == 'www') and $array[$i][$r] != '') {
-                         if ($col_type[$i] == 'email') $link_url = 'mailto:'.$array[$i][$r];
-                         if ($col_type[$i] == 'www')   $link_url = 'http://'.$array[$i][$r];
-                         $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
-                         //reset font
-                         $this->formatCell($format_text);
+                        if ($col_type[$i] == 'email') $link_url = 'mailto:'.$array[$i][$r];
+                        if ($col_type[$i] == 'www') {
+                            $link_url = $array[$i][$r];
+                            if(stripos($link_url,'http') === false) $link_url = 'http://'.$link_url;
+                        }   
+                        $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
+                        //reset font
+                        $this->formatCell($format_text);
                     }
                 }
             }  
@@ -1292,11 +1302,14 @@ class Pdf extends FPDF
                 $this->SetXY($x_temp+$col_w[$i],$y_temp);
 
                 if(($col_type[$i] == 'email' or $col_type[$i] == 'www') and $array[$i][$r] != '') {
-                     if($col_type[$i] == 'email') $link_url = 'mailto:'.$array[$i][$r];
-                     if($col_type[$i] == 'www')   $link_url = 'http://'.$array[$i][$r];
-                     $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
-                     //reset font
-                     $this->formatCell($format_text);
+                    if($col_type[$i] == 'email') $link_url = 'mailto:'.$array[$i][$r];
+                    if($col_type[$i] == 'www')  {
+                        $link_url = 'http://'.$array[$i][$r];
+                        if(stripos($link_url,'http') === false) $link_url = 'http://'.$link_url;
+                    } 
+                    $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
+                    //reset font
+                    $this->formatCell($format_text);
                 }
             }
 
@@ -1462,10 +1475,13 @@ class Pdf extends FPDF
                 $x_temp += $col_w[$i];
                 //make entire cell a link if required
                 if(($col_type[$i] == 'email' or $col_type[$i] == 'www') and $cell_txt[$i][$r] != '') {
-                     if($col_type[$i] == 'email') $link_url = 'mailto:'.$cell_txt[$i][$r];
-                     if($col_type[$i] == 'www')   $link_url = 'http://'.$cell_txt[$i][$r];
-                     $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
-                     $this->changeFont('TEXT');
+                    if($col_type[$i] == 'email') $link_url = 'mailto:'.$cell_txt[$i][$r];
+                    if($col_type[$i] == 'www')  {
+                        $link_url = 'http://'.$cell_txt[$i][$r];
+                        if(stripos($link_url,'http') === false) $link_url = 'http://'.$link_url;
+                    } 
+                    $this->Link($x_temp,$y_temp,$col_w[$i],$cell_h,$link_url);
+                    $this->changeFont('TEXT');
                 }
             }
 

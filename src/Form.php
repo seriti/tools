@@ -796,6 +796,52 @@ class Form
         }  
         
         return $value;
+    }
+
+    public static function getCaptchaImage($session_var = 'captcha_code',$options = [])
+    {
+        
+        if(!isset($options['session_start'])) $options['session_start'] = false;
+
+        //if called completely outside any framework  
+        if($options['session_start']) session_start();
+
+        $length=5;
+        $width =120;
+        $height=40;
+        $code='';
+
+        //create background image
+        $image=imagecreate($width, $height);
+
+        //add some crisscross lines
+        for( $i=0; $i<10; $i++ )
+        {
+          imageline($image, 
+          mt_rand(0,$width), mt_rand(0,$height), 
+          mt_rand(0,$width), mt_rand(0,$height), 
+          imagecolorallocate($image,mt_rand(150,255),mt_rand(150,255), mt_rand(150,255)));
+        }
+
+        //add random security code
+        //abcdfghjkmnpqrstvwxyz
+        $baseList='123456789ABCDEFGHIJKLMNPQRSTUVWXYZ';
+        for( $i=0, $x=0; $i<$length; $i++ )
+        {
+          $actChar = substr($baseList, rand(0, strlen($baseList)-1), 1);
+          $x += 10 + mt_rand(0,10);
+          $size=5; //mt_rand(3,5);
+          imagechar($image, $size, $x, mt_rand(5,$height/2), $actChar, 
+          imagecolorallocate($image, mt_rand(0,155), mt_rand(0,155), mt_rand(0,155)));
+          $code .= strtolower($actChar);
+        }
+
+        $_SESSION[$session_var] = $code;
+
+        header('Content-Type: image/jpeg');
+        imagejpeg($image);
+        imagedestroy($image);
+
     }  
      
 }

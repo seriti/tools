@@ -523,7 +523,7 @@ class Upload extends Model
                 $image_str = '';
                 if($this->image_thumbnail['list_view'] and $row[$this->file_cols['file_name_tn']] != '') {
                     if($this->storage === 'amazon') {
-                        $url = $this->getFileUrl($row[$this->file_cols['file_name_tn']],$s3);
+                        $url = $this->getFileUrl('AMAZON',$row[$this->file_cols['file_name_tn']],$s3);
                         //$url = $s3->getS3Url($row[$this->file_cols['file_name_tn']]);
                     }  
                     if($this->storage === 'local') {
@@ -562,6 +562,7 @@ class Upload extends Model
             if($this->access['delete']) $actions['DELETE']='Delete selected '.$this->row_name_plural;
             if($this->access['email']) {
                 $actions['EMAIL'] = 'Email selected '.$this->row_name_plural;
+                $actions['EMAIL_LINK'] = 'Email LINK to selected '.$this->row_name_plural;
                 if(isset($_POST['action_email'])) $action_email = Secure::clean('email',$_POST['action_email']);
             }
             if($this->child and $this->access['edit'] and $this->access['move']) {
@@ -646,7 +647,7 @@ class Upload extends Model
                      'var action_index = table_action.selectedIndex; '.
                      'var action_email_select = document.getElementById(\'action_email_select\');'.
                      'action_email_select.style.display = \'none\'; '.
-                     'if(table_action.options[action_index].value==\'EMAIL\') action_email_select.style.display = \'inline\'; '.
+                     'if(table_action.options[action_index].value==\'EMAIL\' || table_action.options[action_index].value==\'EMAIL_LINK\') action_email_select.style.display = \'inline\'; '.
                      $js_xtra.
                      '}</script>';
 
@@ -936,7 +937,7 @@ class Upload extends Model
                 if($this->image_thumbnail['edit_height'] != 0) $attr_str .= 'height="'.$this->image_thumbnail['edit_height'].'" ';
                 if($this->storage === 'amazon') {
                     $s3 = $this->getContainer('s3');
-                    $url = $this->getFileUrl($data[$this->file_cols['file_name_tn']],$s3);
+                    $url = $this->getFileUrl('AMAZON',$data[$this->file_cols['file_name_tn']],$s3);
                     //$url = $s3->getS3Url($data[$this->file_cols['file_name_tn']]);
                 } 
                 if($this->storage === 'local') {
@@ -1029,7 +1030,7 @@ class Upload extends Model
             } else {  
                 if($this->storage === 'amazon') {
                     $s3 = $this->getContainer('s3');
-                    $url = $this->getFileUrl($image[$this->file_cols['file_name']],$s3);
+                    $url = $this->getFileUrl('AMAZON',$image[$this->file_cols['file_name']],$s3);
                     //$url = $s3->getS3Url($image[$this->file_cols['file_name']]);
                 }  
                 if($this->storage === 'local') {
@@ -1507,7 +1508,7 @@ class Upload extends Model
             $create = $form;
 
             $location_id = $this->upload['location'];
-            if($this->child) $location_id = $this->master['key_val']; //NB: master key val already includes upload location
+            if($this->child) $location_id = $this->master['key_val']; //NB: master['child_prefix'] is automaticaly added to master['child_col'] = 'location_id'
 
             //if addFileCol(['id'=>'location_rank',upload'=>true])
             if(isset($form[$this->file_cols['location_rank']])) {
@@ -1857,7 +1858,8 @@ class Upload extends Model
         $action_count = 0;
         $audit_str = '';
         //use for emailing files
-        $action_files = array();
+        $action_files = [];
+        $action_links = [];
         
         $action = Secure::clean('basic',$_POST['table_action']);
         if($action === 'SELECT') {
@@ -1878,7 +1880,7 @@ class Upload extends Model
                 if($move_id !== $action_id) $this->addError('Move action '.str_replace('_',' ',$this->master['key']).'['.$action_id.'] does not exist!');
                 $audit_str .= 'Move '.$this->row_name_plural.' from '.$audit_name.' to id['.$action_id.'] :';
             }
-            if($action === 'EMAIL') {
+            if($action === 'EMAIL' or $action === 'EMAIL_LINK') {
                 $action_email = $_POST['action_email'];
                 Validate::email('Action email',$action_email,$error_tmp);
                 if($error_tmp != '') $this->addError('Invalid action email!');
@@ -1919,11 +1921,19 @@ class Upload extends Model
                         } 
 
                         if($action === 'EMAIL') {
-                            $attach = array();
+                            $attach = [];
                             $attach['name'] = $file_name_orig;
                             $attach['path'] = $this->fileDownload($file_id,'FILE'); 
-                            if(!$this->errors_found) $action_files[]=$attach;
-                        }  
+                            if(!$this->errors_found) $action_files[] = $attach;
+                        } 
+
+                        if($action === 'EMAIL_LINK') {
+                            $link = [];
+                            $link['name'] = $file_name_orig;
+                            $link['size'] = $file[$this->file_cols['file_size']];
+                            $link['url'] = $this->getFileUrl('LOCAL',$file_id,'');  
+                            $action_links[] = $link;
+                        } 
 
                         if($this->child and $action === 'MOVE') {
                             $sql = 'UPDATE `'.$this->table.'` SET `'.$this->file_cols['location_id'].'` = "'.$new_location_id.'" '.
@@ -1953,9 +1963,20 @@ class Upload extends Model
         
         if($action_count == 0) $this->addError('NO '.$this->row_name_plural.' selected for action!');
                         
-        if(!$this->errors_found and $action === 'EMAIL') {
+        if(!$this->errors_found and ($action === 'EMAIL' or $action === 'EMAIL_LINK')) {
             $param = array();
-            $param['attach'] = $action_files;
+            if($action === 'EMAIL') {
+                $param['attach'] = $action_files;
+                $body = 'Please see attached documents from '.SITE_NAME;
+            } 
+            if($action === 'EMAIL_LINK') {
+                $body = SITE_NAME.': Please click links to download files. (NB you will need to be a logged in user) '."\r\n";
+                foreach($action_links as $link) {
+                    $body .= $link['name'].":\r\n".
+                             $link['url']."\r\n";
+                }
+            }    
+
             $from = ''; //default will be used
             $to = $action_email;
             if($this->child) {
@@ -1963,8 +1984,7 @@ class Upload extends Model
             } else {    
                 $subject = SITE_NAME.' '.$this->table.': '.$this->row_name_plural;
             }    
-            $body = 'Please see attached documents from '.SITE_NAME;
-
+            
             $mailer = $this->getContainer('mail');
             if($mailer->sendEmail($from,$to,$subject,$body,$error_tmp,$param)) {
                 $this->addMessage('SUCCESS sending files to['.$to.']'); 
@@ -1988,15 +2008,21 @@ class Upload extends Model
         return $html;
     }
 
-    protected function getFileUrl($file_name,$s3) 
+    protected function getFileUrl($source,$file_name,$s3) 
     {
         $url = '';
         $param = [];
 
-        if($this->storage === 'amazon') {
+        //NB: $file_name is actual S3 file name and not original/displayed file name
+        if($source === 'AMAZON' and $this->storage === 'amazon') {
             $param['access'] = $this->upload['access'];
             $url = $s3->getS3Url($file_name,$param);
         } 
+
+        //NB: $file_name should be numerical file_id
+        if($source === 'LOCAL') {
+            $url = BASE_URL.URL_CLEAN.'?mode=download&id='.$file_name;
+        }
 
         return $url;
     }

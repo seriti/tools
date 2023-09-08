@@ -47,7 +47,7 @@ Class Imap
             $msg_no = \imap_msgno($conn,$msg_id);
         } else {
             $msg_no = $msg_id;
-            $msg_id = \imap_uid($msg_no);
+            $msg_id = \imap_uid($conn,$msg_no);
         }  
         
         $message = array();

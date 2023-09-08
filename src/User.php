@@ -206,11 +206,12 @@ class User extends Model
     //NB: Only used where checkAccessRights() not called but user may be known 
     public function setupUserData() 
     {
-        $this->user_id = $this->getCache($this->cache['user']);    
-        if($this->user_id !== '') {
+        $this->user_id = intval($this->getCache($this->cache['user']));    
+        if($this->user_id !== 0) {
             $this->data = $this->getUser('ID',$this->user_id);
             $this->access_zone = $this->data[$this->user_cols['zone']];
         } else {
+            //uneceesary after added intval()  and !== '' changed to !== 0 above
             $this->user_id = 0;
         }
 
@@ -229,17 +230,17 @@ class User extends Model
 
     public function getName()
     {
-        if(count($this->data)) return $this->data[$this->user_cols['name']]; else return '';
+        if(is_array($this->data)) return $this->data[$this->user_cols['name']]; else return '';
     }
 
     public function getCsrfToken()
     {
-        if(count($this->data)) return $this->data[$this->user_cols['csrf_token']]; else return '';
+        if(is_array($this->data)) return $this->data[$this->user_cols['csrf_token']]; else return '';
     }
 
     public function getEmail()
     {
-        if(count($this->data)) return $this->data[$this->user_cols['email']]; else return '';
+        if(is_array($this->data)) return $this->data[$this->user_cols['email']]; else return '';
     }
 
     public function getAccessLevel()
@@ -766,8 +767,8 @@ class User extends Model
         $route_check = false;
         $route_valid = true;
     
-        $this->user_id = $this->getCache($this->cache['user']); 
-        if($this->user_id !== '') {
+        $this->user_id = intval($this->getCache($this->cache['user'])); 
+        if($this->user_id !== 0) {
             $this->data = $this->get($this->user_id);
             //sometimes Cache can be out of sync with DB
             if($this->data) {

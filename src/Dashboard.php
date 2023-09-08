@@ -64,6 +64,11 @@ class Dashboard {
     {
         //set $param['link'] = '#' if you want nav link styling without active link
         if(!isset($param['link'])) $param['link'] = false;
+        //add link confirmation text to ask before proceeding to link url
+        if(!isset($param['link_confirm'])) $param['link_confirm'] = false;
+        //add any additional link settings/javascript etc...
+        if(!isset($param['link_xtra'])) $param['link_xtra'] = false;
+
         if(!isset($param['icon'])) $param['icon'] = false;
         if(!isset($param['separator'])) $param['separator'] = false;
         
@@ -111,7 +116,8 @@ class Dashboard {
                     } else {
                         if($item['param']['link'] !== false) {
                             $xtra = '';
-                            if(isset($item['param']['link_xtra'])) $xtra .= $item['param']['link_xtra'];
+                            if($item['param']['link_confirm'] !== false) $xtra .= 'onclick="javascript:return confirm(\''.$item['param']['link_confirm'].'\')" ';
+                            if($item['param']['link_xtra'] !== false) $xtra .= $item['param']['link_xtra'];
                             $item_html .= '<a href="'.$item['param']['link'].'" '.$xtra.'>';
                         }    
                         if($item['param']['icon']) $item_html .= $this->icons[$item['param']['icon']];

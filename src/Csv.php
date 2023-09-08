@@ -175,7 +175,14 @@ class Csv
         if(!isset($options['type'])) $options['type'] = 'DETECT';
         if(!isset($options['delimiter'])) $options['delimiter'] = '"';
         if(!isset($options['escape'])) $options['escape'] = '"';
+        if(!isset($options['strip_html'])) $options['strip_html'] = true;
 
+
+        if($options['strip_html']) {
+            $value = strip_tags($value);
+            $value = html_entity_decode($value);
+        }    
+        
         if($options['type'] === 'DETECT') {
             if(is_numeric($value)) $options['type'] = 'NUMBER'; else $options['type'] = 'STRING';
         }  
