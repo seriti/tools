@@ -677,6 +677,7 @@ trait  ModelViews
         if($this->files['manage']) {
             $url = $this->files['link_url'].'?id='.Secure::clean('basic',$data[$this->key['id']]);
             $html .= '<a href="Javascript:open_popup(\''.$url.'\','.$this->files['width'].','.$this->files['height'].')">'.$show.'</a>';
+            $html .= '<br/>';
         }  
         
         $file_count = 0;
@@ -688,7 +689,7 @@ trait  ModelViews
                    'LIMIT '.$this->files['list_no'];
             $file_list = $this->db->readSqlArray($sql);
             if($file_list !== 0) {
-                $html .= '<br/>';
+                //$html .= '<br/>';
                 foreach($file_list as $id => $data) {
                     $file_count++;
                     

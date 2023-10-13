@@ -173,7 +173,9 @@ class Table extends Model
             $this->master['key_val'] = $this->getCache('master_id');
             if($this->master['key_val'] === '') {
                 throw new Exception('MASTER_TABLE_ERROR: Linked '.$this->row_name.' id unknown!');
-            }    
+            } 
+
+            if($this->add_href !== '') $this->add_href .= '?id='.$this->master['key_val'];   
         } else {
             $this->master['key_val'] = 0;
         } 
