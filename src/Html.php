@@ -89,7 +89,7 @@ class Html
             $class = 'class="table table-striped table-bordered table-hover table-condensed"';  
         }  
         
-        if(count($array)) {
+        if(is_array($array) and count($array)) {
             $html .= '<table '.$class.'>';
             
             //populate all row arrays with key used as header and setup col_types
@@ -142,7 +142,7 @@ class Html
             $class = 'class="table table-striped table-bordered table-hover table-condensed"';  
         }  
         
-        if(count($array)) {
+        if(is_array($array) and count($array)) {
             $col_count = count($array);
             $row_count = count($array[0]);
             

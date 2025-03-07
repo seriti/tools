@@ -162,7 +162,7 @@ class Mysql implements DbInterface
     public function updateRecord($table,$rec = array(),$where = array(),&$error) 
     {
         $error = '';
-                
+
         $sql = 'UPDATE `'.$table.'` SET ';
         foreach($rec as $key => $value) {
             $sql .= '`'.$key.'` = "'.$this->escapeSql($value).'",';
@@ -214,22 +214,16 @@ class Mysql implements DbInterface
     public function updateInsertRecord($table,$rec = array(),$where = array(),$options = array(),&$error) {
         $error = '';
         
-        $this->updateRecord($table,$rec,$where,$error);
-        if($error === '') {
-            //check if any record updated/exists
-            if($this->db->affected_rows == 0) {
-                //add any insert specific vaues
-                if(isset($options['insert_add'])) {
-                    foreach($options['insert_add'] as $key => $value) {
-                        $rec[$key] = $value; 
-                    }  
-                } 
-                //assign where key identifiers to record
-                foreach($where as $key => $value) {
-                    $rec[$key] = $value; 
-                }  
-                $this->insertRecord($table,$rec,$error);
+        $rec_exist = $this->getRecord($table,$where); 
+
+        if($rec_exist === 0) {
+            //INSERT assign where key identifiers to record
+            foreach($where as $key => $value) {
+                $rec[$key] = $value; 
             }  
+            $this->insertRecord($table,$rec,$error);
+        } else {
+            $this->updateRecord($table,$rec,$where,$error);
         }
         
         if($error === '') return true; else return false;  

@@ -47,11 +47,11 @@ class Upload extends Model
     protected $row_name = 'file';
     protected $row_name_plural = 'files';
     protected $row_tag = true;
-    
-    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','dwg','htm','html'),
+                                  
+    protected $allow_ext = array('Documents'=>array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','dwg','htm','html','xml'),
                                  'Images'=>array('jpg','jpeg','bmp','gif','tif','tiff','png','pnt','pict','pct','pcd','pbm'),
                                  'Audiovisual'=>array('mp3','m3u','mp4','m4v','m4a','mpg','mpeg','mpeg4','wav','swf','wmv','wma','mov','ogg','ogv','webm','avi','3gp','3g2')); 
-    protected $encrypt_ext = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml'); 
+    protected $encrypt_ext = array('doc','xls','ppt','pdf','rtf','docx','xlsx','pptx','ods','odt','txt','csv','zip','gz','msg','eml','xml'); 
     protected $image_resize_ext = array('jpg','jpeg','png','gif');
     protected $inline_ext = array('pdf'); //default to inline donwload option rather than force as file download 
   
@@ -1965,31 +1965,54 @@ class Upload extends Model
                         
         if(!$this->errors_found and ($action === 'EMAIL' or $action === 'EMAIL_LINK')) {
             $param = array();
+
+            $info = '';
+            $count = 0;
+            if($this->child) {
+                if($this->master['show_sql'] != '') {
+                    $sql = str_replace('{KEY_VAL}',$this->db->escapeSql($this->master['key_val']),$this->master['show_sql']);
+                    $info .= $this->db->readSqlValue($sql);  
+                } else {
+                    $info .= $this->master['table'].' ID['.$this->master['key_val'].']';
+                }
+            } else {
+                $info .= $this->table.': '.$this->row_name_plural;
+            }
+
             if($action === 'EMAIL') {
+                $count = count($action_files);
                 $param['attach'] = $action_files;
-                $body = 'Please see attached documents from '.SITE_NAME;
+                $body = 'Please see '.$count.' attached documents from '.SITE_NAME."\r\n".
+                        'For '.$info."\r\n";
             } 
             if($action === 'EMAIL_LINK') {
-                $body = SITE_NAME.': Please click links to download files. (NB you will need to be a logged in user) '."\r\n";
+                $count = count($action_links);
+                $body = SITE_NAME.': Please click links to download '.$count.' files. (NB you will need to be a logged in user) '."\r\n".
+                       'For '.$info."\r\n";
                 foreach($action_links as $link) {
                     $body .= $link['name'].":\r\n".
                              $link['url']."\r\n";
                 }
-            }    
+            }  
+        
 
-            $from = ''; //default will be used
-            $to = $action_email;
+            /*
             if($this->child) {
                 $subject = SITE_NAME.' '.$this->master['table'].' id['.$this->master['key_val'].'] : '.$this->row_name_plural;
             } else {    
                 $subject = SITE_NAME.' '.$this->table.': '.$this->row_name_plural;
-            }    
+            } 
+            */
+
+            $from = ''; //default will be used
+            $to = $action_email;
+            $subject = SITE_NAME.', '.$info;
             
             $mailer = $this->getContainer('mail');
             if($mailer->sendEmail($from,$to,$subject,$body,$error_tmp,$param)) {
-                $this->addMessage('SUCCESS sending files to['.$to.']'); 
+                $this->addMessage('SUCCESS sending '.$count.' files to['.$to.']'); 
             } else {
-                $this->addError('FAILURE emailing files to['.$to.']:'.$error_tmp); 
+                $this->addError('FAILURE emailing '.$count.' files to['.$to.']:'.$error_tmp); 
             }
         }  
         

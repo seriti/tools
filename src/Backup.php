@@ -39,9 +39,11 @@ class Backup extends Model
     protected $mode = 'list';
     protected $time_out = 120; //default timeout in seconds
     protected $actions = array();
-    protected $exclude_table = array(); //table to exclude from database backups
+    protected $exclude_table = array(); //tables to exclude from entire database backups
+    protected $include_table = array(); //tables to include in database backups while ignoring other tables
     protected $path = array(); //local directories
     protected $exclude_sub_dir = array(); //local source sub-directories to ignore for source code backups
+    protected $include_sub_dir = array(); //local source sub-directories to include for source code backups while ignoring others
     protected $backup = array(); //backup locations source=>LOCAL/AMAZON
     protected $add_param = array();
     protected $location = '';
@@ -130,7 +132,7 @@ class Backup extends Model
         $this->setupAccess($this->user_access_level);
     }  
     
-    //configure which directories to ignore when backing up source
+    //configure which directories or tables to EXCLUDE when backing up entire database/folder
     public function setupIgnore($type = 'DEFAULT',$value = '') 
     {
         if($type === 'DEFAULT') {
@@ -150,7 +152,26 @@ class Backup extends Model
             $this->exclude_sub_dir = [];
             $this->exclude_table = [];
         }
+    }
+
+    //configure which sub-directories or tables to INCLUDE while ignoring all other directories/tables
+    public function setupInclude($type = 'TABLE',$value = '') 
+    {
+        //NB: include_sub_dir logic not applied anywhere yet
+        if($type === 'SUB_DIRECTORY' and $value !== '') { 
+            if(!in_array($value,$this->include_sub_dir)) $this->include_sub_dir[] = $value;
+        }
+        
+        if($type === 'TABLE' and $value !== '') {
+            if(!in_array($value,$this->include_table)) $this->include_table[] = $value;
+        }
+             
+        if($type === 'RESET') {
+            $this->include_sub_dir = [];
+            $this->include_table = [];
+        }
     } 
+     
     
     //define xtra DBs that are not part of primary db, host should be on same server.
     public function addDatabase($type,$param)
@@ -665,10 +686,12 @@ class Backup extends Model
     //NB: this is intentionally independant of class so can be used as seriti_backup::get_command()
     public static function getCommand($type,$param) {
         $command = '';
-        //dumps mysql tables to a .sql.gz file
+        //dumps ALL mysql tables (except those specifically excluded) to a .sql.gz file
         if($type === 'MYSQLDUMP') {
-            $command = 'mysqldump --opt -h'.$param['db_host'].' -u'.$param['db_user'].' -p'.$param['db_password'].' '.$param['db_name'].' ';
+            //-no-tablespaces added to prevent Access denied error due to PROCESS priveleges being required by mysqldump since mysql 8.0.21
+            $command = 'mysqldump --opt --no-tablespaces -h'.$param['db_host'].' -u'.$param['db_user'].' -p'.$param['db_password'].' '.$param['db_name'].' ';
             if(isset($param['exclude_table'])) {
+                //NB: table name MUST include db_name qualifier
                 if(is_array($param['exclude_table'])) {
                     foreach($param['exclude_table'] as $table) {
                         $command .= '--ignore-table='.$param['db_name'].'.'.$table.' ';
@@ -679,6 +702,23 @@ class Backup extends Model
             }  
             $command .= ' | gzip > '.$param['file_path'];
         }
+
+        //dumps ONLY mysql tables specified to a .sql.gz file
+        if($type === 'MYSQLDUMP_TABLES') {
+            $command = 'mysqldump --opt --no-tablespaces -h'.$param['db_host'].' -u'.$param['db_user'].' -p'.$param['db_password'].' '.$param['db_name'].' ';
+            if(isset($param['include_table'])) {
+                //NB: unlike --ignore-table the db_name must NOT be included in table name list
+                if(is_array($param['include_table'])) {
+                    foreach($param['include_table'] as $table) {
+                        $command .= $table.' ';
+                    }
+                } elseif($param['include_table'] != '') {
+                    $command .= $param['include_table'].' ';
+                }  
+            }  
+            $command .= ' | gzip > '.$param['file_path'];
+        }
+
         //reads contained sql commands after unzipping file
         if($type === 'MYSQL') {
             //NB gunzip -c option keeps original .gz file
@@ -719,6 +759,10 @@ class Backup extends Model
     //NB: backup a database independant of backup table to external source (generally not called directly from UI)
     public function backupAnyDatabase($param) {
         $html = '';
+        
+        if(!isset($param['type'])) $param['type'] = 'MYSQLDUMP'; 
+        //'MYSQLDUMP' default to backup ALL tables except those excluded
+        //'MYSQLDUMP_TABLES' only backup included tables
 
         if(isset($param['db_default']) and $param['db_default'] == true) {
             $db = $this->getContainer('config')->get('db');
@@ -726,14 +770,24 @@ class Backup extends Model
             $param['db_user'] = $db['user'];
             $param['db_password'] = $db['password'];
             $param['db_name'] = $db['name'];
-            $param['exclude_table'] = $this->exclude_table;
+            $param['exclude_table'] = $this->exclude_table; 
+            $param['include_table'] = $this->include_table;
         } else {
             if(!isset($param['db_host'])) $this->addError('No DB host specified');
             if(!isset($param['db_name'])) $this->addError('No DB name specified');
             if(!isset($param['db_user'])) $this->addError('No DB user specified');
             if(!isset($param['db_password'])) $this->addError('No DB password specified');
             if(!isset($param['exclude_table'])) $param['exclude_table'] = [];
+            if(!isset($param['include_table'])) $param['include_table'] = [];
         }
+
+        if($param['type'] === 'MYSQLDUMP_TABLES' and !isset($param['name_tables'])) {
+            $param['name_tables'] = '_';
+            foreach($param['include_table'] as $table) {
+                $param['name_tables'] .= str_replace(' ','_',$table).'_';
+            }
+        }
+
 
         //NB: if directory specified must have trailing "/" included
         if(!isset($param['file_dir'])) {
@@ -753,6 +807,7 @@ class Backup extends Model
         if(!isset($param['file_name'])){
             if(!isset($param['name_suffix'])) $param['name_suffix'] = 'DATE';
             if(!isset($param['name_prefix'])) $param['name_prefix'] = $param['db_name'];
+            if(!isset($param['name_tables'])) $param['name_tables'] = '';
             
             if($param['name_suffix'] === 'DATE') $suffix = date('Y-m-d');
             //use these for rolling backups that overwrite previous ones as cycle repeats
@@ -760,14 +815,14 @@ class Backup extends Model
             if($param['name_suffix'] === 'WEEK') $suffix = 'w'.date('W'); //1-52
             if($param['name_suffix'] === 'MONTH') $suffix = 'm'.date('m'); //01-12
                         
-            $file_name = $param['name_prefix'].'_'.$suffix.'.sql.gz';
+            $file_name = $param['name_prefix'].$param['name_tables'].'_'.$suffix.'.sql.gz';
         } else {
             $file_name = $param['file_name'].'.sql.gz';
         }
         
         $param['file_path'] = $param['file_dir'].$file_name;
         
-        $command = $this->getCommand('MYSQLDUMP',$param);
+        $command = $this->getCommand($param['type'],$param);
         system($command,$return_val);
         if($return_val === false) {
             $this->addError('Error backing up database: '.$return_val);
