@@ -365,14 +365,14 @@ class Form
         
         if(isset($param['xtra'])) {
             if(is_array($param['xtra'])) { //NB assumes an associative array
-                foreach($param['xtra'] as $key => $name) {
+                foreach($param['xtra'] as $key => $xtra_str) {
                     if($key == $value) {
                         $select = 'selected';
                         $value_found = true;
                     } else {
                         $select = '';
                     }  
-                    $option = '<option value="'.$key.'" '.$select.' >'.$name.'</option>';
+                    $option = '<option value="'.$key.'" '.$select.' >'.$xtra_str.'</option>';
                     $html .= $option;
                 } 
             } else {  

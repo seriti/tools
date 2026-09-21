@@ -56,6 +56,13 @@ class Image
             case 'png' : $image_orig = imagecreatefrompng($from_path); break;
             case 'jpeg': $image_orig = imagecreatefromjpeg($from_path); break;
         }
+
+        //invalid or other image issues
+        if(!$image_orig) {
+            $e = error_get_last();
+            $error .= 'Error processing image: '.$e['message'];
+            return false;
+        }
         
         //resize from original image src=source dst=destination
         if($crop) { 

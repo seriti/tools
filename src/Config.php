@@ -27,7 +27,7 @@ class Config
         define(__NAMESPACE__.'\AUDIT',AUDIT); //boolean
         define(__NAMESPACE__.'\STORAGE',STORAGE); // 'S3' or 'LOCAL'
 
-        define(__NAMESPACE__.'\CURRENCY_SYMBOL',CURRENCY_SYMBOL);
+        define(__NAMESPACE__.'\CURRENCY_SYMBOL',SERITI_CURRENCY_SYMBOL);
         
         //NB: system tables have required cols, see TableStructures class
         define(__NAMESPACE__.'\TABLE_SYSTEM',TABLE_SYSTEM);

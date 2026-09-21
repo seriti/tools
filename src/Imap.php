@@ -65,11 +65,12 @@ Class Imap
             $message['from'] = $header->from[0]->mailbox.'@'.$header->from[0]->host;
             $message['to_name'] = $header->toaddress;
             $message['to'] = $header->to[0]->mailbox.'@'.$header->to[0]->host;
-            $message['subject'] = $header->subject;
+            $message['subject'] = mb_decode_mimeheader($header->subject);
         }
                 
         if($options['body'] or $options['attachments']) {
             $structure = \imap_fetchstructure($conn,$msg_id,FT_UID);
+            
             if(!isset($structure->parts)) {  
                 $part_no = '0';
                 $part = $structure;
@@ -102,7 +103,7 @@ Class Imap
         }
                         
         //ATTACHMENTS
-        if($options['attachments'] and isset($part->disposition) and $part->disposition == "ATTACHMENT") {
+        if($options['attachments'] and isset($part->disposition) and strtolower($part->disposition) == "attachment") {   //Gmail uses "ATTACHMENT"
             $data = \imap_fetchbody($conn,$msg_id,$part_no,FT_UID);
             $data = self::imapDecode($data,$part->type);
             

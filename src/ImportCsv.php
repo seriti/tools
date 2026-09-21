@@ -507,6 +507,8 @@ class ImportCsv {
         $error = '';
         $secure = true;
 
+        $value = trim($value);
+
         if($type === 'DATE:YYYYMMDD') {
             $value_mod = Date::convertDate($value,'YYYYMMDD','YYYY-MM-DD',$error);
             if($error !== '') {

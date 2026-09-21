@@ -248,6 +248,11 @@ class User extends Model
         return $this->access_level;
     }
 
+    public function getAccessZone()
+    {
+        return $this->access_zone;
+    }
+
     public function getAccessLevels()
     {
         return $this->access_levels;

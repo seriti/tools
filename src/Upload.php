@@ -607,7 +607,7 @@ class Upload extends Model
 
                     $html_action_item = Form::sqlList($sql,$this->db,'master_action_id',$this->master['action_id'],$param);
                 } else { 
-                    $param['class'] = $this->classes['search'];
+                    $param['class'] = $this->classes['action'];
                     $html_action_item = str_replace('_',' ',$this->master['key']).' '.
                                         Form::textInput('master_action_id',$this->master['action_id'],$param);
                 }

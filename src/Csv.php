@@ -144,6 +144,8 @@ class Csv
         
         $value = self::csvStrip($value);
         $value = Date::convertAnyDate($value,$options['sequence'],$options['format'],$error_str);
+
+        return $value;
     }  
     
     public static function booleanStrip($value,$options = array()) {
